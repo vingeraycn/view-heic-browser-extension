@@ -5,8 +5,6 @@ export default defineContentScript({
   matches: ["<all_urls>"],
   runAt: "document_end",
   async main() {
-    injectTestImage()
-
     console.log("Hello View HEIC.")
 
     replaceAllHEICImages()
