@@ -2,7 +2,7 @@
   "name": "view-heic",
   "description": "View HEIC Image as Normal Image in Your Browser",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
