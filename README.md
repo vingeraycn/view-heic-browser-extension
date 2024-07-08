@@ -1,4 +1,3 @@
-# WXT + React
-
-This template should help get you started developing with React in WXT.
 # view-heic-browser-extension
+
+View HEIC Image as Normal Image in Your Browser
