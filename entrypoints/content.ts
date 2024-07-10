@@ -32,7 +32,7 @@ function injectTestImage() {
 
 async function replaceAllHEICImages() {
   const images = document.querySelectorAll<HTMLImageElement>('img[src$=".HEIC"], img[src$=".heic"]')
-  console.log("replace all heic images", images)
+  // console.log("replace all heic images", images)
   for (const img of images) {
     try {
       const response = await fetch(img.src)
