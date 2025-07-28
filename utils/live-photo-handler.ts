@@ -168,28 +168,103 @@ export class LivePhotoHandler {
   }
 
   /**
-   * 从HEIC文件中提取帧（模拟实现）
-   * 实际项目中需要使用支持Live Photo的库
+   * 从HEIC文件中提取帧（改进的模拟实现）
+   * 创建具有视觉效果的动画帧
    */
   private async extractFrames(src: string): Promise<LivePhotoFrame[]> {
     try {
-      // TODO: 这里应该使用真正的Live Photo解析库
-      // 现在只是模拟多帧效果
       const response = await fetch(src)
       const blob = await response.blob()
 
-      // 模拟生成多个帧（实际应该从HEIC中提取）
-      const frames: LivePhotoFrame[] = []
-      for (let i = 0; i < 6; i++) {
-        frames.push({
-          blob: blob, // 实际应该是不同的帧
-          timestamp: i * 166, // 模拟时间戳
-        })
-      }
+      // 创建canvas来生成不同的帧效果
+      const img = new Image()
+      const objectURL = URL.createObjectURL(blob)
 
-      return frames
+      return new Promise((resolve, reject) => {
+        img.onload = async () => {
+          try {
+            const frames: LivePhotoFrame[] = []
+            const canvas = document.createElement("canvas")
+            const ctx = canvas.getContext("2d")
+
+            if (!ctx) {
+              console.warn("无法创建canvas上下文，回退到静态图片")
+              resolve([
+                {
+                  blob: blob,
+                  timestamp: 0,
+                },
+              ])
+              return
+            }
+
+            canvas.width = img.width
+            canvas.height = img.height
+
+            // 生成8帧动画效果
+            for (let i = 0; i < 8; i++) {
+              ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+              // 添加不同的视觉效果来模拟动画
+              const progress = i / 7 // 0 到 1
+
+              // 效果1: 轻微的缩放和透明度变化
+              const scale = 1 + Math.sin(progress * Math.PI * 2) * 0.02 // 轻微缩放
+              const alpha = 0.95 + Math.sin(progress * Math.PI * 2) * 0.05 // 轻微透明度变化
+
+              ctx.save()
+              ctx.globalAlpha = alpha
+              ctx.translate(canvas.width / 2, canvas.height / 2)
+              ctx.scale(scale, scale)
+              ctx.translate(-canvas.width / 2, -canvas.height / 2)
+
+              // 绘制原始图片
+              ctx.drawImage(img, 0, 0)
+
+              // 添加轻微的色彩变化
+              if (i % 2 === 1) {
+                ctx.globalCompositeOperation = "overlay"
+                ctx.fillStyle = `rgba(255, 255, 255, ${0.05 + progress * 0.05})`
+                ctx.fillRect(0, 0, canvas.width, canvas.height)
+              }
+
+              ctx.restore()
+
+              // 将canvas转换为blob
+              const frameBlob = await new Promise<Blob>((resolveBlob) => {
+                canvas.toBlob(
+                  (blob) => {
+                    resolveBlob(blob!)
+                  },
+                  "image/jpeg",
+                  0.8
+                )
+              })
+
+              frames.push({
+                blob: frameBlob,
+                timestamp: i * 125, // 每帧125ms间隔
+              })
+            }
+
+            // 清理资源
+            URL.revokeObjectURL(objectURL)
+            resolve(frames)
+          } catch (error) {
+            URL.revokeObjectURL(objectURL)
+            reject(error)
+          }
+        }
+
+        img.onerror = () => {
+          URL.revokeObjectURL(objectURL)
+          reject(new Error("图片加载失败"))
+        }
+
+        img.src = objectURL
+      })
     } catch (error) {
-      console.error("提取Live Photo帧失败:", error)
+      console.error("生成Live Photo帧失败:", error)
       return []
     }
   }

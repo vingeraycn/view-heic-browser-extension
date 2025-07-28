@@ -20,10 +20,12 @@
     "dev:test": "npm run build && npm run test:server"
   },
   "dependencies": {
+    "heic-decode": "^2.1.0",
     "heic-to": "^1.2.1",
     "lodash-es": "^4.17.21"
   },
   "devDependencies": {
+    "@types/heic-decode": "^1.1.2",
     "@types/lodash-es": "^4.17.12",
     "typescript": "^5.5.2",
     "wxt": "^0.18.10"

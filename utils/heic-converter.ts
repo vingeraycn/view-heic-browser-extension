@@ -1,5 +1,6 @@
 import { heicTo } from "heic-to"
 import { CONFIG, DATA_ATTRIBUTES, ERROR_MESSAGES } from "./constants"
+import { LivePhotoHandler } from "./live-photo-handler"
 import type { ConversionError, ConversionOptions, ConversionResult } from "./types"
 
 /**
@@ -9,6 +10,8 @@ export class HEICConverter {
   private processedImages = new WeakSet<HTMLImageElement>()
   private processingQueue = new Map<HTMLImageElement, Promise<void>>()
   private urlCache = new Map<string, string>()
+  private livePhotoHandler = new LivePhotoHandler()
+  private livePhotoCache = new Map<string, boolean>() // 缓存Live Photo检测结果
 
   /**
    * 检查图片是否已处理
@@ -23,6 +26,57 @@ export class HEICConverter {
   private markImageAsProcessed(img: HTMLImageElement): void {
     this.processedImages.add(img)
     img.setAttribute(DATA_ATTRIBUTES.PROCESSED, "true")
+  }
+
+  /**
+   * 专业的Live Photo检测 - 通过检测HEIC文件中的图像数量
+   * 如果包含多个图像，则为Live Photo
+   */
+  private async isLivePhoto(originalSrc: string): Promise<boolean> {
+    try {
+      // 检查缓存
+      if (this.livePhotoCache.has(originalSrc)) {
+        return this.livePhotoCache.get(originalSrc)!
+      }
+
+      // 动态导入heic-decode库（因为它可能不总是被使用）
+      const heicDecode = await import("heic-decode").catch(() => null)
+
+      if (!heicDecode) {
+        // 如果没有heic-decode库，回退到基本检测
+        console.warn("heic-decode 库未安装，无法准确检测 Live Photo")
+        this.livePhotoCache.set(originalSrc, false)
+        return false
+      }
+
+      // 获取HEIC文件数据
+      const response = await fetch(originalSrc)
+      const buffer = await response.arrayBuffer()
+
+      // 检测文件中的所有图像
+      const images = (await heicDecode.all({ buffer })) as any
+
+      // 如果包含多个图像，则为Live Photo
+      const isLive = images.length > 1
+
+      // 清理资源（dispose方法存在但类型声明中可能缺失）
+      if (typeof images.dispose === "function") {
+        images.dispose()
+      }
+
+      // 缓存结果
+      this.livePhotoCache.set(originalSrc, isLive)
+
+      if (isLive) {
+        console.log(`🎬 检测到 Live Photo: ${originalSrc}，包含 ${images.length} 个图像`)
+      }
+
+      return isLive
+    } catch (error) {
+      console.warn("Live Photo 检测失败，视为静态图片:", error)
+      this.livePhotoCache.set(originalSrc, false)
+      return false
+    }
   }
 
   /**
@@ -129,6 +183,15 @@ export class HEICConverter {
         img.src = objectURL
         img.classList.remove("heic-processing")
         img.classList.add("heic-converted")
+
+        // 检查是否为Live Photo并添加支持
+        if (await this.isLivePhoto(originalSrc)) {
+          this.livePhotoHandler.addLivePhotoSupport(img, originalSrc, {
+            hoverToPlay: true,
+            loop: true,
+            frameRate: 8,
+          })
+        }
 
         // 标记为已处理
         this.markImageAsProcessed(img)
@@ -295,5 +358,11 @@ export class HEICConverter {
     })
     this.urlCache.clear()
     this.processingQueue.clear()
+
+    // 清理Live Photo缓存
+    this.livePhotoCache.clear()
+
+    // 清理Live Photo处理器
+    this.livePhotoHandler.cleanup()
   }
 }
