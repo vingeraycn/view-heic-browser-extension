@@ -222,10 +222,10 @@
           <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <img src="./live-photo-test.heic" alt="Live Photo测试" class="w-full h-48 object-cover" />
             <div class="p-4">
-              <h4 class="font-semibold text-gray-800 mb-1">Live Photo</h4>
-              <p class="text-sm text-gray-600 mb-1">动态图片演示</p>
+              <h4 class="font-semibold text-gray-800 mb-1">多图HEIC</h4>
+              <p class="text-sm text-gray-600 mb-1">包含多张图片</p>
               <span class="inline-block px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">
-                📹 鼠标悬浮播放
+                📸 点击展开查看
               </span>
             </div>
           </div>
@@ -237,7 +237,7 @@
           <ul class="text-sm text-blue-700 space-y-1">
             <li>• <strong>未安装扩展</strong>：图片无法显示或显示为损坏图标</li>
             <li>• <strong>已安装扩展</strong>：图片自动转换为可查看的格式</li>
-            <li>• <strong>Live Photo</strong>：鼠标悬浮在动态图片上可查看播放效果</li>
+            <li>• <strong>多图HEIC</strong>：点击包含多张图片的HEIC文件可展开查看所有图片</li>
           </ul>
         </div>
       </section>
@@ -402,32 +402,46 @@
         filter: grayscale(0%);
       }
 
-      /* Live Photo 样式 */
-      .live-photo {
+      /* 多图HEIC样式 */
+      .multi-image {
         position: relative;
         cursor: pointer;
       }
 
-      .live-photo-indicator {
+      .multi-image-indicator {
         position: absolute;
         top: 8px;
         left: 8px;
-        background: rgba(0, 0, 0, 0.7);
+        background: rgba(0, 0, 0, 0.8);
         color: white;
-        padding: 2px 6px;
+        padding: 2px 8px;
         border-radius: 12px;
-        font-size: 10px;
+        font-size: 11px;
         font-weight: bold;
         pointer-events: none;
         z-index: 10;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
       }
 
-      .live-photo-playing {
-        animation: pulse 1.5s ease-in-out infinite;
+      .multi-image:hover .multi-image-indicator {
+        background: rgba(59, 130, 246, 0.9);
+        transform: scale(1.05);
+        transition: all 0.2s ease;
       }
 
-      .live-photo:hover .live-photo-indicator {
-        background: rgba(139, 69, 19, 0.9);
+      .multi-image-expanded {
+        animation: fadeIn 0.3s ease-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       /* 平滑滚动 */
@@ -497,8 +511,8 @@
           },
           {
             src: "./live-photo-test.heic",
-            name: "Live Photo",
-            description: "动态图片演示",
+            name: "多图HEIC",
+            description: "多图片文件展开",
           },
         ]
 

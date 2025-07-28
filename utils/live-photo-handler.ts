@@ -1,84 +1,78 @@
 /**
- * Live Photo (动态HEIC) 处理器
- * 支持鼠标悬浮播放动态HEIC图片
+ * 多图HEIC处理器
+ * 支持点击展开/折叠显示HEIC文件中的所有图片
  */
 
-export interface LivePhotoFrame {
+export interface MultiImageFrame {
   blob: Blob
-  timestamp: number
+  index: number
 }
 
-export interface LivePhotoOptions {
-  autoPlay: boolean
-  loop: boolean
-  frameRate: number // frames per second
-  hoverToPlay: boolean
+export interface MultiImageOptions {
+  showIndicator: boolean
+  expandOnClick: boolean
+  maxImagesPerRow: number
 }
 
-export class LivePhotoHandler {
-  private frames: Map<string, LivePhotoFrame[]> = new Map()
-  private animationFrames: Map<HTMLImageElement, number> = new Map()
-  private isAnimating: Map<HTMLImageElement, boolean> = new Map()
+export class MultiImageHandler {
+  private expandedImages = new WeakSet<HTMLImageElement>()
+  private originalContainers = new WeakMap<HTMLImageElement, HTMLElement>()
+  private imageFrames = new WeakMap<HTMLImageElement, MultiImageFrame[]>()
 
   /**
-   * 检测是否为Live Photo格式的HEIC
+   * 为多图HEIC添加展开功能
    */
-  async isLivePhoto(blob: Blob): Promise<boolean> {
-    try {
-      // 简单的启发式检测：Live Photo通常文件较大且包含多帧
-      // 实际项目中可能需要更复杂的格式检测
-      return blob.size > 500 * 1024 // 大于500KB的HEIC文件可能是Live Photo
-    } catch (error) {
-      return false
-    }
-  }
-
-  /**
-   * 为图片元素添加Live Photo悬浮播放功能
-   */
-  addLivePhotoSupport(img: HTMLImageElement, originalSrc: string, options: Partial<LivePhotoOptions> = {}): void {
-    const config: LivePhotoOptions = {
-      autoPlay: false,
-      loop: true,
-      frameRate: 12,
-      hoverToPlay: true,
+  async addMultiImageSupport(
+    img: HTMLImageElement,
+    originalSrc: string,
+    options: Partial<MultiImageOptions> = {}
+  ): Promise<void> {
+    const config: MultiImageOptions = {
+      showIndicator: true,
+      expandOnClick: true,
+      maxImagesPerRow: 4,
       ...options,
     }
 
-    // 添加Live Photo指示器
-    this.addLivePhotoIndicator(img)
+    try {
+      // 获取所有图像帧
+      const frames = await this.extractAllFrames(originalSrc)
+      if (frames.length <= 1) {
+        console.log("🖼️ 单图HEIC，跳过多图处理")
+        return
+      }
 
-    if (config.hoverToPlay) {
-      // 鼠标悬浮开始播放
-      img.addEventListener("mouseenter", () => {
-        this.startAnimation(img, originalSrc, config)
-      })
+      // 缓存图像帧
+      this.imageFrames.set(img, frames)
 
-      // 鼠标离开停止播放
-      img.addEventListener("mouseleave", () => {
-        this.stopAnimation(img)
-      })
-    }
+      // 添加多图指示器
+      if (config.showIndicator) {
+        this.addMultiImageIndicator(img, frames.length)
+      }
 
-    if (config.autoPlay) {
-      // 页面加载后自动播放
-      setTimeout(() => {
-        this.startAnimation(img, originalSrc, config)
-      }, 1000)
+      // 添加点击展开功能
+      if (config.expandOnClick) {
+        this.addClickToExpand(img, frames, config)
+      }
+
+      console.log(`📸 多图HEIC处理完成: ${frames.length} 张图片`)
+    } catch (error) {
+      console.warn("多图HEIC处理失败:", error)
     }
   }
 
   /**
-   * 添加Live Photo视觉指示器
+   * 添加多图指示器
    */
-  private addLivePhotoIndicator(img: HTMLImageElement): void {
-    // 为图片添加Live Photo样式类
-    img.classList.add("live-photo")
+  private addMultiImageIndicator(img: HTMLImageElement, count: number): void {
+    // 为图片添加多图样式类
+    img.classList.add("multi-image")
 
-    // 创建Live Photo标识
+    // 创建多图标识
     const indicator = document.createElement("div")
-    indicator.className = "live-photo-indicator"
-    indicator.innerHTML = "📹 LIVE"
+    indicator.className = "multi-image-indicator"
+    indicator.innerHTML = `📸 ${count}张`
+    indicator.title = `包含 ${count} 张图片，点击展开查看`
 
     // 将指示器添加到图片容器中
     const container = img.parentElement
@@ -89,194 +83,213 @@ export class LivePhotoHandler {
   }
 
   /**
-   * 开始播放动画
+   * 添加点击展开功能
    */
-  private async startAnimation(img: HTMLImageElement, originalSrc: string, options: LivePhotoOptions): Promise<void> {
-    if (this.isAnimating.get(img)) {
-      return
-    }
+  private addClickToExpand(img: HTMLImageElement, frames: MultiImageFrame[], options: MultiImageOptions): void {
+    img.style.cursor = "pointer"
 
-    this.isAnimating.set(img, true)
-    img.classList.add("live-photo-playing")
-
-    try {
-      // 模拟从Live Photo中提取帧（实际应用中需要使用专门的库）
-      const frames = await this.extractFrames(originalSrc)
-
-      if (frames.length > 1) {
-        await this.playFrames(img, frames, options)
+    const clickHandler = () => {
+      if (this.expandedImages.has(img)) {
+        this.collapseImages(img)
+      } else {
+        this.expandImages(img, frames, options)
       }
-    } catch (error) {
-      console.warn("Live Photo播放失败:", error)
     }
+
+    img.addEventListener("click", clickHandler)
   }
 
   /**
-   * 停止播放动画
+   * 展开显示所有图片
    */
-  private stopAnimation(img: HTMLImageElement): void {
-    this.isAnimating.set(img, false)
-    img.classList.remove("live-photo-playing")
+  private expandImages(originalImg: HTMLImageElement, frames: MultiImageFrame[], options: MultiImageOptions): void {
+    const container = originalImg.parentElement
+    if (!container) return
 
-    const animationId = this.animationFrames.get(img)
-    if (animationId) {
-      cancelAnimationFrame(animationId)
-      this.animationFrames.delete(img)
-    }
-  }
+    // 保存原始容器状态
+    this.originalContainers.set(originalImg, container)
 
-  /**
-   * 播放帧序列
-   */
-  private async playFrames(img: HTMLImageElement, frames: LivePhotoFrame[], options: LivePhotoOptions): Promise<void> {
-    let currentFrame = 0
-    const frameInterval = 1000 / options.frameRate
+    // 隐藏原始图片
+    originalImg.style.display = "none"
 
-    const playNextFrame = () => {
-      if (!this.isAnimating.get(img)) {
-        return
-      }
+    // 创建展开容器
+    const expandedContainer = document.createElement("div")
+    expandedContainer.className = "multi-image-expanded"
+    expandedContainer.style.cssText = `
+      display: grid;
+      grid-template-columns: repeat(${Math.min(options.maxImagesPerRow, frames.length)}, 1fr);
+      gap: 8px;
+      margin: 8px 0;
+      border: 2px solid #3b82f6;
+      border-radius: 8px;
+      padding: 8px;
+      background: #f8fafc;
+    `
 
-      const frame = frames[currentFrame]
-      if (frame) {
-        const objectURL = URL.createObjectURL(frame.blob)
-        img.src = objectURL
+    // 添加标题
+    const header = document.createElement("div")
+    header.style.cssText = `
+      grid-column: 1 / -1;
+      text-align: center;
+      font-size: 14px;
+      color: #475569;
+      margin-bottom: 4px;
+      cursor: pointer;
+    `
+    header.innerHTML = `📸 共 ${frames.length} 张图片 (点击任意图片收起)`
+    expandedContainer.appendChild(header)
 
-        // 清理之前的URL
-        setTimeout(() => URL.revokeObjectURL(objectURL), frameInterval * 2)
-      }
+    // 创建并添加所有图片
+    frames.forEach((frame, index) => {
+      const imgElement = document.createElement("img")
+      const objectURL = URL.createObjectURL(frame.blob)
 
-      currentFrame++
+      imgElement.src = objectURL
+      imgElement.alt = `图片 ${index + 1}`
+      imgElement.style.cssText = `
+        width: 100%;
+        height: auto;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+      `
 
-      if (currentFrame >= frames.length) {
-        if (options.loop) {
-          currentFrame = 0
-        } else {
-          this.stopAnimation(img)
-          return
-        }
-      }
-
-      const animationId = requestAnimationFrame(() => {
-        setTimeout(playNextFrame, frameInterval)
+      // 添加悬浮效果
+      imgElement.addEventListener("mouseenter", () => {
+        imgElement.style.transform = "scale(1.05)"
+      })
+      imgElement.addEventListener("mouseleave", () => {
+        imgElement.style.transform = "scale(1)"
       })
 
-      this.animationFrames.set(img, animationId)
-    }
+      // 点击任意图片都能收起
+      imgElement.addEventListener("click", (e) => {
+        e.stopPropagation()
+        this.collapseImages(originalImg)
+      })
 
-    playNextFrame()
+      expandedContainer.appendChild(imgElement)
+
+      // 定时清理URL对象
+      setTimeout(() => URL.revokeObjectURL(objectURL), 30000)
+    })
+
+    // 插入到容器中
+    container.appendChild(expandedContainer)
+
+    // 标记为已展开
+    this.expandedImages.add(originalImg)
+
+    // 添加点击收起功能
+    header.addEventListener("click", () => {
+      this.collapseImages(originalImg)
+    })
   }
 
   /**
-   * 从HEIC文件中提取帧（改进的模拟实现）
-   * 创建具有视觉效果的动画帧
+   * 折叠收起图片
    */
-  private async extractFrames(src: string): Promise<LivePhotoFrame[]> {
+  private collapseImages(originalImg: HTMLImageElement): void {
+    const container = this.originalContainers.get(originalImg)
+    if (!container) return
+
+    // 移除展开容器
+    const expandedContainer = container.querySelector(".multi-image-expanded")
+    if (expandedContainer) {
+      expandedContainer.remove()
+    }
+
+    // 显示原始图片
+    originalImg.style.display = ""
+
+    // 移除展开标记
+    this.expandedImages.delete(originalImg)
+  }
+
+  /**
+   * 从HEIC文件中提取所有图像帧
+   */
+  private async extractAllFrames(src: string): Promise<MultiImageFrame[]> {
     try {
+      // 动态导入heic-decode库
+      const heicDecode = await import("heic-decode").catch(() => null)
+
+      if (!heicDecode) {
+        console.warn("heic-decode 库未安装，无法提取多图")
+        return []
+      }
+
+      // 获取HEIC文件数据和所有图像
       const response = await fetch(src)
-      const blob = await response.blob()
+      const buffer = await response.arrayBuffer()
+      const images = (await heicDecode.all({ buffer })) as any
 
-      // 创建canvas来生成不同的帧效果
-      const img = new Image()
-      const objectURL = URL.createObjectURL(blob)
+      // 确保images是一个有效的数组
+      if (!images || !Array.isArray(images)) {
+        console.warn("heic-decode返回的不是有效数组:", images)
+        return []
+      }
 
-      return new Promise((resolve, reject) => {
-        img.onload = async () => {
-          try {
-            const frames: LivePhotoFrame[] = []
-            const canvas = document.createElement("canvas")
-            const ctx = canvas.getContext("2d")
+      if (images.length <= 1) {
+        if (typeof (images as any).dispose === "function") {
+          ;(images as any).dispose()
+        }
+        return []
+      }
 
-            if (!ctx) {
-              console.warn("无法创建canvas上下文，回退到静态图片")
-              resolve([
-                {
-                  blob: blob,
-                  timestamp: 0,
+      // 转换每个图像为blob
+      const frames: MultiImageFrame[] = []
+      for (let i = 0; i < images.length; i++) {
+        try {
+          const imageData = await images[i].decode()
+
+          // 创建canvas并绘制图像数据
+          const canvas = document.createElement("canvas")
+          const ctx = canvas.getContext("2d")
+
+          if (ctx && imageData.data) {
+            canvas.width = imageData.width
+            canvas.height = imageData.height
+
+            const imgData = ctx.createImageData(imageData.width, imageData.height)
+            // 确保imageData.data是Uint8ClampedArray类型
+            if (imageData.data instanceof Uint8ClampedArray) {
+              imgData.data.set(imageData.data)
+            } else {
+              console.warn("图像数据格式不正确:", typeof imageData.data)
+              continue
+            }
+            ctx.putImageData(imgData, 0, 0)
+
+            // 转换为blob
+            const blob = await new Promise<Blob>((resolve) => {
+              canvas.toBlob(
+                (blob) => {
+                  resolve(blob!)
                 },
-              ])
-              return
-            }
+                "image/jpeg",
+                0.9
+              )
+            })
 
-            canvas.width = img.width
-            canvas.height = img.height
-
-            // 生成10帧更明显的动画效果
-            for (let i = 0; i < 10; i++) {
-              ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-              // 添加更明显的视觉效果
-              const progress = i / 9 // 0 到 1
-
-              // 更明显的缩放效果 (1.0 到 1.1)
-              const scale = 1 + Math.sin(progress * Math.PI * 4) * 0.05
-
-              // 更明显的透明度变化 (0.8 到 1.0)
-              const alpha = 0.8 + Math.sin(progress * Math.PI * 2) * 0.2
-
-              // 添加微妙的旋转效果
-              const rotation = Math.sin(progress * Math.PI * 2) * 0.02
-
-              ctx.save()
-              ctx.globalAlpha = alpha
-
-              // 应用变换
-              ctx.translate(canvas.width / 2, canvas.height / 2)
-              ctx.rotate(rotation)
-              ctx.scale(scale, scale)
-              ctx.translate(-canvas.width / 2, -canvas.height / 2)
-
-              // 绘制原始图片
-              ctx.drawImage(img, 0, 0)
-
-              // 添加颜色叠加效果，每隔一帧变化
-              if (i % 3 === 1) {
-                ctx.globalCompositeOperation = "overlay"
-                ctx.fillStyle = `rgba(100, 150, 255, ${0.1 + progress * 0.1})`
-                ctx.fillRect(0, 0, canvas.width, canvas.height)
-              } else if (i % 3 === 2) {
-                ctx.globalCompositeOperation = "overlay"
-                ctx.fillStyle = `rgba(255, 200, 100, ${0.1 + progress * 0.1})`
-                ctx.fillRect(0, 0, canvas.width, canvas.height)
-              }
-
-              ctx.restore()
-
-              // 将canvas转换为blob
-              const frameBlob = await new Promise<Blob>((resolveBlob) => {
-                canvas.toBlob(
-                  (blob) => {
-                    resolveBlob(blob!)
-                  },
-                  "image/jpeg",
-                  0.85
-                )
-              })
-
-              frames.push({
-                blob: frameBlob,
-                timestamp: i * 100, // 每帧100ms間隔，更快的播放速度
-              })
-            }
-
-            // 清理资源
-            URL.revokeObjectURL(objectURL)
-            resolve(frames)
-          } catch (error) {
-            URL.revokeObjectURL(objectURL)
-            reject(error)
+            frames.push({
+              blob,
+              index: i,
+            })
           }
+        } catch (error) {
+          console.warn(`提取第 ${i + 1} 张图片失败:`, error)
         }
+      }
 
-        img.onerror = () => {
-          URL.revokeObjectURL(objectURL)
-          reject(new Error("图片加载失败"))
-        }
+      // 清理资源
+      if (typeof (images as any).dispose === "function") {
+        ;(images as any).dispose()
+      }
 
-        img.src = objectURL
-      })
+      return frames
     } catch (error) {
-      console.error("生成Live Photo帧失败:", error)
+      console.error("提取多图帧失败:", error)
       return []
     }
   }
@@ -285,14 +298,8 @@ export class LivePhotoHandler {
    * 清理资源
    */
   cleanup(): void {
-    // 停止所有动画
-    for (const [img] of this.isAnimating) {
-      this.stopAnimation(img)
-    }
-
-    // 清理缓存
-    this.frames.clear()
-    this.animationFrames.clear()
-    this.isAnimating.clear()
+    // WeakMap和WeakSet会自动处理垃圾回收，无需手动清理
+    // 如果有特殊清理需求，可以在这里添加
+    console.log("🧹 多图处理器资源已清理")
   }
 }
