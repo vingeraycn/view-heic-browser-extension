@@ -53,7 +53,7 @@
   - `example.heic` (1.1MB) - 大文件性能测试
   - `small-test.heic` (873KB) - Nokia 标准文件
   - `medium-test.heic` (219KB) - 小文件快速转换
-  - `live-photo-test.heic` (219KB) - 多图 HEIC 展开测试
+  - `live-photo-test.heic` (2.9MB) - 真实多图 HEIC 展开测试
   - `corrupted-test.heic` (78B) - 错误处理测试
 - **零 CORS 问题**: 完全本地化的测试方案
 - **实时统计**: 转换成功/失败数量实时显示

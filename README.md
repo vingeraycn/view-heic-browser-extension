@@ -84,7 +84,7 @@ pnpm run dev:test
 | `example.heic`         | 1.1MB | 大文件性能测试     | ✅ 正常转换 |
 | `small-test.heic`      | 873KB | Nokia 标准格式     | ✅ 快速转换 |
 | `medium-test.heic`     | 219KB | 小文件处理         | ✅ 极速转换 |
-| `live-photo-test.heic` | 219KB | 多图 HEIC 展开显示 | 📸 点击展开 |
+| `live-photo-test.heic` | 2.9MB | 多图 HEIC 展开显示 | 📸 点击展开 |
 | `corrupted-test.heic`  | 78B   | 错误处理测试       | ❌ 优雅降级 |
 
 ## 🏗️ 项目架构
