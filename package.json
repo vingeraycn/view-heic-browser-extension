@@ -14,8 +14,9 @@
     "compile": "tsc --noEmit",
     "postinstall": "wxt prepare",
     "postversion": "git push origin HEAD && git push --tags origin HEAD && pnpm zip && open .output",
-    "test:server": "python3 -m http.server 8080 --bind 127.0.0.1 --directory docs",
-    "test:open": "open http://127.0.0.1:8080/test-improved.html"
+    "test:server": "node test-server.js",
+    "test:open": "open http://127.0.0.1:8080/test-improved.html",
+    "dev:test": "npm run build && npm run test:server"
   },
   "dependencies": {
     "heic-to": "^1.2.1",
