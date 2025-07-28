@@ -6,9 +6,9 @@
     <title>🖼️ View HEIC - 浏览器中无缝查看 HEIC 图片</title>
     <meta
       name="description"
-      content="现代化的浏览器扩展，支持在网页中直接查看 HEIC 图片和 Live Photos，零配置，高性能"
+      content="现代化的浏览器扩展，支持在网页中直接查看 HEIC 图片，包括多图HEIC文件展开显示，零配置，高性能"
     />
-    <meta name="keywords" content="HEIC,Live Photo,浏览器扩展,图片查看,Chrome,Firefox" />
+    <meta name="keywords" content="HEIC,多图HEIC,浏览器扩展,图片查看,Chrome,Firefox" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -36,7 +36,9 @@
       <div class="max-w-6xl mx-auto px-6 py-16">
         <div class="text-center">
           <h1 class="text-5xl font-bold mb-4 animate-fade-in">🖼️ View HEIC</h1>
-          <p class="text-xl mb-8 text-blue-100 animate-fade-in">在浏览器中无缝查看 HEIC 图片，支持动态 Live Photos</p>
+          <p class="text-xl mb-8 text-blue-100 animate-fade-in">
+            在浏览器中无缝查看 HEIC 图片，支持多图HEIC文件展开显示
+          </p>
           <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in">
             <a
               href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge"
@@ -82,8 +84,8 @@
           </div>
           <div class="text-center p-4">
             <div class="text-4xl mb-3">📱</div>
-            <h3 class="font-semibold text-gray-800 mb-2">Live Photos</h3>
-            <p class="text-gray-600 text-sm">支持动态 Live Photos，鼠标悬浮自动播放</p>
+            <h3 class="font-semibold text-gray-800 mb-2">多图展开</h3>
+            <p class="text-gray-600 text-sm">支持多图HEIC文件，点击展开显示所有图片</p>
           </div>
           <div class="text-center p-4">
             <div class="text-4xl mb-3">🔧</div>
@@ -220,7 +222,7 @@
           </div>
 
           <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <img src="./live-photo-test.heic" alt="Live Photo测试" class="w-full h-48 object-cover" />
+            <img src="./live-photo-test.heic" alt="多图HEIC测试" class="w-full h-48 object-cover" />
             <div class="p-4">
               <h4 class="font-semibold text-gray-800 mb-1">多图HEIC</h4>
               <p class="text-sm text-gray-600 mb-1">包含多张图片</p>

@@ -47,17 +47,17 @@ docs/
 - 🔄 动态加载测试
 - 📈 转换性能监控
 - 🐛 错误处理验证
-- 📹 Live Photos 功能测试
+- 📸 多图 HEIC 展开功能测试
 
 ## 🖼️ 测试文件说明
 
-| 文件名                 | 大小  | 用途                    |
-| ---------------------- | ----- | ----------------------- |
-| `example.heic`         | 1.1MB | 大文件性能测试          |
-| `small-test.heic`      | 873KB | Nokia 标准格式测试      |
-| `medium-test.heic`     | 219KB | 小文件快速转换测试      |
-| `live-photo-test.heic` | 219KB | Live Photo 动态效果测试 |
-| `corrupted-test.heic`  | 78B   | 错误处理和异常测试      |
+| 文件名                 | 大小  | 用途                   |
+| ---------------------- | ----- | ---------------------- |
+| `example.heic`         | 1.1MB | 大文件性能测试         |
+| `small-test.heic`      | 873KB | Nokia 标准格式测试     |
+| `medium-test.heic`     | 219KB | 小文件快速转换测试     |
+| `live-photo-test.heic` | 219KB | 多图 HEIC 展开显示测试 |
+| `corrupted-test.heic`  | 78B   | 错误处理和异常测试     |
 
 ## 📸 多图 HEIC 功能
 

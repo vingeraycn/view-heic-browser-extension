@@ -9,10 +9,11 @@
 
 ### ✨ 新增功能
 
-- **Live Photos 支持**: 添加动态 HEIC 图片播放功能
-  - 鼠标悬浮自动播放
-  - 60fps 流畅动画
-  - 循环播放和视觉指示器
+- **多图 HEIC 支持**: 添加多图 HEIC 文件展开显示功能
+  - 点击图片展开显示所有图像
+  - 网格布局，最多 4 列显示
+  - 流畅的展开/折叠动画
+  - 智能检测多图 HEIC 文件
 - **现代化测试环境**: 全新的 Node.js 测试服务器
   - 自动打开浏览器
   - 跨平台兼容性
@@ -30,7 +31,7 @@
   - 持续维护支持
 - **架构重构**: 完整的 TypeScript 模块化重写
   - `utils/heic-converter.ts` - 核心转换引擎
-  - `utils/live-photo-handler.ts` - Live Photos 处理
+  - `utils/live-photo-handler.ts` - 多图 HEIC 处理
   - `utils/types.ts` - 完整类型定义
   - `utils/constants.ts` - 配置常量管理
 - **内存管理优化**
@@ -52,7 +53,7 @@
   - `example.heic` (1.1MB) - 大文件性能测试
   - `small-test.heic` (873KB) - Nokia 标准文件
   - `medium-test.heic` (219KB) - 小文件快速转换
-  - `live-photo-test.heic` (219KB) - Live Photos 测试
+  - `live-photo-test.heic` (219KB) - 多图 HEIC 展开测试
   - `corrupted-test.heic` (78B) - 错误处理测试
 - **零 CORS 问题**: 完全本地化的测试方案
 - **实时统计**: 转换成功/失败数量实时显示
