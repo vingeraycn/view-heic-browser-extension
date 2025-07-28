@@ -4,11 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>🖼️ View HEIC - 浏览器中无缝查看 HEIC 图片</title>
-    <meta
-      name="description"
-      content="现代化的浏览器扩展，支持在网页中直接查看 HEIC 图片，包括多图HEIC文件展开显示，零配置，高性能"
-    />
-    <meta name="keywords" content="HEIC,多图HEIC,浏览器扩展,图片查看,Chrome,Firefox" />
+    <meta name="description" content="现代化的浏览器扩展，支持在网页中直接查看 HEIC 图片，零配置，高性能" />
+    <meta name="keywords" content="HEIC,浏览器扩展,图片查看,Chrome,Firefox" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -36,9 +33,7 @@
       <div class="max-w-6xl mx-auto px-6 py-16">
         <div class="text-center">
           <h1 class="text-5xl font-bold mb-4 animate-fade-in">🖼️ View HEIC</h1>
-          <p class="text-xl mb-8 text-blue-100 animate-fade-in">
-            在浏览器中无缝查看 HEIC 图片，支持多图HEIC文件展开显示
-          </p>
+          <p class="text-xl mb-8 text-blue-100 animate-fade-in">在浏览器中无缝查看 HEIC 图片，现代化的高性能解决方案</p>
           <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in">
             <a
               href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge"
@@ -84,8 +79,8 @@
           </div>
           <div class="text-center p-4">
             <div class="text-4xl mb-3">📱</div>
-            <h3 class="font-semibold text-gray-800 mb-2">多图展开</h3>
-            <p class="text-gray-600 text-sm">支持多图HEIC文件，点击展开显示所有图片</p>
+            <h3 class="font-semibold text-gray-800 mb-2">智能检测</h3>
+            <p class="text-gray-600 text-sm">自动识别网页中的 HEIC 图片并无缝转换</p>
           </div>
           <div class="text-center p-4">
             <div class="text-4xl mb-3">🔧</div>
@@ -222,13 +217,11 @@
           </div>
 
           <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <img src="./live-photo-test.heic" alt="多图HEIC测试" class="w-full h-48 object-cover" />
+            <img src="./corrupted-test.heic" alt="错误处理测试" class="w-full h-48 object-cover" />
             <div class="p-4">
-              <h4 class="font-semibold text-gray-800 mb-1">多图HEIC</h4>
-              <p class="text-sm text-gray-600 mb-1">包含多张图片</p>
-              <span class="inline-block px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">
-                📸 点击展开查看
-              </span>
+              <h4 class="font-semibold text-gray-800 mb-1">错误处理</h4>
+              <p class="text-sm text-gray-600 mb-1">损坏文件测试</p>
+              <span class="inline-block px-2 py-1 bg-red-100 text-red-800 text-xs rounded"> ❌ 优雅降级 </span>
             </div>
           </div>
         </div>
@@ -239,7 +232,7 @@
           <ul class="text-sm text-blue-700 space-y-1">
             <li>• <strong>未安装扩展</strong>：图片无法显示或显示为损坏图标</li>
             <li>• <strong>已安装扩展</strong>：图片自动转换为可查看的格式</li>
-            <li>• <strong>多图HEIC</strong>：点击包含多张图片的HEIC文件可展开查看所有图片</li>
+            <li>• <strong>错误处理</strong>：损坏文件会显示友好的错误提示</li>
           </ul>
         </div>
       </section>
@@ -404,48 +397,6 @@
         filter: grayscale(0%);
       }
 
-      /* 多图HEIC样式 */
-      .multi-image {
-        position: relative;
-        cursor: pointer;
-      }
-
-      .multi-image-indicator {
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: bold;
-        pointer-events: none;
-        z-index: 10;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-      }
-
-      .multi-image:hover .multi-image-indicator {
-        background: rgba(59, 130, 246, 0.9);
-        transform: scale(1.05);
-        transition: all 0.2s ease;
-      }
-
-      .multi-image-expanded {
-        animation: fadeIn 0.3s ease-out;
-      }
-
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(-10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
       /* 平滑滚动 */
       html {
         scroll-behavior: smooth;
@@ -512,9 +463,9 @@
             description: "快速转换演示",
           },
           {
-            src: "./live-photo-test.heic",
-            name: "多图HEIC",
-            description: "多图片文件展开",
+            src: "./corrupted-test.heic",
+            name: "错误处理测试",
+            description: "损坏文件处理",
           },
         ]
 

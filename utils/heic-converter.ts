@@ -1,6 +1,5 @@
 import { heicTo } from "heic-to"
 import { CONFIG, DATA_ATTRIBUTES, ERROR_MESSAGES } from "./constants"
-import { MultiImageHandler } from "./live-photo-handler"
 import type { ConversionError, ConversionOptions, ConversionResult } from "./types"
 
 /**
@@ -10,8 +9,6 @@ export class HEICConverter {
   private processedImages = new WeakSet<HTMLImageElement>()
   private processingQueue = new Map<HTMLImageElement, Promise<void>>()
   private urlCache = new Map<string, string>()
-  private multiImageHandler = new MultiImageHandler()
-  private multiImageCache = new Map<string, boolean>() // 缓存多图检测结果
 
   /**
    * 检查图片是否已处理
@@ -26,64 +23,6 @@ export class HEICConverter {
   private markImageAsProcessed(img: HTMLImageElement): void {
     this.processedImages.add(img)
     img.setAttribute(DATA_ATTRIBUTES.PROCESSED, "true")
-  }
-
-  /**
-   * 专业的多图HEIC检测 - 通过检测HEIC文件中的图像数量
-   * 如果包含多个图像，则为多图HEIC
-   */
-  private async isMultiImageHeic(originalSrc: string): Promise<boolean> {
-    try {
-      // 检查缓存
-      if (this.multiImageCache.has(originalSrc)) {
-        return this.multiImageCache.get(originalSrc)!
-      }
-
-      // 动态导入heic-decode库（因为它可能不总是被使用）
-      const heicDecode = await import("heic-decode").catch(() => null)
-
-      if (!heicDecode) {
-        // 如果没有heic-decode库，回退到基本检测
-        console.warn("heic-decode 库未安装，无法准确检测多图HEIC")
-        this.multiImageCache.set(originalSrc, false)
-        return false
-      }
-
-      // 获取HEIC文件数据
-      const response = await fetch(originalSrc)
-      const buffer = await response.arrayBuffer()
-
-      // 检测文件中的所有图像 - 使用正确的导入方式
-      const images = (await heicDecode.all({ buffer })) as any
-
-      // 确保images是一个有效的数组
-      if (!images || !Array.isArray(images)) {
-        console.warn("heic-decode返回的不是有效数组:", images)
-        this.multiImageCache.set(originalSrc, false)
-        return false
-      }
-
-      // 如果包含多个图像，则为多图HEIC
-      const isMulti = images.length > 1
-
-      // 清理资源 - dispose是通过Object.defineProperty添加的特殊方法
-      if (images && typeof (images as any).dispose === "function") {
-        ;(images as any).dispose()
-      }
-
-      // 缓存结果
-      this.multiImageCache.set(originalSrc, isMulti)
-
-      if (isMulti) {
-        console.log(`📸 检测到多图HEIC: ${originalSrc}，包含 ${images.length} 个图像`)
-      }
-
-      return isMulti
-    } catch (error) {
-      console.warn("多图HEIC检测失败，视为单图:", error)
-      this.multiImageCache.set(originalSrc, false)
-      return false
-    }
   }
 
   /**
@@ -190,15 +129,6 @@ export class HEICConverter {
         img.src = objectURL
         img.classList.remove("heic-processing")
         img.classList.add("heic-converted")
-
-        // 检查是否为多图HEIC并添加支持
-        if (await this.isMultiImageHeic(originalSrc)) {
-          await this.multiImageHandler.addMultiImageSupport(img, originalSrc, {
-            showIndicator: true,
-            expandOnClick: true,
-            maxImagesPerRow: 4,
-          })
-        }
 
         // 标记为已处理
         this.markImageAsProcessed(img)
@@ -365,11 +295,5 @@ export class HEICConverter {
     })
     this.urlCache.clear()
     this.processingQueue.clear()
-
-    // 清理多图HEIC缓存
-    this.multiImageCache.clear()
-
-    // 清理多图处理器
-    this.multiImageHandler.cleanup()
   }
 }
