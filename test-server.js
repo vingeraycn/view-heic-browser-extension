@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 
-const http = require("http")
-const fs = require("fs")
-const path = require("path")
-const { spawn } = require("child_process")
+import { spawn } from "child_process"
+import fs from "fs"
+import http from "http"
+import path from "path"
+import { fileURLToPath } from "url"
+
+// ESM 中获取当前文件目录的方法
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const PORT = 8080
 const DOCS_DIR = path.join(__dirname, "docs")
+const SITE_URL = `http://127.0.0.1:${PORT}/`
 const TEST_URL = `http://127.0.0.1:${PORT}/test-improved.html`
 
 // MIME类型映射
@@ -64,7 +70,7 @@ const server = http.createServer((req, res) => {
   }
 
   // 默认页面重定向
-  let filePath = path.join(DOCS_DIR, req.url === "/" ? "test-improved.html" : req.url)
+  let filePath = path.join(DOCS_DIR, req.url === "/" ? "index.html" : req.url)
 
   // 安全检查，防止目录遍历
   if (!filePath.startsWith(DOCS_DIR)) {
@@ -87,7 +93,7 @@ const server = http.createServer((req, res) => {
             <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px; text-align: center;">
               <h1>🔍 文件未找到</h1>
               <p>请求的文件 <code>${req.url}</code> 不存在</p>
-              <p><a href="/test-improved.html">返回测试页面</a></p>
+              <p><a href="/">返回首页</a> | <a href="/test-improved.html">测试页面</a></p>
             </body>
           </html>
         `)
@@ -108,8 +114,9 @@ const server = http.createServer((req, res) => {
 })
 
 server.listen(PORT, "127.0.0.1", () => {
-  console.log(`\n🚀 HEIC扩展测试服务器已启动:`)
-  console.log(`   本地地址: ${TEST_URL}`)
+  console.log(`\n🚀 HEIC扩展开发服务器已启动:`)
+  console.log(`   官网首页: ${SITE_URL}`)
+  console.log(`   测试页面: ${TEST_URL}`)
   console.log(`   文档目录: ${DOCS_DIR}`)
   console.log(`   Node.js版本: ${process.version}`)
   console.log(`\n📋 可用的测试文件:`)
@@ -127,14 +134,16 @@ server.listen(PORT, "127.0.0.1", () => {
     console.log(`   ⚠️  无法读取docs目录`)
   }
 
-  console.log(`\n💡 测试步骤:`)
+  console.log(`\n💡 使用说明:`)
+  console.log(`   🏠 官网首页: 项目介绍和功能演示`)
+  console.log(`   🧪 测试页面: 详细的功能测试环境`)
   console.log(`   1. 确保浏览器扩展已加载`)
-  console.log(`   2. 访问测试页面观察HEIC转换`)
+  console.log(`   2. 访问页面观察HEIC图片转换效果`)
   console.log(`   3. 按 Ctrl+C 停止服务器`)
 
   // 延迟2秒后自动打开浏览器
   setTimeout(() => {
-    openBrowser(TEST_URL)
+    openBrowser(SITE_URL)
   }, 2000)
 })
 

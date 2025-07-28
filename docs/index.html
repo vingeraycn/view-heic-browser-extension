@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🖼️ View HEIC - 浏览器中无缝查看 HEIC 图片</title>
+    <meta
+      name="description"
+      content="现代化的浏览器扩展，支持在网页中直接查看 HEIC 图片和 Live Photos，零配置，高性能"
+    />
+    <meta name="keywords" content="HEIC,Live Photo,浏览器扩展,图片查看,Chrome,Firefox" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            animation: {
+              "pulse-slow": "pulse 2s ease-in-out infinite",
+              "bounce-gentle": "bounce 1s ease-in-out infinite",
+              "fade-in": "fadeIn 0.6s ease-out",
+            },
+            keyframes: {
+              fadeIn: {
+                "0%": { opacity: "0", transform: "translateY(20px)" },
+                "100%": { opacity: "1", transform: "translateY(0)" },
+              },
+            },
+          },
+        },
+      }
+    </script>
+  </head>
+  <body class="bg-gray-50 font-sans">
+    <!-- Header / Hero Section -->
+    <header class="bg-gradient-to-br from-blue-600 to-purple-700 text-white">
+      <div class="max-w-6xl mx-auto px-6 py-16">
+        <div class="text-center">
+          <h1 class="text-5xl font-bold mb-4 animate-fade-in">🖼️ View HEIC</h1>
+          <p class="text-xl mb-8 text-blue-100 animate-fade-in">在浏览器中无缝查看 HEIC 图片，支持动态 Live Photos</p>
+          <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in">
+            <a
+              href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge"
+              target="_blank"
+              class="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors inline-flex items-center"
+            >
+              <span class="mr-2">🌐</span>
+              Chrome 应用商店安装
+            </a>
+            <a
+              href="https://github.com/vingeraycn/view-heic-browser-extension"
+              target="_blank"
+              class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors inline-flex items-center"
+            >
+              <span class="mr-2">⭐</span>
+              GitHub 开源项目
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="max-w-6xl mx-auto p-6">
+      <!-- Extension Status -->
+      <div class="bg-white rounded-lg shadow-sm p-6 mb-6 text-center">
+        <div id="extension-status" class="flex items-center justify-center space-x-2">
+          <span id="status-text" class="text-gray-700">检测扩展状态中...</span>
+          <span id="status-indicator" class="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+            检测中
+          </span>
+        </div>
+        <p class="text-sm text-gray-500 mt-2">安装扩展后，此页面的 HEIC 图片将自动转换显示</p>
+      </div>
+
+      <!-- Core Features -->
+      <section class="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">✨ 核心特性</h2>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="text-center p-4">
+            <div class="text-4xl mb-3">🚀</div>
+            <h3 class="font-semibold text-gray-800 mb-2">高性能转换</h3>
+            <p class="text-gray-600 text-sm">基于最新 libheif 1.20.1，转换速度提升 20-30%</p>
+          </div>
+          <div class="text-center p-4">
+            <div class="text-4xl mb-3">📱</div>
+            <h3 class="font-semibold text-gray-800 mb-2">Live Photos</h3>
+            <p class="text-gray-600 text-sm">支持动态 Live Photos，鼠标悬浮自动播放</p>
+          </div>
+          <div class="text-center p-4">
+            <div class="text-4xl mb-3">🔧</div>
+            <h3 class="font-semibold text-gray-800 mb-2">零配置</h3>
+            <p class="text-gray-600 text-sm">安装即用，自动检测并转换网页中的 HEIC 图片</p>
+          </div>
+          <div class="text-center p-4">
+            <div class="text-4xl mb-3">🛡️</div>
+            <h3 class="font-semibold text-gray-800 mb-2">安全可靠</h3>
+            <p class="text-gray-600 text-sm">完全本地处理，不上传任何数据到服务器</p>
+          </div>
+          <div class="text-center p-4">
+            <div class="text-4xl mb-3">⚡</div>
+            <h3 class="font-semibold text-gray-800 mb-2">内存优化</h3>
+            <p class="text-gray-600 text-sm">智能缓存和自动清理，避免内存泄漏问题</p>
+          </div>
+          <div class="text-center p-4">
+            <div class="text-4xl mb-3">🌐</div>
+            <h3 class="font-semibold text-gray-800 mb-2">跨站兼容</h3>
+            <p class="text-gray-600 text-sm">完美解决 CORS 问题，支持所有主流网站</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Installation Guide -->
+      <section class="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">📦 安装指南</h2>
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="border border-gray-200 rounded-lg p-6">
+            <h3 class="text-xl font-semibold text-green-600 mb-4">🌟 推荐：应用商店安装</h3>
+            <ol class="space-y-3 text-gray-700">
+              <li class="flex items-start">
+                <span
+                  class="bg-green-100 text-green-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-0.5"
+                  >1</span
+                >
+                <span
+                  >访问
+                  <a
+                    href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge"
+                    target="_blank"
+                    class="text-blue-600 hover:underline"
+                    >Chrome 应用商店</a
+                  ></span
+                >
+              </li>
+              <li class="flex items-start">
+                <span
+                  class="bg-green-100 text-green-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-0.5"
+                  >2</span
+                >
+                <span>点击"添加至 Chrome"按钮</span>
+              </li>
+              <li class="flex items-start">
+                <span
+                  class="bg-green-100 text-green-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-0.5"
+                  >3</span
+                >
+                <span>确认安装，立即享受 HEIC 图片查看</span>
+              </li>
+            </ol>
+          </div>
+          <div class="border border-gray-200 rounded-lg p-6">
+            <h3 class="text-xl font-semibold text-blue-600 mb-4">🛠️ 开发者：手动安装</h3>
+            <ol class="space-y-3 text-gray-700">
+              <li class="flex items-start">
+                <span
+                  class="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-0.5"
+                  >1</span
+                >
+                <span
+                  >从
+                  <a
+                    href="https://github.com/vingeraycn/view-heic-browser-extension"
+                    target="_blank"
+                    class="text-blue-600 hover:underline"
+                    >GitHub</a
+                  >
+                  克隆项目</span
+                >
+              </li>
+              <li class="flex items-start">
+                <span
+                  class="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-0.5"
+                  >2</span
+                >
+                <span>运行 <code class="bg-gray-100 px-2 py-1 rounded text-sm">pnpm build</code></span>
+              </li>
+              <li class="flex items-start">
+                <span
+                  class="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-0.5"
+                  >3</span
+                >
+                <span>在 Chrome 扩展页面加载 .output 文件夹</span>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- Live Demo Section -->
+      <section class="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 pb-2 border-b border-blue-200">🎬 功能演示</h2>
+        <p class="text-gray-600 mb-6">
+          以下 HEIC 图片将在安装扩展后自动转换。如果你还没有安装扩展，这些图片将无法正常显示：
+        </p>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6" id="demo-images">
+          <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <img src="./example.heic" alt="大文件HEIC测试" class="w-full h-48 object-cover" />
+            <div class="p-4">
+              <h4 class="font-semibold text-gray-800 mb-1">大文件处理</h4>
+              <p class="text-sm text-gray-600 mb-1">文件大小: 1.1MB</p>
+              <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded"> ✅ 性能测试 </span>
+            </div>
+          </div>
+
+          <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <img src="./small-test.heic" alt="标准HEIC测试" class="w-full h-48 object-cover" />
+            <div class="p-4">
+              <h4 class="font-semibold text-gray-800 mb-1">标准 HEIC</h4>
+              <p class="text-sm text-gray-600 mb-1">Nokia 测试文件</p>
+              <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded"> ✅ 标准格式 </span>
+            </div>
+          </div>
+
+          <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <img src="./medium-test.heic" alt="小文件HEIC测试" class="w-full h-48 object-cover" />
+            <div class="p-4">
+              <h4 class="font-semibold text-gray-800 mb-1">快速转换</h4>
+              <p class="text-sm text-gray-600 mb-1">文件大小: 219KB</p>
+              <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded"> ⚡ 极速处理 </span>
+            </div>
+          </div>
+
+          <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <img src="./live-photo-test.heic" alt="Live Photo测试" class="w-full h-48 object-cover" />
+            <div class="p-4">
+              <h4 class="font-semibold text-gray-800 mb-1">Live Photo</h4>
+              <p class="text-sm text-gray-600 mb-1">动态图片演示</p>
+              <span class="inline-block px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">
+                📹 鼠标悬浮播放
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Demo Instructions -->
+        <div class="mt-6 p-4 bg-blue-50 border-l-4 border-blue-400">
+          <h4 class="font-semibold text-blue-800 mb-2">📝 演示说明：</h4>
+          <ul class="text-sm text-blue-700 space-y-1">
+            <li>• <strong>未安装扩展</strong>：图片无法显示或显示为损坏图标</li>
+            <li>• <strong>已安装扩展</strong>：图片自动转换为可查看的格式</li>
+            <li>• <strong>Live Photo</strong>：鼠标悬浮在动态图片上可查看播放效果</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Interactive Testing -->
+      <section class="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 pb-2 border-b border-blue-200">🧪 交互式测试</h2>
+        <p class="text-gray-600 mb-4">测试动态加载的 HEIC 图片处理能力：</p>
+
+        <div class="p-4 bg-blue-50 rounded-lg">
+          <button
+            class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+            onclick="addDynamicImage()"
+          >
+            添加动态 HEIC 图片
+          </button>
+          <div id="dynamic-images" class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-4"></div>
+        </div>
+      </section>
+
+      <!-- Technical Details -->
+      <section class="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">🔧 技术栈</h2>
+        <div class="grid md:grid-cols-2 gap-6">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">核心技术</h3>
+            <ul class="space-y-2 text-gray-600">
+              <li class="flex items-center"><span class="text-green-500 mr-2">✓</span> WXT 现代扩展开发框架</li>
+              <li class="flex items-center"><span class="text-green-500 mr-2">✓</span> TypeScript 5.5.2 严格模式</li>
+              <li class="flex items-center"><span class="text-green-500 mr-2">✓</span> heic-to 1.2.1 转换引擎</li>
+              <li class="flex items-center"><span class="text-green-500 mr-2">✓</span> libheif 1.20.1 核心库</li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">性能优化</h3>
+            <ul class="space-y-2 text-gray-600">
+              <li class="flex items-center"><span class="text-blue-500 mr-2">⚡</span> 智能缓存避免重复转换</li>
+              <li class="flex items-center"><span class="text-blue-500 mr-2">⚡</span> 并发限制优化性能</li>
+              <li class="flex items-center"><span class="text-blue-500 mr-2">⚡</span> 自动内存清理</li>
+              <li class="flex items-center"><span class="text-blue-500 mr-2">⚡</span> 50MB 文件大小限制</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Conversion Statistics -->
+      <section class="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 pb-2 border-b border-blue-200">📊 转换统计</h2>
+        <div class="grid md:grid-cols-3 gap-4" id="conversion-stats">
+          <div class="text-center p-4 bg-green-50 rounded-lg">
+            <div class="text-2xl font-bold text-green-600" id="success-count">0</div>
+            <div class="text-sm text-green-800">成功转换</div>
+          </div>
+          <div class="text-center p-4 bg-red-50 rounded-lg">
+            <div class="text-2xl font-bold text-red-600" id="failure-count">0</div>
+            <div class="text-sm text-red-800">转换失败</div>
+          </div>
+          <div class="text-center p-4 bg-blue-50 rounded-lg">
+            <div class="text-2xl font-bold text-blue-600" id="total-count">0</div>
+            <div class="text-sm text-blue-800">总计处理</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="bg-gray-800 text-white rounded-lg p-6 text-center">
+        <div class="mb-4">
+          <h3 class="text-xl font-semibold mb-2">🖼️ View HEIC</h3>
+          <p class="text-gray-400">让 HEIC 图片在浏览器中无缝显示</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <a
+            href="https://github.com/vingeraycn/view-heic-browser-extension"
+            target="_blank"
+            class="text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            GitHub 仓库
+          </a>
+          <a
+            href="https://github.com/vingeraycn/view-heic-browser-extension/issues"
+            target="_blank"
+            class="text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            反馈问题
+          </a>
+          <a
+            href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge"
+            target="_blank"
+            class="text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            Chrome 应用商店
+          </a>
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-700 text-sm text-gray-400">
+          <p>
+            Made with ❤️ by
+            <a href="https://github.com/vingeraycn" target="_blank" class="text-blue-400 hover:text-blue-300"
+              >vingeray</a
+            >
+          </p>
+          <p class="mt-1">基于 MIT 许可证开源</p>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Custom Styles for HEIC Processing -->
+    <style>
+      /* HEIC图片处理状态样式 */
+      .heic-processing {
+        position: relative;
+        opacity: 0.7;
+        transition: opacity 0.3s ease;
+      }
+
+      .heic-processing::after {
+        content: "🔄 转换中...";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        z-index: 1000;
+        pointer-events: none;
+      }
+
+      .heic-converted {
+        opacity: 1;
+        transition: opacity 0.3s ease;
+      }
+
+      .heic-error {
+        position: relative;
+        border: 2px dashed #ef4444 !important;
+        opacity: 0.8;
+        filter: grayscale(50%);
+        cursor: pointer;
+      }
+
+      .heic-error::after {
+        content: "❌ 转换失败 - 点击查看原图";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(239, 68, 68, 0.9);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        z-index: 1000;
+        pointer-events: none;
+      }
+
+      .heic-error:hover {
+        opacity: 1;
+        filter: grayscale(0%);
+      }
+
+      /* Live Photo 样式 */
+      .live-photo {
+        position: relative;
+        cursor: pointer;
+      }
+
+      .live-photo-indicator {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: bold;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      .live-photo-playing {
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+
+      .live-photo:hover .live-photo-indicator {
+        background: rgba(139, 69, 19, 0.9);
+      }
+
+      /* 平滑滚动 */
+      html {
+        scroll-behavior: smooth;
+      }
+    </style>
+
+    <script>
+      let imageCount = 0
+
+      // 检测扩展状态
+      function checkExtensionStatus() {
+        const statusText = document.getElementById("status-text")
+        const statusIndicator = document.getElementById("status-indicator")
+
+        // 通过检查是否有HEIC处理相关的类名来判断扩展是否工作
+        setTimeout(() => {
+          const heicImages = document.querySelectorAll('img[src$=".heic"], img[src$=".HEIC"]')
+          let hasProcessed = false
+
+          heicImages.forEach((img) => {
+            if (
+              img.classList.contains("heic-converted") ||
+              img.classList.contains("heic-processing") ||
+              img.classList.contains("heic-error")
+            ) {
+              hasProcessed = true
+            }
+          })
+
+          if (hasProcessed) {
+            statusText.textContent = "✅ 扩展运行正常，HEIC 图片已自动转换"
+            statusIndicator.textContent = "正常运行"
+            statusIndicator.className = "px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
+          } else {
+            statusText.textContent = "⚠️ 未检测到扩展，请先安装 View HEIC 扩展"
+            statusIndicator.textContent = "需要安装"
+            statusIndicator.className = "px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800"
+          }
+        }, 2000)
+      }
+
+      // 添加动态图片
+      function addDynamicImage() {
+        imageCount++
+        const container = document.getElementById("dynamic-images")
+        const dynamicItem = document.createElement("div")
+        dynamicItem.className = "bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+
+        // 测试用例：循环使用不同的本地测试文件
+        const testCases = [
+          {
+            src: "./example.heic",
+            name: "大文件测试",
+            description: "1.1MB 文件转换",
+          },
+          {
+            src: "./small-test.heic",
+            name: "标准文件测试",
+            description: "Nokia 标准格式",
+          },
+          {
+            src: "./medium-test.heic",
+            name: "小文件测试",
+            description: "快速转换演示",
+          },
+          {
+            src: "./live-photo-test.heic",
+            name: "Live Photo",
+            description: "动态图片演示",
+          },
+        ]
+
+        const testCase = testCases[(imageCount - 1) % testCases.length]
+
+        dynamicItem.innerHTML = `
+                <img src="${testCase.src}" alt="动态HEIC图片 ${imageCount}" class="w-full h-48 object-cover">
+                <div class="p-4">
+                    <h4 class="font-semibold text-gray-800 mb-1">动态图片 #${imageCount}</h4>
+                    <p class="text-sm text-gray-600 mb-1">类型: ${testCase.name}</p>
+                    <p class="text-sm text-gray-600 mb-2">${testCase.description}</p>
+                    <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                        添加时间: ${new Date().toLocaleTimeString()}
+                    </span>
+                </div>
+            `
+        container.appendChild(dynamicItem)
+
+        // 更新统计
+        updateStats()
+      }
+
+      // 更新转换统计
+      function updateStats() {
+        setTimeout(() => {
+          const allImages = document.querySelectorAll('img[src$=".heic"], img[src$=".HEIC"]')
+          const successImages = document.querySelectorAll("img.heic-converted")
+          const errorImages = document.querySelectorAll("img.heic-error")
+
+          document.getElementById("total-count").textContent = allImages.length
+          document.getElementById("success-count").textContent = successImages.length
+          document.getElementById("failure-count").textContent = errorImages.length
+        }, 1000)
+      }
+
+      // 页面加载完成后执行
+      document.addEventListener("DOMContentLoaded", () => {
+        checkExtensionStatus()
+        updateStats()
+
+        // 定期更新统计信息
+        setInterval(updateStats, 3000)
+      })
+    </script>
+  </body>
+</html>
