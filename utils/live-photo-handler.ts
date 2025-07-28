@@ -201,30 +201,42 @@ export class LivePhotoHandler {
             canvas.width = img.width
             canvas.height = img.height
 
-            // 生成8帧动画效果
-            for (let i = 0; i < 8; i++) {
+            // 生成10帧更明显的动画效果
+            for (let i = 0; i < 10; i++) {
               ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-              // 添加不同的视觉效果来模拟动画
-              const progress = i / 7 // 0 到 1
+              // 添加更明显的视觉效果
+              const progress = i / 9 // 0 到 1
 
-              // 效果1: 轻微的缩放和透明度变化
-              const scale = 1 + Math.sin(progress * Math.PI * 2) * 0.02 // 轻微缩放
-              const alpha = 0.95 + Math.sin(progress * Math.PI * 2) * 0.05 // 轻微透明度变化
+              // 更明显的缩放效果 (1.0 到 1.1)
+              const scale = 1 + Math.sin(progress * Math.PI * 4) * 0.05
+
+              // 更明显的透明度变化 (0.8 到 1.0)
+              const alpha = 0.8 + Math.sin(progress * Math.PI * 2) * 0.2
+
+              // 添加微妙的旋转效果
+              const rotation = Math.sin(progress * Math.PI * 2) * 0.02
 
               ctx.save()
               ctx.globalAlpha = alpha
+
+              // 应用变换
               ctx.translate(canvas.width / 2, canvas.height / 2)
+              ctx.rotate(rotation)
               ctx.scale(scale, scale)
               ctx.translate(-canvas.width / 2, -canvas.height / 2)
 
               // 绘制原始图片
               ctx.drawImage(img, 0, 0)
 
-              // 添加轻微的色彩变化
-              if (i % 2 === 1) {
+              // 添加颜色叠加效果，每隔一帧变化
+              if (i % 3 === 1) {
                 ctx.globalCompositeOperation = "overlay"
-                ctx.fillStyle = `rgba(255, 255, 255, ${0.05 + progress * 0.05})`
+                ctx.fillStyle = `rgba(100, 150, 255, ${0.1 + progress * 0.1})`
+                ctx.fillRect(0, 0, canvas.width, canvas.height)
+              } else if (i % 3 === 2) {
+                ctx.globalCompositeOperation = "overlay"
+                ctx.fillStyle = `rgba(255, 200, 100, ${0.1 + progress * 0.1})`
                 ctx.fillRect(0, 0, canvas.width, canvas.height)
               }
 
@@ -237,13 +249,13 @@ export class LivePhotoHandler {
                     resolveBlob(blob!)
                   },
                   "image/jpeg",
-                  0.8
+                  0.85
                 )
               })
 
               frames.push({
                 blob: frameBlob,
-                timestamp: i * 125, // 每帧125ms间隔
+                timestamp: i * 100, // 每帧100ms間隔，更快的播放速度
               })
             }
 

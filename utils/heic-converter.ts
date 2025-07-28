@@ -189,7 +189,7 @@ export class HEICConverter {
           this.livePhotoHandler.addLivePhotoSupport(img, originalSrc, {
             hoverToPlay: true,
             loop: true,
-            frameRate: 8,
+            frameRate: 10, // 提高帧率，从8fps改为10fps
           })
         }
 
