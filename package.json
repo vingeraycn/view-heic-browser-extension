@@ -22,7 +22,7 @@
   "dependencies": {
     "heic-decode": "^2.1.0",
     "heic-to": "^1.2.1",
-    "lodash-es": "^4.17.23"
+    "lodash-es": "^4.18.1"
   },
   "devDependencies": {
     "@types/heic-decode": "^1.1.2",
