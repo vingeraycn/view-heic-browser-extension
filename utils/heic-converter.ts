@@ -79,7 +79,13 @@ export class HEICConverter {
       response = await fetch(src)
     } catch (error: any) {
       if (error.name === "TypeError") {
-        throw new Error(ERROR_MESSAGES.CORS_ERROR)
+        // TypeError from fetch can mean CORS blocked or a generic network failure
+        // (DNS, offline, etc.).  Use origin comparison as a best-effort heuristic:
+        // a cross-origin request failing with TypeError is most likely CORS;
+        // a same-origin TypeError is a plain network failure.
+        let isCrossOrigin = false
+        try { isCrossOrigin = new URL(src).origin !== location.origin } catch { /* ignore */ }
+        throw new Error(isCrossOrigin ? ERROR_MESSAGES.CORS_ERROR : ERROR_MESSAGES.NETWORK_ERROR)
       }
       throw new Error(ERROR_MESSAGES.NETWORK_ERROR)
     }
@@ -392,7 +398,7 @@ export class HEICConverter {
     img.setAttribute("data-error-type", errorType)
     img.setAttribute("data-error-message", displayMessage)
 
-    const clickHandler = (e: Event) => {
+    img.onclick = (e: MouseEvent) => {
       e.preventDefault()
       if (errorType === "cors") {
         const confirmed = confirm(
@@ -403,9 +409,6 @@ export class HEICConverter {
         window.open(originalSrc, "_blank")
       }
     }
-
-    img.removeEventListener("click", clickHandler)
-    img.addEventListener("click", clickHandler)
 
     console.warn("🔴 HEIC转换失败:", {
       src: originalSrc,

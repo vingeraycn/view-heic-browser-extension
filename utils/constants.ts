@@ -12,7 +12,7 @@ export const CONFIG = {
 // 选择器
 export const SELECTORS = {
   HEIC_IMAGES:
-    'img[src$=".HEIC"], img[src$=".heic"], img[src$=".HEIF"], img[src$=".heif"]',
+    'img[src*=".HEIC"], img[src*=".heic"], img[src*=".HEIF"], img[src*=".heif"]',
   PROCESSING_CLASS: "heic-processing",
   ERROR_CLASS: "heic-error",
 } as const

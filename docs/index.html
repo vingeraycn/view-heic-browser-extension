@@ -720,7 +720,7 @@ pnpm install</pre>
           </div>
         </div>
         <div class="border-t border-gray-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
-          <p>基于 <a href="https://github.com/vingeraycn/view-heic-browser-extension/blob/main/LICENSE" target="_blank" class="hover:text-white">MIT 许可证</a> 开源</p>
+          <p>基于 <a href="https://github.com/vingeraycn/view-heic-browser-extension/blob/main/LICENSE" target="_blank" rel="noopener" class="hover:text-white">MIT 许可证</a> 开源</p>
           <p>
             Made with ❤️ by
             <a href="https://github.com/vingeraycn" target="_blank" rel="noopener" class="text-indigo-400 hover:text-indigo-300 transition-colors">
@@ -739,24 +739,27 @@ pnpm install</pre>
       function detectExtension() {
         const banner = document.getElementById('ext-status-banner')
         setTimeout(() => {
-          const heicImgs = document.querySelectorAll(
-            'img[src$=".heic"], img[src$=".HEIC"], img[src$=".heif"], img[src$=".HEIF"]'
-          )
-          let active = false
-          heicImgs.forEach(img => {
-            if (
-              img.classList.contains('heic-converted') ||
-              img.classList.contains('heic-processing') ||
-              img.classList.contains('heic-error')
-            ) active = true
-          })
+          // Detect by class: after conversion the src becomes blob: so querying
+          // by src suffix would miss converted images.
+          const active = document.querySelector(
+            'img.heic-converted, img.heic-processing, img.heic-error'
+          ) !== null
 
           if (active) {
             banner.className = 'mb-8 rounded-xl p-4 text-center text-sm font-medium bg-green-50 border border-green-200 text-green-800 transition-all'
             banner.textContent = '✅ View HEIC 扩展运行正常，下方图片正在自动转换显示！'
           } else {
             banner.className = 'mb-8 rounded-xl p-4 text-center text-sm font-medium bg-amber-50 border border-amber-200 text-amber-800 transition-all'
-            banner.innerHTML = '⚠️ 未检测到扩展正在运行。请先 <a href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge" target="_blank" class="underline font-semibold hover:text-amber-900">安装 View HEIC 扩展</a> 后刷新本页面。'
+            banner.textContent = ''
+            const messagePrefix = document.createTextNode('⚠️ 未检测到扩展正在运行。请先 ')
+            const installLink = document.createElement('a')
+            installLink.href = 'https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge'
+            installLink.target = '_blank'
+            installLink.rel = 'noopener noreferrer'
+            installLink.className = 'underline font-semibold hover:text-amber-900'
+            installLink.textContent = '安装 View HEIC 扩展'
+            const messageSuffix = document.createTextNode(' 后刷新本页面。')
+            banner.append(messagePrefix, installLink, messageSuffix)
           }
 
           updateBadges()
@@ -788,11 +791,9 @@ pnpm install</pre>
 
       // ── Stats counter ─────────────────────────────────────────────
       function updateStats() {
-        const all = document.querySelectorAll(
-          'img[src$=".heic"], img[src$=".HEIC"], img[src$=".heif"], img[src$=".HEIF"]'
-        )
-        const ok = document.querySelectorAll('img.heic-converted')
-        const err = document.querySelectorAll('img.heic-error')
+        const all = document.querySelectorAll('.heic-card img')
+        const ok = document.querySelectorAll('.heic-card img.heic-converted')
+        const err = document.querySelectorAll('.heic-card img.heic-error')
         document.getElementById('total-count').textContent = all.length
         document.getElementById('success-count').textContent = ok.length
         document.getElementById('failure-count').textContent = err.length
