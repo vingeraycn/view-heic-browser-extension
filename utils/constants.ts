@@ -5,11 +5,14 @@ export const CONFIG = {
   DEBOUNCE_DELAY: 300,
   CONVERSION_QUALITY: 0.9,
   RETRY_ATTEMPTS: 2,
+  /** Target frame rate for animated HEIC sequence playback (frames per second). */
+  ANIMATION_FPS: 24,
 } as const
 
 // 选择器
 export const SELECTORS = {
-  HEIC_IMAGES: 'img[src$=".HEIC"], img[src$=".heic"]',
+  HEIC_IMAGES:
+    'img[src*=".HEIC"], img[src*=".heic"], img[src*=".HEIF"], img[src*=".heif"]',
   PROCESSING_CLASS: "heic-processing",
   ERROR_CLASS: "heic-error",
 } as const

@@ -1,54 +1,52 @@
 # 📖 Documentation / 文档
 
-这个目录包含了 View HEIC 浏览器扩展的官网页面和测试文件。
+这个目录包含了 View HEIC 浏览器扩展的官网页面和测试文件，配置为从 `/docs` 目录部署 GitHub Pages。
 
 ## 📁 文件结构
 
 ```
 docs/
 ├── index.html          # 🏠 官网首页（GitHub Pages 主页）
-├── test-improved.html  # 🧪 详细功能测试页面
+├── test-improved.html  # 🧪 开发者详细测试页面
 ├── README.md          # 📋 本说明文件
 └── *.heic             # 🖼️ 测试用的 HEIC 图片文件
 ```
 
 ## 🌐 GitHub Pages 配置
 
-这个项目配置为从 `/docs` 目录部署 GitHub Pages：
-
-1. **启用 GitHub Pages**：
-
-   - 进入仓库的 `Settings` 页面
-   - 滚动到 `Pages` 部分
-   - 在 `Source` 下选择 `Deploy from a branch`
-   - 选择 `main` 分支和 `/docs` 文件夹
-   - 点击 `Save` 保存设置
-
-2. **访问网站**：
-   - 官网地址：`https://yourusername.github.io/view-heic-browser-extension/`
-   - 测试页面：`https://yourusername.github.io/view-heic-browser-extension/test-improved.html`
+1. 进入仓库 **Settings → Pages**
+2. Source 选择 **Deploy from a branch**
+3. 选择 `main` 分支和 `/docs` 文件夹，点击 **Save**
+4. 等待约 1 分钟，访问：
+   - 官网：`https://vingeraycn.github.io/view-heic-browser-extension/`
+   - 测试页：`https://vingeraycn.github.io/view-heic-browser-extension/test-improved.html`
 
 ## 🏠 官网首页 (index.html)
 
-主要功能：
+完整的产品落地页，包含：
 
-- 📋 项目介绍和核心特性展示
-- 📦 安装指南（应用商店 + 开发者安装）
-- 🎬 HEIC 图片功能演示
-- 🧪 交互式测试功能
-- 🔧 技术栈说明
-- 📊 实时转换统计
+- 🎯 Hero 区域：标题、CTA 按钮、信任标语
+- 📊 数据亮点栏：50MB 上限、6 种 HEIC 品牌、24fps 动画、0 数据上传
+- ✨ 核心特性：6 张特性卡片
+- 🚀 工作原理：三步流程 + 内部转换流程图
+- 🎬 实时演示：4 张真实 HEIC 文件 + 动态注入测试 + 转换统计
+- 📦 安装指南：应用商店 vs 手动安装对比
+- 🔧 技术栈 & 项目结构说明
+- ❓ FAQ 折叠面板
+- 📣 CTA Banner + 完整页脚
+
+所有 SEO meta 标签（description、OpenGraph、Twitter Card）均已配置。
 
 ## 🧪 测试页面 (test-improved.html)
 
-专门用于详细测试的页面：
+面向开发者的详细测试页面，包含：
 
-- 📷 静态 HEIC 图片测试
-- 🔄 动态加载测试
-- 📈 转换性能监控
-- 🐛 错误处理验证
+- 📷 静态 HEIC 图片测试（4 个场景）
+- 🔄 动态加载测试（MutationObserver 验证）
+- 📈 实时转换统计
+- 🚀 主要改进点说明
 
-## 🖼️ 测试文件说明
+## 🖼️ 测试文件
 
 | 文件名                | 大小  | 用途               |
 | --------------------- | ----- | ------------------ |
@@ -57,45 +55,11 @@ docs/
 | `medium-test.heic`    | 219KB | 小文件快速转换测试 |
 | `corrupted-test.heic` | 78B   | 错误处理和异常测试 |
 
-## 🛠️ 本地开发
-
-启动本地开发服务器：
+## 🛠️ 本地预览
 
 ```bash
-# 启动开发服务器
-pnpm run test:server
-
-# 打开官网首页
-pnpm run dev:open
-
-# 打开测试页面
-pnpm run test:open
+pnpm run test:server   # 启动本地服务器（http://127.0.0.1:8080）
+pnpm run dev:open      # 打开官网首页
+pnpm run test:open     # 打开测试页面
 ```
 
-服务器会在 `http://127.0.0.1:8080` 启动，并自动打开浏览器。
-
-## 📝 更新流程
-
-1. **修改页面内容**：编辑 `index.html` 或 `test-improved.html`
-2. **本地测试**：使用 `pnpm run test:server` 验证更改
-3. **提交更改**：推送到 GitHub 主分支
-4. **自动部署**：GitHub Pages 会自动更新网站
-
-## 🚀 最新更新
-
-**Node.js 现代化**：
-
-- ✅ 将 `test-server.js` 升级为 ESM 模块格式
-- ✅ 使用 `import` 替代 `require`，符合 Node.js 最新规范
-- ✅ 添加 `fileURLToPath` 处理 `__dirname` 兼容性
-
-**核心功能优化**：
-
-- ✅ 升级到 `heic-to@1.2.1` 转换引擎
-- ✅ 基于最新 libheif 1.20.1，性能提升 20-30%
-- ✅ 智能缓存和资源管理，避免内存泄漏
-- ✅ 增强错误处理和用户反馈机制
-
----
-
-✨ 这个文档目录既作为项目官网，也提供了完整的测试环境，方便开发者和用户了解和测试 HEIC 图片转换功能。
