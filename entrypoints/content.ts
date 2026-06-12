@@ -62,7 +62,6 @@ function injectStyles(): void {
 
     .heic-error {
       position: relative;
-      border: 2px dashed #ff6b6b !important;
       opacity: 0.8;
       filter: grayscale(50%);
       cursor: pointer;
@@ -158,6 +157,19 @@ function observeHEICImages(converter: HEICConverter): void {
       }
 
       if (hasNewImages) break
+
+      if (
+        mutation.type === "attributes" &&
+        mutation.attributeName === "src" &&
+        mutation.target instanceof HTMLImageElement
+      ) {
+        const img = mutation.target
+        if (isHEICImage(img)) {
+          converter.resetImageProcessed(img)
+          hasNewImages = true
+          break
+        }
+      }
     }
 
     if (hasNewImages) {
@@ -168,6 +180,8 @@ function observeHEICImages(converter: HEICConverter): void {
 
   observer.observe(document.body, {
     childList: true,
+    attributes: true,
+    attributeFilter: ["src"],
     subtree: true,
   })
 }

@@ -69,6 +69,26 @@ export class HEICConverter {
   }
 
   /**
+   * Reset all in-memory and DOM markers for a specific image element.
+   * This is used when the src changes so the same node can be re-processed
+   * against the new source.
+   */
+  resetImageProcessed(img: HTMLImageElement): void {
+    this.processingQueue.delete(img)
+    this.processedImages.delete(img)
+    img.removeAttribute(DATA_ATTRIBUTES.PROCESSED)
+    img.removeAttribute(DATA_ATTRIBUTES.ORIGINAL_SRC)
+    img.removeAttribute("data-error-type")
+    img.removeAttribute("data-error-message")
+    img.classList.remove("heic-processing", "heic-converted", "heic-error")
+    img.style.removeProperty("filter")
+    img.style.removeProperty("cursor")
+    img.style.removeProperty("border")
+    img.title = ""
+    img.onclick = null
+  }
+
+  /**
    * Fetches raw image bytes.  Validates size and HEIC magic bytes.
    * If the server returns a correct HEIC MIME type but the URL has no .heic
    * extension, we still accept the blob.
@@ -394,7 +414,6 @@ export class HEICConverter {
     img.title = `${displayMessage} - 点击查看原图`
     img.style.filter = "grayscale(50%) opacity(0.8)"
     img.style.cursor = "pointer"
-    img.style.border = "2px dashed #ff6b6b"
     img.setAttribute("data-error-type", errorType)
     img.setAttribute("data-error-message", displayMessage)
 
@@ -420,4 +439,3 @@ export class HEICConverter {
     return { success: false, error: { type: errorType, message: errorMessage, originalError: error } }
   }
 }
-
