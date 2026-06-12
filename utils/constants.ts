@@ -23,6 +23,9 @@ export const DATA_ATTRIBUTES = {
   ORIGINAL_SRC: "data-original-src",
   PROCESSED: "data-heic-processed",
   ERROR_COUNT: "data-error-count",
+  PREVIOUS_FILTER: "data-heic-previous-filter",
+  PREVIOUS_CURSOR: "data-heic-previous-cursor",
+  PREVIOUS_TITLE: "data-heic-previous-title",
 } as const
 
 // 错误消息
