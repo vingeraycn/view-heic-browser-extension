@@ -5,6 +5,7 @@ export const CONFIG = {
   DEBOUNCE_DELAY: 300,
   CONVERSION_QUALITY: 0.9,
   RETRY_ATTEMPTS: 2,
+  ANIMATED_HEIC_PLAYBACK_ENABLED: false,
   /** Target frame rate for animated HEIC sequence playback (frames per second). */
   ANIMATION_FPS: 24,
 } as const

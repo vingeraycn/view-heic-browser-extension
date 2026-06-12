@@ -43,6 +43,25 @@ function isAnimatedHeicBuffer(buffer: ArrayBuffer): boolean {
   return HEIC_BRANDS_SEQUENCE.has(getHeicBrand(buffer))
 }
 
+function logStageTiming(src: string, stage: string, startTime: number): void {
+  const elapsedMs = Math.round(performance.now() - startTime)
+  console.debug("[View HEIC] conversion timing", { stage, elapsedMs, src })
+}
+
+function shouldRetryConversion(error: any): boolean {
+  const message = error?.message ?? ""
+  const nonRetryableMessages = [
+    ERROR_MESSAGES.INVALID_FORMAT,
+    ERROR_MESSAGES.FILE_TOO_LARGE,
+    ERROR_MESSAGES.CORS_ERROR,
+    "HEIF image not found",
+    "HEIF processing error",
+    "Could not parse HEIF file",
+  ]
+
+  return !nonRetryableMessages.some((deterministicError) => message.includes(deterministicError))
+}
+
 // ─── Converter ──────────────────────────────────────────────────────────────
 
 /**
@@ -94,6 +113,7 @@ export class HEICConverter {
    * extension, we still accept the blob.
    */
   private async fetchImageData(src: string): Promise<ArrayBuffer> {
+    const fetchStart = performance.now()
     let response: Response
     try {
       response = await fetch(src)
@@ -114,6 +134,9 @@ export class HEICConverter {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
+    logStageTiming(src, "fetch", fetchStart)
+
+    const blobStart = performance.now()
     const blob = await response.blob()
 
     if (blob.size > CONFIG.MAX_FILE_SIZE) {
@@ -121,6 +144,7 @@ export class HEICConverter {
     }
 
     const buffer = await blob.arrayBuffer()
+    logStageTiming(src, "read-blob", blobStart)
 
     // Accept if magic bytes confirm HEIC, or if the MIME type is heic/heif.
     const mimeOk =
@@ -140,11 +164,14 @@ export class HEICConverter {
 
   private async convertSingleFrame(
     buffer: ArrayBuffer,
+    src: string,
     options: ConversionOptions = {}
   ): Promise<string> {
-    const { quality = CONFIG.CONVERSION_QUALITY, format = "png" } = options
+    const { quality = CONFIG.CONVERSION_QUALITY, format = "jpeg" } = options
     const blob = new Blob([buffer])
+    const convertStart = performance.now()
     const result = await heicTo({ blob, type: `image/${format}`, quality })
+    logStageTiming(src, `convert-${format}`, convertStart)
     return URL.createObjectURL(result)
   }
 
@@ -160,6 +187,10 @@ export class HEICConverter {
     options: ConversionOptions = {}
   ): Promise<string | null> {
     try {
+      if (!CONFIG.ANIMATED_HEIC_PLAYBACK_ENABLED) {
+        return null
+      }
+
       // heic-decode is a Node-style CJS module; dynamic import lets Vite
       // bundle it and gives a clean fallback path if unavailable.
       const heicDecode = await import("heic-decode")
@@ -182,8 +213,10 @@ export class HEICConverter {
         return null
       }
 
-      // Decode all frames eagerly (keeps frames alive until we've drawn them)
-      const rawFrames = await Promise.all(frames.map((f) => f.decode()))
+      const rawFrames: DecodedFrameData[] = []
+      for (const frame of frames) {
+        rawFrames.push(await frame.decode())
+      }
       frames.dispose?.()
 
       const { width, height } = rawFrames[0]
@@ -214,7 +247,7 @@ export class HEICConverter {
 
       const drawFrame = () => {
         const f = rawFrames[frameIndex]
-        ctx.putImageData(new ImageData(f.data, f.width, f.height), 0, 0)
+        ctx.putImageData(new ImageData(new Uint8ClampedArray(f.data), f.width, f.height), 0, 0)
         frameIndex = (frameIndex + 1) % rawFrames.length
       }
 
@@ -301,7 +334,7 @@ export class HEICConverter {
         }
 
         // ── Single-frame path ──────────────────────────────────────────
-        const objectURL = await this.convertSingleFrame(buffer, options)
+        const objectURL = await this.convertSingleFrame(buffer, originalSrc, options)
 
         // Revoke any previous blob URL we set on this img
         if (img.src.startsWith("blob:") && img.src !== objectURL) {
@@ -318,6 +351,10 @@ export class HEICConverter {
       } catch (error: any) {
         lastError = error
         console.warn(`HEIC转换尝试 ${attempt + 1}/${maxRetries} 失败:`, error.message)
+
+        if (!shouldRetryConversion(error)) {
+          break
+        }
 
         if (attempt < maxRetries - 1) {
           await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)))
