@@ -14,6 +14,7 @@
     "compile": "tsc --noEmit",
     "verify:performance": "node scripts/verify-performance-defaults.mjs",
     "verify:src-change": "node scripts/verify-src-change-handling.mjs",
+    "assets:market": "node scripts/generate-market-assets.mjs",
     "postinstall": "wxt prepare",
     "postversion": "git push origin HEAD && git push --tags origin HEAD && pnpm zip && open .output",
     "test:server": "node test-server.js",

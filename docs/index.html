@@ -1,24 +1,29 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>View HEIC — 在浏览器中直接查看 HEIC / HEIF 图片</title>
-    <meta name="description" content="免费开源的 Chrome 浏览器扩展，一键让所有 HEIC / HEIF 图片在网页中直接显示，零配置、本地转换、完全保护隐私。" />
-    <meta name="keywords" content="HEIC,HEIF,浏览器扩展,Chrome 扩展,图片查看,HEIC 转 JPEG,heic-to,libheif" />
+    <title>View HEIC - View HEIC / HEIF images directly in your browser</title>
+    <meta
+      name="description"
+      content="A free open-source Chrome extension that displays HEIC and HEIF images directly on web pages with local conversion and zero setup."
+    />
+    <meta name="keywords" content="HEIC,HEIF,Chrome extension,image viewer,HEIC viewer,HEIC to JPEG,heic-to,libheif" />
     <link rel="canonical" href="https://vingeraycn.github.io/view-heic-browser-extension/" />
+    <link rel="alternate" hreflang="en" href="https://vingeraycn.github.io/view-heic-browser-extension/?lang=en" />
+    <link rel="alternate" hreflang="zh-CN" href="https://vingeraycn.github.io/view-heic-browser-extension/?lang=zh" />
+    <link rel="alternate" hreflang="x-default" href="https://vingeraycn.github.io/view-heic-browser-extension/" />
+    <link rel="icon" href="./assets/logo.svg" type="image/svg+xml" />
 
-    <!-- OpenGraph -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="View HEIC — 在浏览器中直接查看 HEIC / HEIF 图片" />
-    <meta property="og:description" content="免费开源的 Chrome 扩展，让 HEIC/HEIF 图片在网页中自动显示，无需手动转换。" />
+    <meta property="og:title" content="View HEIC - View HEIC / HEIF images directly in your browser" />
+    <meta property="og:description" content="A free open-source Chrome extension that displays HEIC and HEIF images directly on web pages." />
     <meta property="og:url" content="https://vingeraycn.github.io/view-heic-browser-extension/" />
-    <meta property="og:image" content="https://vingeraycn.github.io/view-heic-browser-extension/og-cover.png" />
+    <meta property="og:image" content="https://vingeraycn.github.io/view-heic-browser-extension/store-assets/01-browser-heic-preview.png" />
 
-    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="View HEIC — 在浏览器中直接查看 HEIC 图片" />
-    <meta name="twitter:description" content="免费开源的 Chrome 扩展，让 HEIC/HEIF 图片在网页中自动显示。" />
+    <meta name="twitter:title" content="View HEIC - View HEIC / HEIF images directly in your browser" />
+    <meta name="twitter:description" content="A free open-source Chrome extension that displays HEIC and HEIF images directly on web pages." />
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -27,807 +32,685 @@
           extend: {
             colors: {
               brand: {
-                50: "#eef2ff",
-                100: "#e0e7ff",
-                500: "#6366f1",
-                600: "#4f46e5",
-                700: "#4338ca",
+                50: "#eff6ff",
+                100: "#dbeafe",
+                500: "#0ea5e9",
+                600: "#2563eb",
+                700: "#1d4ed8",
+                800: "#1e40af",
               },
             },
-            animation: {
-              "fade-up": "fadeUp 0.7s ease-out both",
-              "fade-up-d1": "fadeUp 0.7s 0.1s ease-out both",
-              "fade-up-d2": "fadeUp 0.7s 0.2s ease-out both",
-              "fade-up-d3": "fadeUp 0.7s 0.3s ease-out both",
-              "fade-up-d4": "fadeUp 0.7s 0.4s ease-out both",
-              "fade-up-d5": "fadeUp 0.7s 0.5s ease-out both",
-              shimmer: "shimmer 1.5s infinite",
-            },
-            keyframes: {
-              fadeUp: {
-                "0%": { opacity: "0", transform: "translateY(24px)" },
-                "100%": { opacity: "1", transform: "translateY(0)" },
-              },
-              shimmer: {
-                "0%": { backgroundPosition: "-200% 0" },
-                "100%": { backgroundPosition: "200% 0" },
-              },
+            boxShadow: {
+              soft: "0 24px 70px rgba(15, 23, 42, 0.10)",
             },
           },
         },
       }
     </script>
     <style>
-      /* smooth scroll */
       html { scroll-behavior: smooth; }
-
-      /* gradient text helper */
-      .gradient-text {
-        background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+      body { font-feature-settings: "kern"; }
+      .nav-blur {
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        background: rgba(255, 255, 255, 0.88);
       }
-
-      /* hero gradient blob */
-      .hero-blob {
-        background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,.35) 0%, transparent 70%);
+      .hero-field {
+        background:
+          radial-gradient(900px 420px at 76% 5%, rgba(14, 165, 233, 0.18), transparent 62%),
+          radial-gradient(780px 360px at 22% 18%, rgba(124, 58, 237, 0.11), transparent 58%),
+          linear-gradient(180deg, #f8fafc 0%, #ffffff 68%);
       }
-
-      /* HEIC status overlay styles (mirrors extension CSS) */
       .heic-card { position: relative; }
-      .heic-card img { transition: opacity .4s; }
+      .heic-card img { transition: opacity 0.35s ease; }
       .heic-card .status-badge {
         position: absolute;
-        top: 8px; right: 8px;
-        padding: 2px 8px;
+        top: 10px;
+        right: 10px;
+        padding: 3px 9px;
         border-radius: 9999px;
         font-size: 11px;
-        font-weight: 600;
+        font-weight: 700;
         pointer-events: none;
         z-index: 10;
       }
-      .heic-processing { opacity: .65; }
-      .heic-processing + .status-badge,
-      img.heic-processing ~ .status-badge { background:#fbbf24; color:#78350f; }
-      .heic-converted { opacity: 1 !important; }
-      img.heic-converted ~ .status-badge { background:#22c55e; color:#14532d; }
-      img.heic-error ~ .status-badge { background:#ef4444; color:#fff; }
-
-      /* code block */
-      pre { white-space: pre-wrap; word-break: break-all; }
-
-      /* nav blur */
-      .nav-blur {
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        background: rgba(255,255,255,.85);
-      }
-
-      /* stat card shimmer on hover */
-      .stat-card:hover {
-        background: linear-gradient(90deg, #f0f0ff 25%, #e0e7ff 50%, #f0f0ff 75%);
-        background-size: 200% 100%;
-        animation: shimmer 1.5s infinite;
-      }
+      .heic-processing { opacity: 0.65; }
+      img.heic-processing ~ .status-badge { background: #fef3c7; color: #92400e; }
+      img.heic-converted ~ .status-badge { background: #dcfce7; color: #166534; }
+      img.heic-error ~ .status-badge { background: #fee2e2; color: #b91c1c; }
+      pre { white-space: pre-wrap; word-break: break-word; }
     </style>
   </head>
-  <body class="bg-white text-gray-900 antialiased">
-
-    <!-- ───────────────────────── NAVIGATION ───────────────────────── -->
-    <nav class="nav-blur fixed top-0 inset-x-0 z-50 border-b border-gray-100">
-      <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-        <a href="#" class="flex items-center gap-2 font-bold text-gray-900 text-base">
-          <span class="text-xl">🖼️</span> View HEIC
+  <body class="bg-white text-slate-950 antialiased">
+    <nav class="nav-blur fixed top-0 inset-x-0 z-50 border-b border-slate-200/80">
+      <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+        <a href="#" class="flex items-center gap-3 font-extrabold text-slate-950">
+          <img src="./assets/logo.svg" alt="" class="h-9 w-9" />
+          <span>View HEIC</span>
         </a>
-        <div class="hidden sm:flex items-center gap-6 text-sm font-medium text-gray-600">
-          <a href="#features" class="hover:text-indigo-600 transition-colors">特性</a>
-          <a href="#how-it-works" class="hover:text-indigo-600 transition-colors">工作原理</a>
-          <a href="#demo" class="hover:text-indigo-600 transition-colors">演示</a>
-          <a href="#faq" class="hover:text-indigo-600 transition-colors">FAQ</a>
+        <div class="flex items-center gap-4">
+          <div class="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600" id="nav-links"></div>
+          <div class="flex items-center rounded-full border border-slate-200 bg-white p-1 text-xs font-bold text-slate-500 shadow-sm" aria-label="Language selector">
+            <button type="button" class="lang-btn rounded-full px-3 py-1.5 transition-colors" data-lang-option="en">EN</button>
+            <button type="button" class="lang-btn rounded-full px-3 py-1.5 transition-colors" data-lang-option="zh">中文</button>
+          </div>
           <a
-            href="https://github.com/vingeraycn/view-heic-browser-extension"
-            target="_blank"
-            rel="noopener"
-            class="flex items-center gap-1.5 text-gray-700 hover:text-gray-900 transition-colors"
-          >
-            <!-- GitHub icon -->
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/></svg>
-            GitHub
-          </a>
-          <a
+            data-i18n="installShort"
             href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge"
             target="_blank"
             rel="noopener"
-            class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors"
-          >
-            免费安装
-          </a>
+            class="hidden sm:inline-flex items-center justify-center rounded-full bg-brand-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-brand-700"
+          ></a>
         </div>
-        <!-- mobile install button -->
-        <a
-          href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge"
-          target="_blank"
-          rel="noopener"
-          class="sm:hidden bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors"
-        >
-          安装
-        </a>
       </div>
     </nav>
 
-    <!-- ───────────────────────── HERO ───────────────────────── -->
-    <section class="hero-blob pt-28 pb-20 px-6">
-      <div class="max-w-3xl mx-auto text-center">
-        <span class="animate-fade-up inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-6 border border-indigo-100">
-          🎉 最新版本 v1.0.11 · 默认 JPEG 快速预览
-        </span>
-        <h1 class="animate-fade-up-d1 text-5xl sm:text-6xl font-extrabold leading-tight tracking-tight mb-6">
-          让 HEIC 图片<br />
-          <span class="gradient-text">在浏览器直接显示</span>
-        </h1>
-        <p class="animate-fade-up-d2 text-lg sm:text-xl text-gray-500 mb-10 leading-relaxed max-w-2xl mx-auto">
-          一款免费开源的 Chrome 扩展，自动识别页面中的
-          <strong class="text-gray-700">HEIC / HEIF</strong> 图片并实时转换——
-          零配置、本地处理、完全保护隐私。
-        </p>
-        <div class="animate-fade-up-d3 flex flex-col sm:flex-row gap-4 justify-center">
-          <a
-            href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge"
-            target="_blank"
-            rel="noopener"
-            class="inline-flex items-center justify-center gap-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-base px-8 py-3.5 rounded-xl shadow-lg shadow-indigo-200 transition-all hover:-translate-y-0.5"
-          >
-            <!-- Chrome icon -->
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-            添加到 Chrome · 免费
-          </a>
-          <a
-            href="https://github.com/vingeraycn/view-heic-browser-extension"
-            target="_blank"
-            rel="noopener"
-            class="inline-flex items-center justify-center gap-2.5 bg-white hover:bg-gray-50 text-gray-700 font-semibold text-base px-8 py-3.5 rounded-xl border border-gray-200 shadow-sm transition-all hover:-translate-y-0.5"
-          >
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/></svg>
-            查看源码
-          </a>
-        </div>
-
-        <!-- trust strip -->
-        <p class="animate-fade-up-d4 mt-10 text-xs text-gray-400 flex flex-wrap items-center justify-center gap-4">
-          <span>🔒 完全本地转换 · 不上传数据</span>
-          <span>⚡ 支持 HEIC / HEIF / 序列帧首帧预览</span>
-          <span>🌐 适配所有网站</span>
-          <span>📦 开源 · MIT 协议</span>
-        </p>
-      </div>
-    </section>
-
-    <!-- ───────────────────────── STATS BAR ───────────────────────── -->
-    <div class="bg-indigo-600 text-white py-6 px-6">
-      <div class="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
-        <div class="stat-card rounded-lg py-3 transition-all cursor-default">
-          <div class="text-3xl font-extrabold">50MB</div>
-          <div class="text-indigo-200 text-sm mt-1">最大文件支持</div>
-        </div>
-        <div class="stat-card rounded-lg py-3 transition-all cursor-default">
-          <div class="text-3xl font-extrabold">6</div>
-          <div class="text-indigo-200 text-sm mt-1">支持的 HEIC 品牌</div>
-        </div>
-        <div class="stat-card rounded-lg py-3 transition-all cursor-default">
-          <div class="text-3xl font-extrabold">JPEG</div>
-          <div class="text-indigo-200 text-sm mt-1">默认 JPEG 预览</div>
-        </div>
-        <div class="stat-card rounded-lg py-3 transition-all cursor-default">
-          <div class="text-3xl font-extrabold">0</div>
-          <div class="text-indigo-200 text-sm mt-1">数据上传到服务器</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ───────────────────────── FEATURES ───────────────────────── -->
-    <section id="features" class="py-20 px-6 bg-gray-50">
-      <div class="max-w-5xl mx-auto">
-        <div class="text-center mb-14">
-          <h2 class="text-3xl sm:text-4xl font-extrabold mb-4">✨ 核心特性</h2>
-          <p class="text-gray-500 text-lg max-w-xl mx-auto">
-            从自动检测到高效预览，覆盖常见 HEIC 使用场景
-          </p>
-        </div>
-        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-
-          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <div class="text-3xl mb-3">🔍</div>
-            <h3 class="font-bold text-gray-900 mb-2">自动检测与转换</h3>
-            <p class="text-gray-500 text-sm leading-relaxed">
-              页面加载后自动扫描所有 <code class="bg-gray-100 px-1 rounded">.heic</code> /
-              <code class="bg-gray-100 px-1 rounded">.heif</code> 图片，
-              以及动态注入的图片（MutationObserver）。
-            </p>
-          </div>
-
-          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <div class="text-3xl mb-3">🎞️</div>
-            <h3 class="font-bold text-gray-900 mb-2">序列帧首帧预览</h3>
-            <p class="text-gray-500 text-sm leading-relaxed">
-              自动识别 HEIC 序列文件（品牌 msf1 / hevc / hevx），
-              默认降级为首帧 JPEG 预览，避免多帧解码拖慢页面。
-            </p>
-          </div>
-
-          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <div class="text-3xl mb-3">🔮</div>
-            <h3 class="font-bold text-gray-900 mb-2">魔法字节格式验证</h3>
-            <p class="text-gray-500 text-sm leading-relaxed">
-              通过读取文件头 ISO BMFF 品牌（字节 8-12）精确判断 HEIC/HEIF 格式，
-              即使服务器未返回正确 MIME 类型也能正确处理。
-            </p>
-          </div>
-
-          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <div class="text-3xl mb-3">⚡</div>
-            <h3 class="font-bold text-gray-900 mb-2">智能缓存 · 零重复转换</h3>
-            <p class="text-gray-500 text-sm leading-relaxed">
-              转换结果缓存到 Blob URL，相同图片只处理一次；
-              并发去重确保同一元素不会被重复转换。
-            </p>
-          </div>
-
-          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <div class="text-3xl mb-3">🛡️</div>
-            <h3 class="font-bold text-gray-900 mb-2">完全本地 · 零隐私风险</h3>
-            <p class="text-gray-500 text-sm leading-relaxed">
-              所有转换均在浏览器本地完成（基于 libheif WebAssembly），
-              图片数据不会离开你的设备。
-            </p>
-          </div>
-
-          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <div class="text-3xl mb-3">🔧</div>
-            <h3 class="font-bold text-gray-900 mb-2">CSP 兼容 · 适配所有网站</h3>
-            <p class="text-gray-500 text-sm leading-relaxed">
-              使用 <code class="bg-gray-100 px-1 rounded">heic-to/csp</code> 变体，
-              完全符合 Manifest V3 的内容安全策略，在严格 CSP 网站上也能正常工作。
-            </p>
-          </div>
-
-        </div>
-      </div>
-    </section>
-
-    <!-- ───────────────────────── HOW IT WORKS ───────────────────────── -->
-    <section id="how-it-works" class="py-20 px-6 bg-white">
-      <div class="max-w-4xl mx-auto">
-        <div class="text-center mb-14">
-          <h2 class="text-3xl sm:text-4xl font-extrabold mb-4">🚀 工作原理</h2>
-          <p class="text-gray-500 text-lg">三步让 HEIC 在你的浏览器中无缝显示</p>
-        </div>
-        <div class="grid sm:grid-cols-3 gap-8 relative">
-          <!-- connector line (desktop) -->
-          <div class="hidden sm:block absolute top-10 left-[calc(16.66%+1rem)] right-[calc(16.66%+1rem)] h-0.5 bg-gradient-to-r from-indigo-200 via-purple-200 to-pink-200"></div>
-
-          <div class="text-center relative">
-            <div class="w-20 h-20 rounded-2xl bg-indigo-50 flex items-center justify-center text-4xl mx-auto mb-4 shadow-sm">📦</div>
-            <div class="absolute -top-2 -right-2 sm:top-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 w-7 h-7 bg-indigo-600 text-white text-xs font-bold rounded-full flex items-center justify-center">1</div>
-            <h3 class="font-bold text-gray-900 mb-2">安装扩展</h3>
-            <p class="text-gray-500 text-sm">在 Chrome 应用商店一键安装，无需任何配置</p>
-          </div>
-
-          <div class="text-center relative">
-            <div class="w-20 h-20 rounded-2xl bg-purple-50 flex items-center justify-center text-4xl mx-auto mb-4 shadow-sm">🌐</div>
-            <div class="absolute -top-2 -right-2 sm:top-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 w-7 h-7 bg-purple-600 text-white text-xs font-bold rounded-full flex items-center justify-center">2</div>
-            <h3 class="font-bold text-gray-900 mb-2">正常浏览</h3>
-            <p class="text-gray-500 text-sm">访问任何含 HEIC 图片的网页，扩展自动在后台运行</p>
-          </div>
-
-          <div class="text-center relative">
-            <div class="w-20 h-20 rounded-2xl bg-pink-50 flex items-center justify-center text-4xl mx-auto mb-4 shadow-sm">🖼️</div>
-            <div class="absolute -top-2 -right-2 sm:top-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 w-7 h-7 bg-pink-500 text-white text-xs font-bold rounded-full flex items-center justify-center">3</div>
-            <h3 class="font-bold text-gray-900 mb-2">即时显示</h3>
-            <p class="text-gray-500 text-sm">HEIC 图片自动转换为 JPEG，在原位快速展示</p>
-          </div>
-        </div>
-
-        <!-- technical flow diagram -->
-        <div class="mt-16 bg-gray-50 rounded-2xl p-6 border border-gray-100">
-          <h3 class="font-bold text-gray-700 mb-4 text-sm uppercase tracking-widest">⚙️ 内部转换流程</h3>
-          <div class="flex flex-wrap items-center gap-2 text-sm">
-            <span class="bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg font-medium">网页中的 &lt;img&gt;</span>
-            <span class="text-gray-400">→</span>
-            <span class="bg-white border border-gray-200 px-3 py-1.5 rounded-lg">fetch(src)</span>
-            <span class="text-gray-400">→</span>
-            <span class="bg-white border border-gray-200 px-3 py-1.5 rounded-lg">魔法字节验证</span>
-            <span class="text-gray-400">→</span>
-            <span class="bg-white border border-gray-200 px-3 py-1.5 rounded-lg">libheif WebAssembly 解码</span>
-            <span class="text-gray-400">→</span>
-            <span class="bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-medium">Blob URL 替换 src ✓</span>
-          </div>
-          <p class="text-xs text-gray-400 mt-3">序列 HEIC 默认只转换首帧；如需动画播放，可在代码中开启实验配置</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ───────────────────────── LIVE DEMO ───────────────────────── -->
-    <section id="demo" class="py-20 px-6 bg-gray-50">
-      <div class="max-w-5xl mx-auto">
-        <div class="text-center mb-6">
-          <h2 class="text-3xl sm:text-4xl font-extrabold mb-4">🎬 实时演示</h2>
-          <p class="text-gray-500 text-lg max-w-xl mx-auto">
-            下方图片为真实 HEIC 文件。安装扩展后，它们会自动转换并正常显示。
-          </p>
-        </div>
-
-        <!-- extension status banner -->
-        <div id="ext-status-banner" class="mb-8 rounded-xl p-4 text-center text-sm font-medium bg-yellow-50 border border-yellow-200 text-yellow-800 transition-all">
-          ⏳ 正在检测扩展状态...
-        </div>
-
-        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-
-          <div class="heic-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow group">
-            <div class="relative overflow-hidden h-44 bg-gray-100 flex items-center justify-center">
-              <img src="./example.heic" alt="标准 HEIC 图片" class="w-full h-full object-cover" />
-              <span class="status-badge">加载中…</span>
+    <main>
+      <section class="hero-field pt-28 pb-16 px-5">
+        <div class="max-w-6xl mx-auto grid lg:grid-cols-[1fr_430px] gap-12 items-center">
+          <div>
+            <p data-i18n="heroBadge" class="inline-flex items-center rounded-full border border-brand-100 bg-white px-4 py-2 text-sm font-bold text-brand-700 shadow-sm"></p>
+            <h1 data-i18n="heroTitle" class="mt-7 max-w-3xl text-5xl font-extrabold leading-tight tracking-normal text-slate-950 sm:text-6xl"></h1>
+            <p data-i18n="heroLead" class="mt-6 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl"></p>
+            <div class="mt-9 flex flex-col gap-3 sm:flex-row">
+              <a
+                data-i18n="primaryCta"
+                href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge"
+                target="_blank"
+                rel="noopener"
+                class="inline-flex items-center justify-center rounded-full bg-brand-600 px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-brand-700"
+              ></a>
+              <a
+                data-i18n="secondaryCta"
+                href="https://github.com/vingeraycn/view-heic-browser-extension"
+                target="_blank"
+                rel="noopener"
+                class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-7 py-3.5 text-base font-bold text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50"
+              ></a>
             </div>
-            <div class="p-4">
-              <h4 class="font-semibold text-gray-800 text-sm mb-1">标准 HEIC</h4>
-              <p class="text-xs text-gray-500">example.heic · 1.1 MB</p>
-              <span class="mt-2 inline-block px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded-full">大文件性能测试</span>
-            </div>
+            <div class="mt-10 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4" id="trust-strip"></div>
           </div>
 
-          <div class="heic-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow group">
-            <div class="relative overflow-hidden h-44 bg-gray-100 flex items-center justify-center">
-              <img src="./small-test.heic" alt="Nokia 标准测试文件" class="w-full h-full object-cover" />
-              <span class="status-badge">加载中…</span>
-            </div>
-            <div class="p-4">
-              <h4 class="font-semibold text-gray-800 text-sm mb-1">Nokia 标准文件</h4>
-              <p class="text-xs text-gray-500">small-test.heic · 873 KB</p>
-              <span class="mt-2 inline-block px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded-full">标准格式兼容</span>
-            </div>
-          </div>
-
-          <div class="heic-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow group">
-            <div class="relative overflow-hidden h-44 bg-gray-100 flex items-center justify-center">
-              <img src="./medium-test.heic" alt="小文件快速转换" class="w-full h-full object-cover" />
-              <span class="status-badge">加载中…</span>
-            </div>
-            <div class="p-4">
-              <h4 class="font-semibold text-gray-800 text-sm mb-1">小文件快速转换</h4>
-              <p class="text-xs text-gray-500">medium-test.heic · 219 KB</p>
-              <span class="mt-2 inline-block px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded-full">⚡ 快速处理</span>
-            </div>
-          </div>
-
-          <div class="heic-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow group">
-            <div class="relative overflow-hidden h-44 bg-gray-100 flex items-center justify-center">
-              <img src="./corrupted-test.heic" alt="错误处理测试" class="w-full h-full object-cover" />
-              <span class="status-badge">加载中…</span>
-            </div>
-            <div class="p-4">
-              <h4 class="font-semibold text-gray-800 text-sm mb-1">错误处理</h4>
-              <p class="text-xs text-gray-500">corrupted-test.heic · 78 B</p>
-              <span class="mt-2 inline-block px-2 py-0.5 bg-red-50 text-red-700 text-xs rounded-full">优雅降级演示</span>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- dynamic image testing -->
-        <div class="mt-8 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <h3 class="font-bold text-gray-800 mb-2">🔄 动态加载测试</h3>
-          <p class="text-gray-500 text-sm mb-4">测试扩展对 JavaScript 动态注入图片的监听处理能力（MutationObserver）：</p>
-          <button
-            id="add-dynamic-btn"
-            onclick="addDynamicImage()"
-            class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-5 rounded-lg text-sm transition-colors"
-          >
-            + 动态添加 HEIC 图片
-          </button>
-          <div id="dynamic-images" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-4 empty:hidden"></div>
-        </div>
-
-        <!-- stats -->
-        <div class="mt-6 grid grid-cols-3 gap-4">
-          <div class="text-center bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-            <div class="text-2xl font-extrabold text-green-600" id="success-count">0</div>
-            <div class="text-xs text-gray-500 mt-1">成功转换</div>
-          </div>
-          <div class="text-center bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-            <div class="text-2xl font-extrabold text-red-500" id="failure-count">0</div>
-            <div class="text-xs text-gray-500 mt-1">转换失败</div>
-          </div>
-          <div class="text-center bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-            <div class="text-2xl font-extrabold text-indigo-600" id="total-count">0</div>
-            <div class="text-xs text-gray-500 mt-1">总计处理</div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ───────────────────────── INSTALL GUIDE ───────────────────────── -->
-    <section id="install" class="py-20 px-6 bg-white">
-      <div class="max-w-4xl mx-auto">
-        <div class="text-center mb-14">
-          <h2 class="text-3xl sm:text-4xl font-extrabold mb-4">📦 安装指南</h2>
-          <p class="text-gray-500 text-lg">两种方式，任选其一</p>
-        </div>
-        <div class="grid sm:grid-cols-2 gap-8">
-
-          <!-- recommended -->
-          <div class="rounded-2xl border-2 border-indigo-200 bg-indigo-50/50 p-7 relative overflow-hidden">
-            <span class="absolute top-4 right-4 bg-indigo-600 text-white text-xs font-bold px-2.5 py-1 rounded-full">推荐</span>
-            <div class="text-3xl mb-3">🌟</div>
-            <h3 class="text-xl font-bold text-gray-900 mb-4">Chrome 应用商店安装</h3>
-            <ol class="space-y-3 text-gray-700 text-sm">
-              <li class="flex items-start gap-3">
-                <span class="w-6 h-6 flex-shrink-0 bg-indigo-600 text-white text-xs font-bold rounded-full flex items-center justify-center mt-0.5">1</span>
-                <span>访问 <a href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge" target="_blank" rel="noopener" class="text-indigo-600 hover:underline font-medium">Chrome 应用商店页面</a></span>
-              </li>
-              <li class="flex items-start gap-3">
-                <span class="w-6 h-6 flex-shrink-0 bg-indigo-600 text-white text-xs font-bold rounded-full flex items-center justify-center mt-0.5">2</span>
-                <span>点击 <strong>添加至 Chrome</strong> 按钮</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <span class="w-6 h-6 flex-shrink-0 bg-indigo-600 text-white text-xs font-bold rounded-full flex items-center justify-center mt-0.5">3</span>
-                <span>在弹出对话框中点击确认，即可立即使用</span>
-              </li>
-            </ol>
-            <a
-              href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge"
-              target="_blank"
-              rel="noopener"
-              class="mt-6 w-full inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-colors"
-            >
-              前往 Chrome 应用商店 →
-            </a>
-          </div>
-
-          <!-- developer -->
-          <div class="rounded-2xl border border-gray-200 bg-white p-7">
-            <div class="text-3xl mb-3">🛠️</div>
-            <h3 class="text-xl font-bold text-gray-900 mb-4">开发者手动安装</h3>
-            <ol class="space-y-4 text-gray-700 text-sm">
-              <li class="flex items-start gap-3">
-                <span class="w-6 h-6 flex-shrink-0 bg-gray-200 text-gray-700 text-xs font-bold rounded-full flex items-center justify-center mt-0.5">1</span>
-                <div>
-                  <p class="mb-1">克隆项目并安装依赖</p>
-                  <pre class="bg-gray-900 text-green-400 text-xs p-3 rounded-lg overflow-auto">git clone https://github.com/vingeraycn/view-heic-browser-extension.git
-cd view-heic-browser-extension
-pnpm install</pre>
+          <div class="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-soft">
+            <div class="rounded-[1.5rem] bg-slate-100 p-4">
+              <div class="mb-4 flex items-center gap-2">
+                <span class="h-3 w-3 rounded-full bg-red-400"></span>
+                <span class="h-3 w-3 rounded-full bg-amber-400"></span>
+                <span class="h-3 w-3 rounded-full bg-emerald-400"></span>
+                <span class="ml-3 h-6 flex-1 rounded-full bg-white"></span>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="rounded-2xl bg-white p-3">
+                  <div class="h-32 rounded-xl bg-blue-100"></div>
+                  <div class="mt-3 h-3 w-20 rounded-full bg-slate-200"></div>
+                  <div class="mt-2 h-3 w-28 rounded-full bg-slate-100"></div>
                 </div>
-              </li>
-              <li class="flex items-start gap-3">
-                <span class="w-6 h-6 flex-shrink-0 bg-gray-200 text-gray-700 text-xs font-bold rounded-full flex items-center justify-center mt-0.5">2</span>
-                <div>
-                  <p class="mb-1">构建扩展</p>
-                  <pre class="bg-gray-900 text-green-400 text-xs p-3 rounded-lg">pnpm build</pre>
+                <div class="rounded-2xl bg-white p-3">
+                  <div class="h-32 rounded-xl bg-violet-100"></div>
+                  <div class="mt-3 h-3 w-20 rounded-full bg-slate-200"></div>
+                  <div class="mt-2 h-3 w-28 rounded-full bg-slate-100"></div>
                 </div>
-              </li>
-              <li class="flex items-start gap-3">
-                <span class="w-6 h-6 flex-shrink-0 bg-gray-200 text-gray-700 text-xs font-bold rounded-full flex items-center justify-center mt-0.5">3</span>
-                <span>在 <code class="bg-gray-100 px-1 rounded">chrome://extensions/</code> 中开启开发者模式，加载 <code class="bg-gray-100 px-1 rounded">.output/chrome-mv3</code> 目录</span>
-              </li>
-            </ol>
+              </div>
+              <div class="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700" data-i18n="heroMockStatus"></div>
+            </div>
           </div>
+        </div>
+      </section>
 
+      <section class="border-y border-slate-200 bg-slate-950 px-5 py-7 text-white">
+        <div class="max-w-6xl mx-auto grid grid-cols-2 gap-5 text-center md:grid-cols-4" id="stats"></div>
+      </section>
+
+      <section id="features" class="bg-white px-5 py-20">
+        <div class="max-w-6xl mx-auto">
+          <div class="max-w-2xl">
+            <h2 data-i18n="featuresTitle" class="text-4xl font-extrabold tracking-normal text-slate-950"></h2>
+            <p data-i18n="featuresLead" class="mt-4 text-lg leading-8 text-slate-600"></p>
+          </div>
+          <div class="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3" id="features-grid"></div>
+        </div>
+      </section>
+
+      <section id="how-it-works" class="bg-slate-50 px-5 py-20">
+        <div class="max-w-6xl mx-auto">
+          <div class="text-center">
+            <h2 data-i18n="howTitle" class="text-4xl font-extrabold tracking-normal text-slate-950"></h2>
+            <p data-i18n="howLead" class="mt-4 text-lg text-slate-600"></p>
+          </div>
+          <div class="mt-12 grid gap-5 md:grid-cols-3" id="steps"></div>
+          <div class="mt-10 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 data-i18n="flowTitle" class="text-sm font-extrabold uppercase tracking-widest text-slate-500"></h3>
+            <div class="mt-5 flex flex-wrap items-center gap-2 text-sm" id="flow"></div>
+            <p data-i18n="flowNote" class="mt-4 text-sm text-slate-500"></p>
+          </div>
+        </div>
+      </section>
+
+      <section id="demo" class="bg-white px-5 py-20">
+        <div class="max-w-6xl mx-auto">
+          <div class="text-center">
+            <h2 data-i18n="demoTitle" class="text-4xl font-extrabold tracking-normal text-slate-950"></h2>
+            <p data-i18n="demoLead" class="mx-auto mt-4 max-w-2xl text-lg leading-8 text-slate-600"></p>
+          </div>
+          <div id="ext-status-banner" class="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center text-sm font-bold text-amber-800"></div>
+          <div class="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4" id="demo-grid"></div>
+          <div class="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-6">
+            <h3 data-i18n="dynamicTitle" class="text-lg font-extrabold text-slate-900"></h3>
+            <p data-i18n="dynamicLead" class="mt-2 text-sm leading-6 text-slate-600"></p>
+            <button id="add-dynamic-btn" type="button" onclick="addDynamicImage()" class="mt-5 rounded-full bg-brand-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-brand-700"></button>
+            <div id="dynamic-images" class="mt-5 grid gap-5 md:grid-cols-2 lg:grid-cols-4 empty:hidden"></div>
+          </div>
+          <div class="mt-6 grid grid-cols-3 gap-4" id="demo-stats"></div>
+        </div>
+      </section>
+
+      <section id="install" class="bg-slate-50 px-5 py-20">
+        <div class="max-w-5xl mx-auto">
+          <div class="text-center">
+            <h2 data-i18n="installTitle" class="text-4xl font-extrabold tracking-normal text-slate-950"></h2>
+            <p data-i18n="installLead" class="mt-4 text-lg text-slate-600"></p>
+          </div>
+          <div class="mt-12 grid gap-6 md:grid-cols-2" id="install-cards"></div>
+        </div>
+      </section>
+
+      <section class="bg-white px-5 py-20">
+        <div class="max-w-6xl mx-auto">
+          <h2 data-i18n="techTitle" class="text-center text-3xl font-extrabold tracking-normal text-slate-950"></h2>
+          <div class="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4" id="tech-grid"></div>
+          <div class="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-6">
+            <h3 data-i18n="structureTitle" class="text-sm font-extrabold uppercase tracking-widest text-slate-500"></h3>
+            <pre data-i18n="structureCode" class="mt-4 overflow-auto rounded-2xl bg-slate-950 p-5 text-xs leading-6 text-slate-200"></pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq" class="bg-slate-50 px-5 py-20">
+        <div class="max-w-3xl mx-auto">
+          <h2 data-i18n="faqTitle" class="text-center text-4xl font-extrabold tracking-normal text-slate-950"></h2>
+          <div class="mt-10 space-y-4" id="faq-list"></div>
+        </div>
+      </section>
+
+      <section class="bg-brand-700 px-5 py-20 text-center text-white">
+        <div class="max-w-3xl mx-auto">
+          <h2 data-i18n="ctaTitle" class="text-4xl font-extrabold tracking-normal"></h2>
+          <p data-i18n="ctaLead" class="mt-4 text-lg leading-8 text-blue-100"></p>
+          <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <a data-i18n="primaryCta" href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge" target="_blank" rel="noopener" class="rounded-full bg-white px-7 py-3.5 font-bold text-brand-700 transition hover:bg-blue-50"></a>
+            <a data-i18n="githubCta" href="https://github.com/vingeraycn/view-heic-browser-extension" target="_blank" rel="noopener" class="rounded-full border border-white/70 px-7 py-3.5 font-bold text-white transition hover:bg-white/10"></a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="bg-slate-950 px-5 py-12 text-slate-400">
+      <div class="max-w-6xl mx-auto grid gap-8 md:grid-cols-3">
+        <div>
+          <div class="flex items-center gap-3 font-extrabold text-white">
+            <img src="./assets/logo.svg" alt="" class="h-9 w-9" />
+            <span>View HEIC</span>
+          </div>
+          <p data-i18n="footerLead" class="mt-4 text-sm leading-7"></p>
+        </div>
+        <div>
+          <h3 data-i18n="footerLinks" class="text-sm font-extrabold uppercase tracking-widest text-white"></h3>
+          <ul class="mt-4 space-y-2 text-sm" id="footer-links"></ul>
+        </div>
+        <div>
+          <h3 data-i18n="footerProject" class="text-sm font-extrabold uppercase tracking-widest text-white"></h3>
+          <ul class="mt-4 space-y-2 text-sm" id="project-links"></ul>
         </div>
       </div>
-    </section>
-
-    <!-- ───────────────────────── TECH STACK ───────────────────────── -->
-    <section class="py-16 px-6 bg-gray-50 border-y border-gray-100">
-      <div class="max-w-5xl mx-auto">
-        <h2 class="text-center text-2xl font-extrabold mb-10">🔧 技术栈 &amp; 架构</h2>
-        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-
-          <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm text-center">
-            <div class="text-2xl mb-2">🏗️</div>
-            <div class="font-bold text-gray-800 mb-1">WXT Framework</div>
-            <div class="text-xs text-gray-500">现代浏览器扩展开发框架，基于 Vite 5</div>
-          </div>
-
-          <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm text-center">
-            <div class="text-2xl mb-2">🔷</div>
-            <div class="font-bold text-gray-800 mb-1">TypeScript 5.5</div>
-            <div class="text-xs text-gray-500">完整类型安全，严格模式，可维护性高</div>
-          </div>
-
-          <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm text-center">
-            <div class="text-2xl mb-2">🖼️</div>
-            <div class="font-bold text-gray-800 mb-1">heic-to 1.5.2</div>
-            <div class="text-xs text-gray-500">基于 libheif 1.22.2，支持 CSP 变体</div>
-          </div>
-
-          <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm text-center">
-            <div class="text-2xl mb-2">🧩</div>
-            <div class="font-bold text-gray-800 mb-1">heic-decode 2.1</div>
-            <div class="text-xs text-gray-500">多帧解码能力保留，默认关闭动画播放</div>
-          </div>
-
-        </div>
-
-        <!-- architecture diagram -->
-        <div class="mt-8 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <h3 class="font-bold text-gray-700 text-sm uppercase tracking-widest mb-4">📁 项目结构</h3>
-          <pre class="text-xs text-gray-600 leading-6 font-mono bg-gray-50 rounded-xl p-5 overflow-auto">view-heic-browser-extension/
-├── entrypoints/
-│   ├── content.ts           ← 内容脚本，DOM 扫描与 MutationObserver
-│   └── background.ts        ← Service Worker 后台脚本
-├── utils/
-│   ├── heic-converter.ts    ← 核心转换引擎（单帧 + 序列首帧）
-│   ├── constants.ts         ← 配置常量（SELECTORS、CONFIG、ANIMATION_FPS…）
-│   └── types.ts             ← TypeScript 类型定义
-└── docs/                    ← GitHub Pages 官网（本页面）</pre>
-        </div>
-      </div>
-    </section>
-
-    <!-- ───────────────────────── FAQ ───────────────────────── -->
-    <section id="faq" class="py-20 px-6 bg-white">
-      <div class="max-w-3xl mx-auto">
-        <div class="text-center mb-14">
-          <h2 class="text-3xl sm:text-4xl font-extrabold mb-4">❓ 常见问题</h2>
-        </div>
-        <div class="space-y-4" id="faq-list">
-
-          <details class="group border border-gray-200 rounded-xl overflow-hidden">
-            <summary class="flex items-center justify-between cursor-pointer px-5 py-4 font-semibold text-gray-800 hover:bg-gray-50 transition-colors list-none">
-              <span>安装后图片还是无法显示，怎么办？</span>
-              <svg class="w-5 h-5 text-gray-400 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-            </summary>
-            <div class="px-5 pb-4 text-gray-500 text-sm leading-relaxed">
-              请确认：① 扩展已启用（<code class="bg-gray-100 px-1 rounded">chrome://extensions/</code> 查看）；
-              ② 刷新页面；③ 打开 F12 控制台查看是否有转换相关日志（<code class="bg-gray-100 px-1 rounded">🖼️ View HEIC Extension Loaded</code>）。
-              如果控制台出现 CORS 错误，点击报错图片可在新标签页中直接查看原图。
-            </div>
-          </details>
-
-          <details class="group border border-gray-200 rounded-xl overflow-hidden">
-            <summary class="flex items-center justify-between cursor-pointer px-5 py-4 font-semibold text-gray-800 hover:bg-gray-50 transition-colors list-none">
-              <span>图片会被上传到云端吗？</span>
-              <svg class="w-5 h-5 text-gray-400 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-            </summary>
-            <div class="px-5 pb-4 text-gray-500 text-sm leading-relaxed">
-              <strong class="text-gray-700">完全不会。</strong> 所有转换均在你的浏览器本地完成，
-              使用 WebAssembly 版本的 libheif 引擎在内存中解码，
-              转换后的图片以 Blob URL 的形式存在于当前标签页内存中，页面关闭即释放。
-            </div>
-          </details>
-
-          <details class="group border border-gray-200 rounded-xl overflow-hidden">
-            <summary class="flex items-center justify-between cursor-pointer px-5 py-4 font-semibold text-gray-800 hover:bg-gray-50 transition-colors list-none">
-              <span>支持 Firefox 吗？</span>
-              <svg class="w-5 h-5 text-gray-400 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-            </summary>
-            <div class="px-5 pb-4 text-gray-500 text-sm leading-relaxed">
-              项目使用 WXT 框架构建，代码兼容 Firefox Manifest V2/V3。
-              可通过 <code class="bg-gray-100 px-1 rounded">pnpm build:firefox</code> 构建 Firefox 版本并手动安装。
-              Chrome Web Store 版本仅面向 Chromium 浏览器。
-            </div>
-          </details>
-
-          <details class="group border border-gray-200 rounded-xl overflow-hidden">
-            <summary class="flex items-center justify-between cursor-pointer px-5 py-4 font-semibold text-gray-800 hover:bg-gray-50 transition-colors list-none">
-              <span>最大支持多大的 HEIC 文件？</span>
-              <svg class="w-5 h-5 text-gray-400 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-            </summary>
-            <div class="px-5 pb-4 text-gray-500 text-sm leading-relaxed">
-              默认上限为 <strong class="text-gray-700">50 MB</strong>，超出会给出友好提示。
-              此限制可在 <code class="bg-gray-100 px-1 rounded">utils/constants.ts</code> 的
-              <code class="bg-gray-100 px-1 rounded">CONFIG.MAX_FILE_SIZE</code> 中修改后重新构建。
-            </div>
-          </details>
-
-          <details class="group border border-gray-200 rounded-xl overflow-hidden">
-            <summary class="flex items-center justify-between cursor-pointer px-5 py-4 font-semibold text-gray-800 hover:bg-gray-50 transition-colors list-none">
-              <span>什么是动画 HEIC？扩展如何处理？</span>
-              <svg class="w-5 h-5 text-gray-400 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-            </summary>
-            <div class="px-5 pb-4 text-gray-500 text-sm leading-relaxed">
-              HEIC 容器支持多帧图片序列（类似 GIF），其 ISO BMFF 品牌为
-              <code class="bg-gray-100 px-1 rounded">msf1</code>、<code class="bg-gray-100 px-1 rounded">hevc</code> 或
-              <code class="bg-gray-100 px-1 rounded">hevx</code>。扩展检测到这类文件后，
-              默认只转换首帧，避免一次性解码所有帧。代码中保留实验开关，可按需开启
-              <code class="bg-gray-100 px-1 rounded">heic-decode.all()</code> + Canvas 动画播放。
-              若解码失败，会自动回退显示第一帧的静态图。
-            </div>
-          </details>
-
-        </div>
-      </div>
-    </section>
-
-    <!-- ───────────────────────── CTA BANNER ───────────────────────── -->
-    <section class="py-20 px-6 bg-gradient-to-br from-indigo-600 to-purple-700 text-white text-center">
-      <div class="max-w-2xl mx-auto">
-        <h2 class="text-3xl sm:text-4xl font-extrabold mb-4">立即体验 View HEIC</h2>
-        <p class="text-indigo-200 text-lg mb-8">
-          免费安装，一键告别 HEIC 图片无法显示的烦恼
-        </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <a
-            href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge"
-            target="_blank"
-            rel="noopener"
-            class="inline-flex items-center justify-center gap-2 bg-white text-indigo-700 font-bold px-8 py-3.5 rounded-xl hover:bg-indigo-50 transition-colors shadow-lg"
-          >
-            🌐 Chrome 应用商店安装
-          </a>
-          <a
-            href="https://github.com/vingeraycn/view-heic-browser-extension"
-            target="_blank"
-            rel="noopener"
-            class="inline-flex items-center justify-center gap-2 border-2 border-white text-white font-bold px-8 py-3.5 rounded-xl hover:bg-white/10 transition-colors"
-          >
-            ⭐ GitHub 开源项目
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- ───────────────────────── FOOTER ───────────────────────── -->
-    <footer class="bg-gray-900 text-gray-400 py-12 px-6">
-      <div class="max-w-5xl mx-auto">
-        <div class="grid sm:grid-cols-3 gap-8 mb-8">
-          <div>
-            <div class="flex items-center gap-2 text-white font-bold text-base mb-3">
-              <span class="text-xl">🖼️</span> View HEIC
-            </div>
-            <p class="text-sm leading-relaxed">
-              免费开源的浏览器扩展，让 HEIC / HEIF 图片在网页中自动显示。
-              完全本地转换，保护你的隐私。
-            </p>
-          </div>
-          <div>
-            <h4 class="text-white font-semibold mb-3 text-sm uppercase tracking-widest">链接</h4>
-            <ul class="space-y-2 text-sm">
-              <li><a href="#features" class="hover:text-white transition-colors">✨ 特性</a></li>
-              <li><a href="#demo" class="hover:text-white transition-colors">🎬 演示</a></li>
-              <li><a href="#install" class="hover:text-white transition-colors">📦 安装指南</a></li>
-              <li><a href="#faq" class="hover:text-white transition-colors">❓ FAQ</a></li>
-              <li>
-                <a href="./test-improved.html" class="hover:text-white transition-colors">🧪 开发者测试页</a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 class="text-white font-semibold mb-3 text-sm uppercase tracking-widest">项目</h4>
-            <ul class="space-y-2 text-sm">
-              <li>
-                <a href="https://github.com/vingeraycn/view-heic-browser-extension" target="_blank" rel="noopener" class="hover:text-white transition-colors">
-                  GitHub 仓库
-                </a>
-              </li>
-              <li>
-                <a href="https://github.com/vingeraycn/view-heic-browser-extension/issues" target="_blank" rel="noopener" class="hover:text-white transition-colors">
-                  反馈问题
-                </a>
-              </li>
-              <li>
-                <a href="https://github.com/vingeraycn/view-heic-browser-extension/releases" target="_blank" rel="noopener" class="hover:text-white transition-colors">
-                  更新日志
-                </a>
-              </li>
-              <li>
-                <a href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge" target="_blank" rel="noopener" class="hover:text-white transition-colors">
-                  Chrome Web Store
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <div class="border-t border-gray-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
-          <p>基于 <a href="https://github.com/vingeraycn/view-heic-browser-extension/blob/main/LICENSE" target="_blank" rel="noopener" class="hover:text-white">MIT 许可证</a> 开源</p>
-          <p>
-            Made with ❤️ by
-            <a href="https://github.com/vingeraycn" target="_blank" rel="noopener" class="text-indigo-400 hover:text-indigo-300 transition-colors">
-              vingeray
-            </a>
-          </p>
-        </div>
+      <div class="max-w-6xl mx-auto mt-10 border-t border-slate-800 pt-6 text-sm">
+        <p data-i18n="license"></p>
       </div>
     </footer>
 
-    <!-- ───────────────────────── SCRIPTS ───────────────────────── -->
     <script>
-      let dynamicCount = 0
+      const STORE_URL = 'https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge'
+      const GITHUB_URL = 'https://github.com/vingeraycn/view-heic-browser-extension'
 
-      // ── Extension status detection ──────────────────────────────────
+      const messages = {
+        en: {
+          lang: 'en',
+          title: 'View HEIC - View HEIC / HEIF images directly in your browser',
+          description: 'A free open-source Chrome extension that displays HEIC and HEIF images directly on web pages with local conversion and zero setup.',
+          nav: [
+            ['features', 'Features'],
+            ['how-it-works', 'How it works'],
+            ['demo', 'Demo'],
+            ['faq', 'FAQ'],
+          ],
+          installShort: 'Install',
+          heroBadge: 'Version 1.0.11 · Fast JPEG preview by default',
+          heroTitle: 'View HEIC images directly in your browser.',
+          heroLead: 'View HEIC is a free open-source Chrome extension that detects HEIC and HEIF images on web pages, converts them locally, and renders them in place without configuration.',
+          primaryCta: 'Add to Chrome for free',
+          secondaryCta: 'View source on GitHub',
+          githubCta: 'GitHub project',
+          heroMockStatus: 'HEIC image converted locally',
+          trust: ['Local conversion', 'No uploads', 'HEIC / HEIF support', 'Open source'],
+          stats: [
+            ['50MB', 'Maximum file size'],
+            ['6', 'Recognized HEIC brands'],
+            ['JPEG', 'Default preview format'],
+            ['0', 'Server uploads'],
+          ],
+          featuresTitle: 'Built for the HEIC gap on the web',
+          featuresLead: 'The extension handles real-world web pages, strict browser security rules, and common HEIC edge cases without asking users to manually convert files.',
+          features: [
+            ['Automatic detection', 'Scans existing and dynamically inserted images, including HEIC and HEIF URLs added after page load.'],
+            ['First-frame sequence preview', 'Recognizes HEIC sequence brands such as msf1, hevc, and hevx, then previews the first frame by default to keep pages responsive.'],
+            ['Magic-byte validation', 'Reads ISO BMFF brands from file headers, so HEIC files can still be handled when servers send an incorrect MIME type.'],
+            ['Smart cache', 'Stores converted results as Blob URLs and deduplicates concurrent work so the same image is converted only once.'],
+            ['Private by design', 'All decoding runs in the browser through WebAssembly. Image data never leaves the device.'],
+            ['CSP compatible', 'Uses the heic-to/csp variant to fit Manifest V3 content security requirements on strict websites.'],
+          ],
+          howTitle: 'How it works',
+          howLead: 'Install once, browse normally, and let HEIC images render in place.',
+          steps: [
+            ['1', 'Install the extension', 'Add View HEIC from the Chrome Web Store with no extra setup.'],
+            ['2', 'Browse normally', 'Open any page with HEIC or HEIF images. The content script monitors the page.'],
+            ['3', 'See the image', 'The extension converts compatible images to JPEG Blob URLs and swaps them in place.'],
+          ],
+          flowTitle: 'Internal conversion flow',
+          flow: ['Page <img>', 'fetch(src)', 'Magic-byte check', 'libheif WebAssembly decode', 'Blob URL replacement'],
+          flowNote: 'HEIC sequences use a first-frame preview by default. Experimental animation support can be enabled in code if needed.',
+          demoTitle: 'Live HEIC demo',
+          demoLead: 'The files below are real HEIC samples. After installing the extension, they are converted and displayed automatically.',
+          detecting: 'Checking extension status...',
+          detected: 'View HEIC is running. The images below are being converted automatically.',
+          notDetectedPrefix: 'View HEIC is not detected. ',
+          notDetectedLink: 'Install the extension',
+          notDetectedSuffix: ' and refresh this page.',
+          waiting: 'Waiting',
+          converted: 'Converted',
+          failed: 'Failed',
+          processing: 'Converting',
+          demoCases: [
+            ['example.heic', 'Standard HEIC', '1.1 MB', 'Large file performance'],
+            ['small-test.heic', 'Nokia sample', '873 KB', 'Format compatibility'],
+            ['medium-test.heic', 'Small HEIC', '219 KB', 'Fast processing'],
+            ['corrupted-test.heic', 'Broken file', '78 B', 'Graceful fallback'],
+          ],
+          dynamicTitle: 'Dynamic image test',
+          dynamicLead: 'Validate that images inserted by JavaScript are still picked up by the extension through MutationObserver.',
+          dynamicButton: 'Add dynamic HEIC image',
+          counters: ['Successful conversions', 'Failed conversions', 'Total images'],
+          installTitle: 'Install View HEIC',
+          installLead: 'Choose the store build for normal use, or load the project manually for development.',
+          installCards: [
+            ['Recommended', 'Chrome Web Store', ['Open the Chrome Web Store listing.', 'Click Add to Chrome.', 'Confirm the browser prompt and refresh pages that contain HEIC images.'], 'Go to Chrome Web Store'],
+            ['For developers', 'Manual installation', ['Clone the repository and install dependencies.', 'Run pnpm build.', 'Open chrome://extensions/, enable Developer mode, and load .output/chrome-mv3.'], 'View developer guide'],
+          ],
+          techTitle: 'Technology and architecture',
+          tech: [
+            ['WXT Framework', 'Modern browser extension framework powered by Vite.'],
+            ['TypeScript', 'Typed modules for maintainable extension logic.'],
+            ['heic-to 1.5.2', 'Conversion engine based on libheif 1.22.2 with CSP support.'],
+            ['heic-decode 2.1', 'Sequence decoding capability kept available for future animation work.'],
+          ],
+          structureTitle: 'Project structure',
+          structureCode: `view-heic-browser-extension/
+├── entrypoints/
+│   ├── content.ts           # DOM scan and MutationObserver
+│   └── background.ts        # Service worker
+├── utils/
+│   ├── heic-converter.ts    # Conversion engine
+│   ├── constants.ts         # Runtime limits and selectors
+│   └── types.ts             # TypeScript types
+└── docs/                    # GitHub Pages website and demo files`,
+          faqTitle: 'FAQ',
+          faqs: [
+            ['Images still do not display after installation. What should I check?', 'Make sure the extension is enabled, refresh the page, and open DevTools to confirm the View HEIC content script loaded. If the source server blocks cross-origin fetching, open the original image in a new tab.'],
+            ['Are images uploaded to a server?', 'No. Decoding happens locally in your browser through WebAssembly. Converted images live as Blob URLs in the current tab and are released when the page closes.'],
+            ['Does it support Firefox?', 'The codebase is built with WXT and can build a Firefox target with pnpm build:firefox. The current store listing is for Chromium browsers.'],
+            ['What is the maximum HEIC file size?', 'The default limit is 50 MB. It is configured in utils/constants.ts as CONFIG.MAX_FILE_SIZE.'],
+            ['How are animated HEIC files handled?', 'Sequence HEIC files are detected by ISO BMFF brands such as msf1, hevc, or hevx. The extension previews the first frame by default to avoid expensive multi-frame decoding.'],
+          ],
+          ctaTitle: 'Make HEIC images work on the web.',
+          ctaLead: 'Install View HEIC for free and stop downloading files just to inspect them.',
+          footerLead: 'A free open-source browser extension that displays HEIC and HEIF images directly on web pages while keeping conversion local.',
+          footerLinks: 'Links',
+          footerProject: 'Project',
+          license: 'Open source under the MIT License.',
+          devTest: 'Developer test page',
+        },
+        zh: {
+          lang: 'zh-CN',
+          title: 'View HEIC - 在浏览器中直接查看 HEIC / HEIF 图片',
+          description: '免费开源的 Chrome 浏览器扩展，让 HEIC / HEIF 图片在网页中直接显示，零配置、本地转换、保护隐私。',
+          nav: [
+            ['features', '特性'],
+            ['how-it-works', '工作原理'],
+            ['demo', '演示'],
+            ['faq', 'FAQ'],
+          ],
+          installShort: '安装',
+          heroBadge: '版本 v1.0.11 · 默认 JPEG 快速预览',
+          heroTitle: '让 HEIC 图片在浏览器中直接显示。',
+          heroLead: 'View HEIC 是一款免费开源的 Chrome 扩展，可以自动识别网页中的 HEIC / HEIF 图片，在本地完成转换，并原位显示，无需任何配置。',
+          primaryCta: '免费添加到 Chrome',
+          secondaryCta: '查看 GitHub 源码',
+          githubCta: 'GitHub 开源项目',
+          heroMockStatus: 'HEIC 图片已在本地转换',
+          trust: ['本地转换', '不上传数据', '支持 HEIC / HEIF', '开源'],
+          stats: [
+            ['50MB', '最大文件支持'],
+            ['6', '支持的 HEIC 品牌'],
+            ['JPEG', '默认预览格式'],
+            ['0', '服务器上传'],
+          ],
+          featuresTitle: '为网页上的 HEIC 缺口而做',
+          featuresLead: '扩展覆盖真实网页、严格浏览器安全规则和常见 HEIC 边界场景，不需要用户手动转换文件。',
+          features: [
+            ['自动检测与转换', '扫描页面已有图片和动态注入图片，支持页面加载后才出现的 HEIC / HEIF URL。'],
+            ['序列帧首帧预览', '识别 msf1、hevc、hevx 等 HEIC 序列品牌，默认只预览首帧，避免拖慢页面。'],
+            ['魔法字节格式验证', '读取文件头 ISO BMFF 品牌，即使服务器 MIME 类型错误，也能判断 HEIC 文件。'],
+            ['智能缓存', '转换结果缓存为 Blob URL，并发去重保证同一张图片只处理一次。'],
+            ['完全本地，保护隐私', '所有解码都通过 WebAssembly 在浏览器本地完成，图片数据不会离开设备。'],
+            ['CSP 兼容', '使用 heic-to/csp 变体，适配 Manifest V3 和严格 CSP 网站。'],
+          ],
+          howTitle: '工作原理',
+          howLead: '安装一次，正常浏览，HEIC 图片自动原位显示。',
+          steps: [
+            ['1', '安装扩展', '从 Chrome 应用商店添加 View HEIC，无需额外配置。'],
+            ['2', '正常浏览', '打开任意包含 HEIC / HEIF 图片的网页，内容脚本会自动监听。'],
+            ['3', '即时显示', '扩展把兼容图片转换为 JPEG Blob URL，并替换到原图位置。'],
+          ],
+          flowTitle: '内部转换流程',
+          flow: ['网页 <img>', 'fetch(src)', '魔法字节验证', 'libheif WebAssembly 解码', 'Blob URL 替换'],
+          flowNote: '序列 HEIC 默认只转换首帧；如需动画播放，可在代码中开启实验配置。',
+          demoTitle: '实时 HEIC 演示',
+          demoLead: '下方是真实 HEIC 测试文件。安装扩展后，它们会自动转换并正常显示。',
+          detecting: '正在检测扩展状态...',
+          detected: 'View HEIC 扩展运行正常，下方图片正在自动转换显示。',
+          notDetectedPrefix: '未检测到 View HEIC 扩展正在运行。请先 ',
+          notDetectedLink: '安装扩展',
+          notDetectedSuffix: ' 后刷新本页面。',
+          waiting: '等待扩展',
+          converted: '已转换',
+          failed: '转换失败',
+          processing: '转换中',
+          demoCases: [
+            ['example.heic', '标准 HEIC', '1.1 MB', '大文件性能测试'],
+            ['small-test.heic', 'Nokia 标准文件', '873 KB', '标准格式兼容'],
+            ['medium-test.heic', '小文件快速转换', '219 KB', '快速处理'],
+            ['corrupted-test.heic', '错误处理', '78 B', '优雅降级演示'],
+          ],
+          dynamicTitle: '动态加载测试',
+          dynamicLead: '验证 JavaScript 动态插入的图片也能通过 MutationObserver 被扩展监听处理。',
+          dynamicButton: '动态添加 HEIC 图片',
+          counters: ['成功转换', '转换失败', '总计图片'],
+          installTitle: '安装 View HEIC',
+          installLead: '日常使用请选择商店版本；开发调试可以手动加载项目。',
+          installCards: [
+            ['推荐', 'Chrome 应用商店', ['打开 Chrome 应用商店页面。', '点击添加至 Chrome。', '在浏览器弹窗中确认，并刷新包含 HEIC 图片的页面。'], '前往 Chrome 应用商店'],
+            ['开发者', '手动安装', ['克隆项目并安装依赖。', '执行 pnpm build。', '打开 chrome://extensions/，开启开发者模式，加载 .output/chrome-mv3。'], '查看开发指南'],
+          ],
+          techTitle: '技术栈与架构',
+          tech: [
+            ['WXT Framework', '基于 Vite 的现代浏览器扩展开发框架。'],
+            ['TypeScript', '类型化模块让扩展逻辑更易维护。'],
+            ['heic-to 1.5.2', '基于 libheif 1.22.2 的转换引擎，支持 CSP 变体。'],
+            ['heic-decode 2.1', '保留序列帧解码能力，便于后续扩展动画支持。'],
+          ],
+          structureTitle: '项目结构',
+          structureCode: `view-heic-browser-extension/
+├── entrypoints/
+│   ├── content.ts           # DOM 扫描与 MutationObserver
+│   └── background.ts        # Service Worker
+├── utils/
+│   ├── heic-converter.ts    # 转换引擎
+│   ├── constants.ts         # 运行限制与选择器
+│   └── types.ts             # TypeScript 类型
+└── docs/                    # GitHub Pages 官网与演示文件`,
+          faqTitle: '常见问题',
+          faqs: [
+            ['安装后图片还是无法显示，怎么办？', '请确认扩展已启用，刷新页面，并打开开发者工具确认 View HEIC 内容脚本已加载。如果源站阻止跨域读取，可以点击原图在新标签页中查看。'],
+            ['图片会被上传到云端吗？', '不会。解码通过 WebAssembly 在你的浏览器本地完成。转换后的图片以 Blob URL 存在于当前标签页内存中，页面关闭即释放。'],
+            ['支持 Firefox 吗？', '项目使用 WXT 构建，可以通过 pnpm build:firefox 构建 Firefox 版本。当前商店版本面向 Chromium 浏览器。'],
+            ['最大支持多大的 HEIC 文件？', '默认上限为 50 MB，可在 utils/constants.ts 的 CONFIG.MAX_FILE_SIZE 中修改。'],
+            ['动画 HEIC 如何处理？', '扩展会通过 msf1、hevc、hevx 等 ISO BMFF 品牌识别序列 HEIC，默认只预览首帧，避免昂贵的多帧解码。'],
+          ],
+          ctaTitle: '让网页里的 HEIC 图片正常显示。',
+          ctaLead: '免费安装 View HEIC，不再为了看一张图片而先下载再转换。',
+          footerLead: '免费开源的浏览器扩展，让 HEIC / HEIF 图片在网页中自动显示，并保持完全本地转换。',
+          footerLinks: '链接',
+          footerProject: '项目',
+          license: '基于 MIT 许可证开源。',
+          devTest: '开发者测试页',
+        },
+      }
+
+      let dynamicCount = 0
+      let currentLang = getInitialLang()
+
+      function getInitialLang() {
+        const queryLang = new URLSearchParams(window.location.search).get('lang')
+        if (queryLang === 'zh' || queryLang === 'en') return queryLang
+        return 'en'
+      }
+
+      function setText(selector, value) {
+        document.querySelectorAll(selector).forEach((node) => {
+          node.textContent = value
+        })
+      }
+
+      function renderLanguage(lang, updateUrl = false) {
+        currentLang = lang
+        const t = messages[lang]
+        document.documentElement.lang = t.lang
+        document.title = t.title
+        document.querySelector('meta[name="description"]').setAttribute('content', t.description)
+        document.querySelector('meta[property="og:title"]').setAttribute('content', t.title)
+        document.querySelector('meta[property="og:description"]').setAttribute('content', t.description)
+        document.querySelector('meta[name="twitter:title"]').setAttribute('content', t.title)
+        document.querySelector('meta[name="twitter:description"]').setAttribute('content', t.description)
+
+        if (updateUrl) {
+          const url = new URL(window.location.href)
+          url.searchParams.set('lang', lang)
+          window.history.replaceState(null, '', url)
+        }
+
+        document.querySelectorAll('[data-i18n]').forEach((node) => {
+          const key = node.dataset.i18n
+          if (typeof t[key] === 'string') node.textContent = t[key]
+        })
+
+        document.querySelectorAll('.lang-btn').forEach((button) => {
+          const active = button.dataset.langOption === lang
+          button.className = active
+            ? 'lang-btn rounded-full bg-slate-950 px-3 py-1.5 text-white transition-colors'
+            : 'lang-btn rounded-full px-3 py-1.5 text-slate-500 transition-colors hover:text-slate-900'
+        })
+
+        renderNav(t)
+        renderTrust(t)
+        renderStats(t)
+        renderFeatures(t)
+        renderSteps(t)
+        renderFlow(t)
+        renderDemo(t)
+        renderInstall(t)
+        renderTech(t)
+        renderFaq(t)
+        renderFooter(t)
+        setText('#add-dynamic-btn', t.dynamicButton)
+        setText('#ext-status-banner', t.detecting)
+        updateBadges()
+        updateStats()
+      }
+
+      function renderNav(t) {
+        const nav = document.getElementById('nav-links')
+        nav.innerHTML = t.nav.map(([id, label]) => `<a href="#${id}" class="transition hover:text-brand-700">${label}</a>`).join('')
+      }
+
+      function renderTrust(t) {
+        document.getElementById('trust-strip').innerHTML = t.trust
+          .map((item) => `<div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm">${item}</div>`)
+          .join('')
+      }
+
+      function renderStats(t) {
+        document.getElementById('stats').innerHTML = t.stats
+          .map(([value, label]) => `<div><div class="text-3xl font-extrabold">${value}</div><div class="mt-1 text-sm font-medium text-slate-300">${label}</div></div>`)
+          .join('')
+      }
+
+      function renderFeatures(t) {
+        document.getElementById('features-grid').innerHTML = t.features
+          .map(([title, body]) => `<article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h3 class="text-lg font-extrabold text-slate-950">${title}</h3><p class="mt-3 text-sm leading-7 text-slate-600">${body}</p></article>`)
+          .join('')
+      }
+
+      function renderSteps(t) {
+        document.getElementById('steps').innerHTML = t.steps
+          .map(([number, title, body]) => `<article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-600 text-base font-extrabold text-white">${number}</div><h3 class="mt-5 text-lg font-extrabold text-slate-950">${title}</h3><p class="mt-3 text-sm leading-7 text-slate-600">${body}</p></article>`)
+          .join('')
+      }
+
+      function renderFlow(t) {
+        document.getElementById('flow').innerHTML = t.flow
+          .map((item, index) => `<span class="rounded-full ${index === t.flow.length - 1 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-700'} px-4 py-2 font-bold">${item}</span>${index === t.flow.length - 1 ? '' : '<span class="text-slate-300">→</span>'}`)
+          .join('')
+      }
+
+      function renderDemo(t) {
+        document.getElementById('demo-grid').innerHTML = t.demoCases
+          .map(([file, title, size, tag]) => `<article class="heic-card overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"><div class="relative flex h-44 items-center justify-center overflow-hidden bg-slate-100"><img src="./${file}" alt="${title}" class="h-full w-full object-cover" /><span class="status-badge bg-slate-100 text-slate-500">${t.waiting}</span></div><div class="p-4"><h3 class="font-extrabold text-slate-900">${title}</h3><p class="mt-1 text-sm text-slate-500">${file} · ${size}</p><span class="mt-3 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-brand-700">${tag}</span></div></article>`)
+          .join('')
+
+        document.getElementById('demo-stats').innerHTML = t.counters
+          .map((label, index) => `<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm"><div class="text-3xl font-extrabold ${index === 0 ? 'text-emerald-600' : index === 1 ? 'text-red-500' : 'text-brand-600'}" id="${index === 0 ? 'success-count' : index === 1 ? 'failure-count' : 'total-count'}">0</div><div class="mt-1 text-xs font-bold text-slate-500">${label}</div></div>`)
+          .join('')
+      }
+
+      function renderInstall(t) {
+        document.getElementById('install-cards').innerHTML = t.installCards
+          .map(([badge, title, steps, cta], index) => `<article class="rounded-3xl border ${index === 0 ? 'border-brand-200 bg-blue-50' : 'border-slate-200 bg-white'} p-7 shadow-sm"><span class="inline-flex rounded-full ${index === 0 ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600'} px-3 py-1 text-xs font-extrabold">${badge}</span><h3 class="mt-5 text-2xl font-extrabold text-slate-950">${title}</h3><ol class="mt-5 space-y-3 text-sm leading-6 text-slate-700">${steps.map((step, stepIndex) => `<li class="flex gap-3"><span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-950 text-xs font-extrabold text-white">${stepIndex + 1}</span><span>${step}</span></li>`).join('')}</ol><a href="${index === 0 ? STORE_URL : GITHUB_URL}" target="_blank" rel="noopener" class="mt-7 inline-flex w-full justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800">${cta}</a></article>`)
+          .join('')
+      }
+
+      function renderTech(t) {
+        document.getElementById('tech-grid').innerHTML = t.tech
+          .map(([title, body]) => `<article class="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-center"><h3 class="font-extrabold text-slate-950">${title}</h3><p class="mt-3 text-sm leading-6 text-slate-600">${body}</p></article>`)
+          .join('')
+      }
+
+      function renderFaq(t) {
+        document.getElementById('faq-list').innerHTML = t.faqs
+          .map(([question, answer]) => `<details class="group rounded-2xl border border-slate-200 bg-white shadow-sm"><summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 font-extrabold text-slate-900"><span>${question}</span><span class="text-slate-400 transition group-open:rotate-180">⌄</span></summary><p class="px-5 pb-5 text-sm leading-7 text-slate-600">${answer}</p></details>`)
+          .join('')
+      }
+
+      function renderFooter(t) {
+        document.getElementById('footer-links').innerHTML = [
+          ['features', t.nav[0][1]],
+          ['demo', t.nav[2][1]],
+          ['install', t.installShort],
+          ['faq', t.nav[3][1]],
+        ].map(([id, label]) => `<li><a href="#${id}" class="transition hover:text-white">${label}</a></li>`).join('') +
+          `<li><a href="./test-improved.html" class="transition hover:text-white">${t.devTest}</a></li>`
+
+        document.getElementById('project-links').innerHTML = [
+          [GITHUB_URL, 'GitHub'],
+          [`${GITHUB_URL}/issues`, 'Issues'],
+          [`${GITHUB_URL}/releases`, 'Releases'],
+          [STORE_URL, 'Chrome Web Store'],
+        ].map(([href, label]) => `<li><a href="${href}" target="_blank" rel="noopener" class="transition hover:text-white">${label}</a></li>`).join('')
+      }
+
       function detectExtension() {
+        const t = messages[currentLang]
         const banner = document.getElementById('ext-status-banner')
         setTimeout(() => {
-          // Detect by class: after conversion the src becomes blob: so querying
-          // by src suffix would miss converted images.
-          const active = document.querySelector(
-            'img.heic-converted, img.heic-processing, img.heic-error'
-          ) !== null
-
+          const active = document.querySelector('img.heic-converted, img.heic-processing, img.heic-error') !== null
           if (active) {
-            banner.className = 'mb-8 rounded-xl p-4 text-center text-sm font-medium bg-green-50 border border-green-200 text-green-800 transition-all'
-            banner.textContent = '✅ View HEIC 扩展运行正常，下方图片正在自动转换显示！'
+            banner.className = 'mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center text-sm font-bold text-emerald-800'
+            banner.textContent = t.detected
           } else {
-            banner.className = 'mb-8 rounded-xl p-4 text-center text-sm font-medium bg-amber-50 border border-amber-200 text-amber-800 transition-all'
+            banner.className = 'mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center text-sm font-bold text-amber-800'
             banner.textContent = ''
-            const messagePrefix = document.createTextNode('⚠️ 未检测到扩展正在运行。请先 ')
-            const installLink = document.createElement('a')
-            installLink.href = 'https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge'
-            installLink.target = '_blank'
-            installLink.rel = 'noopener noreferrer'
-            installLink.className = 'underline font-semibold hover:text-amber-900'
-            installLink.textContent = '安装 View HEIC 扩展'
-            const messageSuffix = document.createTextNode(' 后刷新本页面。')
-            banner.append(messagePrefix, installLink, messageSuffix)
+            const prefix = document.createTextNode(t.notDetectedPrefix)
+            const link = document.createElement('a')
+            link.href = STORE_URL
+            link.target = '_blank'
+            link.rel = 'noopener noreferrer'
+            link.className = 'underline'
+            link.textContent = t.notDetectedLink
+            const suffix = document.createTextNode(t.notDetectedSuffix)
+            banner.append(prefix, link, suffix)
           }
-
           updateBadges()
           updateStats()
         }, 2200)
       }
 
-      // ── Sync status badges on heic-card elements ──────────────────
       function updateBadges() {
-        document.querySelectorAll('.heic-card').forEach(card => {
+        const t = messages[currentLang]
+        document.querySelectorAll('.heic-card').forEach((card) => {
           const img = card.querySelector('img')
           const badge = card.querySelector('.status-badge')
           if (!img || !badge) return
           if (img.classList.contains('heic-converted')) {
-            badge.textContent = '✅ 已转换'
-            badge.className = 'status-badge bg-green-100 text-green-800'
+            badge.textContent = t.converted
+            badge.className = 'status-badge bg-emerald-100 text-emerald-700'
           } else if (img.classList.contains('heic-error')) {
-            badge.textContent = '❌ 转换失败'
+            badge.textContent = t.failed
             badge.className = 'status-badge bg-red-100 text-red-700'
           } else if (img.classList.contains('heic-processing')) {
-            badge.textContent = '🔄 转换中'
-            badge.className = 'status-badge bg-yellow-100 text-yellow-800'
+            badge.textContent = t.processing
+            badge.className = 'status-badge bg-amber-100 text-amber-800'
           } else {
-            badge.textContent = '⏳ 等待扩展'
-            badge.className = 'status-badge bg-gray-100 text-gray-500'
+            badge.textContent = t.waiting
+            badge.className = 'status-badge bg-slate-100 text-slate-500'
           }
         })
       }
 
-      // ── Stats counter ─────────────────────────────────────────────
       function updateStats() {
         const all = document.querySelectorAll('.heic-card img')
         const ok = document.querySelectorAll('.heic-card img.heic-converted')
         const err = document.querySelectorAll('.heic-card img.heic-error')
-        document.getElementById('total-count').textContent = all.length
-        document.getElementById('success-count').textContent = ok.length
-        document.getElementById('failure-count').textContent = err.length
+        const total = document.getElementById('total-count')
+        const success = document.getElementById('success-count')
+        const failure = document.getElementById('failure-count')
+        if (total) total.textContent = all.length
+        if (success) success.textContent = ok.length
+        if (failure) failure.textContent = err.length
         updateBadges()
       }
 
-      // ── Dynamic image injection ───────────────────────────────────
       function addDynamicImage() {
-        dynamicCount++
-        const testCases = [
-          { src: './example.heic',        label: '标准 HEIC',    size: '1.1 MB' },
-          { src: './small-test.heic',     label: 'Nokia 标准',   size: '873 KB' },
-          { src: './medium-test.heic',    label: '小文件',       size: '219 KB' },
-          { src: './corrupted-test.heic', label: '错误处理',     size: '78 B'   },
-        ]
-        const tc = testCases[(dynamicCount - 1) % testCases.length]
+        dynamicCount += 1
+        const t = messages[currentLang]
+        const tc = t.demoCases[(dynamicCount - 1) % t.demoCases.length]
         const container = document.getElementById('dynamic-images')
         const card = document.createElement('div')
-        card.className = 'heic-card bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm'
+        card.className = 'heic-card overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm'
         card.innerHTML = `
-          <div class="relative h-36 bg-gray-100 overflow-hidden">
-            <img src="${tc.src}" alt="动态图片 #${dynamicCount}" class="w-full h-full object-cover" />
-            <span class="status-badge bg-gray-100 text-gray-500">⏳ 等待扩展</span>
+          <div class="relative h-36 overflow-hidden bg-slate-100">
+            <img src="./${tc[0]}" alt="${tc[1]} #${dynamicCount}" class="h-full w-full object-cover" />
+            <span class="status-badge bg-slate-100 text-slate-500">${t.waiting}</span>
           </div>
-          <div class="p-3">
-            <p class="text-xs font-semibold text-gray-700">#${dynamicCount} · ${tc.label}</p>
-            <p class="text-xs text-gray-400">${tc.size} · ${new Date().toLocaleTimeString()}</p>
+          <div class="p-4">
+            <p class="text-sm font-extrabold text-slate-800">#${dynamicCount} · ${tc[1]}</p>
+            <p class="mt-1 text-xs text-slate-500">${tc[2]} · ${new Date().toLocaleTimeString()}</p>
           </div>`
         container.appendChild(card)
         setTimeout(updateStats, 1200)
       }
 
-      // ── Init ──────────────────────────────────────────────────────
       document.addEventListener('DOMContentLoaded', () => {
+        renderLanguage(currentLang)
+        document.querySelectorAll('.lang-btn').forEach((button) => {
+          button.addEventListener('click', () => renderLanguage(button.dataset.langOption, true))
+        })
         detectExtension()
         setInterval(updateStats, 2500)
       })
