@@ -5,6 +5,7 @@ export const CONFIG = {
   DEBOUNCE_DELAY: 300,
   CONVERSION_QUALITY: 0.9,
   RETRY_ATTEMPTS: 2,
+  ANIMATED_HEIC_PLAYBACK_ENABLED: false,
   /** Target frame rate for animated HEIC sequence playback (frames per second). */
   ANIMATION_FPS: 24,
 } as const
@@ -22,6 +23,9 @@ export const DATA_ATTRIBUTES = {
   ORIGINAL_SRC: "data-original-src",
   PROCESSED: "data-heic-processed",
   ERROR_COUNT: "data-error-count",
+  PREVIOUS_FILTER: "data-heic-previous-filter",
+  PREVIOUS_CURSOR: "data-heic-previous-cursor",
+  PREVIOUS_TITLE: "data-heic-previous-title",
 } as const
 
 // 错误消息

@@ -43,6 +43,25 @@ function isAnimatedHeicBuffer(buffer: ArrayBuffer): boolean {
   return HEIC_BRANDS_SEQUENCE.has(getHeicBrand(buffer))
 }
 
+function logStageTiming(src: string, stage: string, startTime: number): void {
+  const elapsedMs = Math.round(performance.now() - startTime)
+  console.debug("[View HEIC] conversion timing", { stage, elapsedMs, src })
+}
+
+function shouldRetryConversion(error: any): boolean {
+  const message = error?.message ?? ""
+  const nonRetryableMessages = [
+    ERROR_MESSAGES.INVALID_FORMAT,
+    ERROR_MESSAGES.FILE_TOO_LARGE,
+    ERROR_MESSAGES.CORS_ERROR,
+    "HEIF image not found",
+    "HEIF processing error",
+    "Could not parse HEIF file",
+  ]
+
+  return !nonRetryableMessages.some((deterministicError) => message.includes(deterministicError))
+}
+
 // ─── Converter ──────────────────────────────────────────────────────────────
 
 /**
@@ -50,6 +69,8 @@ function isAnimatedHeicBuffer(buffer: ArrayBuffer): boolean {
  */
 export class HEICConverter {
   private processedImages = new WeakSet<HTMLImageElement>()
+  private conversionGeneration = new WeakMap<HTMLImageElement, number>()
+  private errorClickHandlers = new WeakMap<HTMLImageElement, (event: MouseEvent) => void>()
   /** Prevents duplicate concurrent conversions of the same element. */
   private processingQueue = new Map<HTMLImageElement, Promise<ConversionResult>>()
   /** Cache: original src → converted blob URL. */
@@ -68,12 +89,77 @@ export class HEICConverter {
     img.setAttribute(DATA_ATTRIBUTES.PROCESSED, "true")
   }
 
+  private nextGeneration(img: HTMLImageElement): number {
+    const generation = (this.conversionGeneration.get(img) ?? 0) + 1
+    this.conversionGeneration.set(img, generation)
+    return generation
+  }
+
+  private getGeneration(img: HTMLImageElement): number {
+    return this.conversionGeneration.get(img) ?? 0
+  }
+
+  private isCurrentGeneration(img: HTMLImageElement, generation: number): boolean {
+    return this.getGeneration(img) === generation
+  }
+
+  private preserveImageStateForError(img: HTMLImageElement): void {
+    if (!img.hasAttribute(DATA_ATTRIBUTES.PREVIOUS_FILTER)) {
+      img.setAttribute(DATA_ATTRIBUTES.PREVIOUS_FILTER, img.style.getPropertyValue("filter"))
+    }
+    if (!img.hasAttribute(DATA_ATTRIBUTES.PREVIOUS_CURSOR)) {
+      img.setAttribute(DATA_ATTRIBUTES.PREVIOUS_CURSOR, img.style.getPropertyValue("cursor"))
+    }
+    if (!img.hasAttribute(DATA_ATTRIBUTES.PREVIOUS_TITLE)) {
+      img.setAttribute(DATA_ATTRIBUTES.PREVIOUS_TITLE, img.title)
+    }
+  }
+
+  private restoreExtensionErrorState(img: HTMLImageElement): void {
+    if (img.hasAttribute(DATA_ATTRIBUTES.PREVIOUS_FILTER)) {
+      img.style.setProperty("filter", img.getAttribute(DATA_ATTRIBUTES.PREVIOUS_FILTER) ?? "")
+      img.removeAttribute(DATA_ATTRIBUTES.PREVIOUS_FILTER)
+    }
+    if (img.hasAttribute(DATA_ATTRIBUTES.PREVIOUS_CURSOR)) {
+      img.style.setProperty("cursor", img.getAttribute(DATA_ATTRIBUTES.PREVIOUS_CURSOR) ?? "")
+      img.removeAttribute(DATA_ATTRIBUTES.PREVIOUS_CURSOR)
+    }
+    if (img.hasAttribute(DATA_ATTRIBUTES.PREVIOUS_TITLE)) {
+      img.title = img.getAttribute(DATA_ATTRIBUTES.PREVIOUS_TITLE) ?? ""
+      img.removeAttribute(DATA_ATTRIBUTES.PREVIOUS_TITLE)
+    }
+
+    const errorClickHandler = this.errorClickHandlers.get(img)
+    if (errorClickHandler) {
+      img.removeEventListener("click", errorClickHandler)
+      this.errorClickHandlers.delete(img)
+    }
+  }
+
+  /**
+   * Reset all in-memory and DOM markers for a specific image element.
+   * This is used when the src changes so the same node can be re-processed
+   * against the new source.
+   */
+  resetImageProcessed(img: HTMLImageElement): void {
+    this.nextGeneration(img)
+    this.processingQueue.delete(img)
+    this.processedImages.delete(img)
+    img.removeAttribute(DATA_ATTRIBUTES.PROCESSED)
+    img.removeAttribute(DATA_ATTRIBUTES.ORIGINAL_SRC)
+    img.removeAttribute("data-error-type")
+    img.removeAttribute("data-error-message")
+    img.classList.remove("heic-processing", "heic-converted", "heic-error")
+    this.restoreExtensionErrorState(img)
+  }
+
   /**
    * Fetches raw image bytes.  Validates size and HEIC magic bytes.
    * If the server returns a correct HEIC MIME type but the URL has no .heic
    * extension, we still accept the blob.
    */
   private async fetchImageData(src: string): Promise<ArrayBuffer> {
+    const fetchStart = performance.now()
     let response: Response
     try {
       response = await fetch(src)
@@ -94,6 +180,9 @@ export class HEICConverter {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
+    logStageTiming(src, "fetch", fetchStart)
+
+    const blobStart = performance.now()
     const blob = await response.blob()
 
     if (blob.size > CONFIG.MAX_FILE_SIZE) {
@@ -101,6 +190,7 @@ export class HEICConverter {
     }
 
     const buffer = await blob.arrayBuffer()
+    logStageTiming(src, "read-blob", blobStart)
 
     // Accept if magic bytes confirm HEIC, or if the MIME type is heic/heif.
     const mimeOk =
@@ -120,11 +210,14 @@ export class HEICConverter {
 
   private async convertSingleFrame(
     buffer: ArrayBuffer,
+    src: string,
     options: ConversionOptions = {}
   ): Promise<string> {
-    const { quality = CONFIG.CONVERSION_QUALITY, format = "png" } = options
+    const { quality = CONFIG.CONVERSION_QUALITY, format = "jpeg" } = options
     const blob = new Blob([buffer])
+    const convertStart = performance.now()
     const result = await heicTo({ blob, type: `image/${format}`, quality })
+    logStageTiming(src, `convert-${format}`, convertStart)
     return URL.createObjectURL(result)
   }
 
@@ -137,9 +230,14 @@ export class HEICConverter {
   private async convertAnimatedToCanvas(
     img: HTMLImageElement,
     buffer: ArrayBuffer,
+    generation: number,
     options: ConversionOptions = {}
   ): Promise<string | null> {
     try {
+      if (!CONFIG.ANIMATED_HEIC_PLAYBACK_ENABLED) {
+        return null
+      }
+
       // heic-decode is a Node-style CJS module; dynamic import lets Vite
       // bundle it and gives a clean fallback path if unavailable.
       const heicDecode = await import("heic-decode")
@@ -162,8 +260,10 @@ export class HEICConverter {
         return null
       }
 
-      // Decode all frames eagerly (keeps frames alive until we've drawn them)
-      const rawFrames = await Promise.all(frames.map((f) => f.decode()))
+      const rawFrames: DecodedFrameData[] = []
+      for (const frame of frames) {
+        rawFrames.push(await frame.decode())
+      }
       frames.dispose?.()
 
       const { width, height } = rawFrames[0]
@@ -194,11 +294,15 @@ export class HEICConverter {
 
       const drawFrame = () => {
         const f = rawFrames[frameIndex]
-        ctx.putImageData(new ImageData(f.data, f.width, f.height), 0, 0)
+        ctx.putImageData(new ImageData(new Uint8ClampedArray(f.data), f.width, f.height), 0, 0)
         frameIndex = (frameIndex + 1) % rawFrames.length
       }
 
       drawFrame()
+
+      if (!this.isCurrentGeneration(img, generation)) {
+        return null
+      }
 
       const timerId = setInterval(drawFrame, Math.round(1000 / CONFIG.ANIMATION_FPS))
       this.animationTimers.add(timerId)
@@ -248,6 +352,7 @@ export class HEICConverter {
   ): Promise<ConversionResult> {
     const originalSrc = img.src
     const { maxRetries = CONFIG.RETRY_ATTEMPTS } = options
+    const generation = this.nextGeneration(img)
 
     // Persist original src for error-recovery click handlers
     if (!img.hasAttribute(DATA_ATTRIBUTES.ORIGINAL_SRC)) {
@@ -256,6 +361,9 @@ export class HEICConverter {
 
     // Reuse an already-converted blob URL for this src
     if (this.urlCache.has(originalSrc)) {
+      if (!this.isCurrentGeneration(img, generation) || img.src !== originalSrc) {
+        return { success: false }
+      }
       img.src = this.urlCache.get(originalSrc)!
       img.classList.add("heic-converted")
       this.markImageAsProcessed(img)
@@ -271,8 +379,11 @@ export class HEICConverter {
 
         // ── Animated path ──────────────────────────────────────────────
         if (isAnimatedHeicBuffer(buffer)) {
-          const canvasResult = await this.convertAnimatedToCanvas(img, buffer, options)
+          const canvasResult = await this.convertAnimatedToCanvas(img, buffer, generation, options)
           if (canvasResult !== null) {
+            if (!this.isCurrentGeneration(img, generation)) {
+              return { success: false }
+            }
             // "animated-canvas" → canvas replaced the img; or null means fallback
             img.classList.remove("heic-processing")
             return { success: true }
@@ -281,7 +392,12 @@ export class HEICConverter {
         }
 
         // ── Single-frame path ──────────────────────────────────────────
-        const objectURL = await this.convertSingleFrame(buffer, options)
+        const objectURL = await this.convertSingleFrame(buffer, originalSrc, options)
+
+        if (!this.isCurrentGeneration(img, generation) || img.src !== originalSrc) {
+          URL.revokeObjectURL(objectURL)
+          return { success: false }
+        }
 
         // Revoke any previous blob URL we set on this img
         if (img.src.startsWith("blob:") && img.src !== objectURL) {
@@ -299,10 +415,18 @@ export class HEICConverter {
         lastError = error
         console.warn(`HEIC转换尝试 ${attempt + 1}/${maxRetries} 失败:`, error.message)
 
+        if (!shouldRetryConversion(error)) {
+          break
+        }
+
         if (attempt < maxRetries - 1) {
           await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)))
         }
       }
+    }
+
+    if (!this.isCurrentGeneration(img, generation) || img.src !== originalSrc) {
+      return { success: false }
     }
 
     return this.handleConversionError(img, lastError, originalSrc)
@@ -360,6 +484,7 @@ export class HEICConverter {
   ): ConversionResult {
     img.classList.remove("heic-processing")
     img.classList.add("heic-error")
+    this.preserveImageStateForError(img)
 
     let errorType: ConversionError["type"] = "unknown"
     let errorMessage: string = error?.message ?? ERROR_MESSAGES.CONVERSION_FAILED
@@ -394,11 +519,15 @@ export class HEICConverter {
     img.title = `${displayMessage} - 点击查看原图`
     img.style.filter = "grayscale(50%) opacity(0.8)"
     img.style.cursor = "pointer"
-    img.style.border = "2px dashed #ff6b6b"
     img.setAttribute("data-error-type", errorType)
     img.setAttribute("data-error-message", displayMessage)
 
-    img.onclick = (e: MouseEvent) => {
+    const previousErrorClickHandler = this.errorClickHandlers.get(img)
+    if (previousErrorClickHandler) {
+      img.removeEventListener("click", previousErrorClickHandler)
+    }
+
+    const errorClickHandler = (e: MouseEvent) => {
       e.preventDefault()
       if (errorType === "cors") {
         const confirmed = confirm(
@@ -409,6 +538,8 @@ export class HEICConverter {
         window.open(originalSrc, "_blank")
       }
     }
+    img.addEventListener("click", errorClickHandler)
+    this.errorClickHandlers.set(img, errorClickHandler)
 
     console.warn("🔴 HEIC转换失败:", {
       src: originalSrc,
@@ -420,4 +551,3 @@ export class HEICConverter {
     return { success: false, error: { type: errorType, message: errorMessage, originalError: error } }
   }
 }
-

@@ -62,7 +62,6 @@ function injectStyles(): void {
 
     .heic-error {
       position: relative;
-      border: 2px dashed #ff6b6b !important;
       opacity: 0.8;
       filter: grayscale(50%);
       cursor: pointer;
@@ -145,7 +144,7 @@ function observeHEICImages(converter: HEICConverter): void {
             // 检查节点本身或其子元素是否为HEIC图片
             if (element.tagName === "IMG") {
               const img = element as HTMLImageElement
-              if (isHEICImage(img)) {
+              if (img.matches(SELECTORS.HEIC_IMAGES)) {
                 hasNewImages = true
                 break
               }
@@ -158,6 +157,18 @@ function observeHEICImages(converter: HEICConverter): void {
       }
 
       if (hasNewImages) break
+
+      if (
+        mutation.type === "attributes" &&
+        mutation.attributeName === "src" &&
+        mutation.target instanceof HTMLImageElement
+      ) {
+        const img = mutation.target
+        if (img.matches(SELECTORS.HEIC_IMAGES)) {
+          converter.resetImageProcessed(img)
+          hasNewImages = true
+        }
+      }
     }
 
     if (hasNewImages) {
@@ -168,14 +179,8 @@ function observeHEICImages(converter: HEICConverter): void {
 
   observer.observe(document.body, {
     childList: true,
+    attributes: true,
+    attributeFilter: ["src"],
     subtree: true,
   })
-}
-
-/**
- * 检查图片是否为HEIC格式
- */
-function isHEICImage(img: HTMLImageElement): boolean {
-  const src = img.src.toLowerCase()
-  return src.endsWith(".heic") || src.endsWith(".heif")
 }

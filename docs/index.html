@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>View HEIC — 在浏览器中直接查看 HEIC / HEIF 图片</title>
     <meta name="description" content="免费开源的 Chrome 浏览器扩展，一键让所有 HEIC / HEIF 图片在网页中直接显示，零配置、本地转换、完全保护隐私。" />
-    <meta name="keywords" content="HEIC,HEIF,浏览器扩展,Chrome 扩展,图片查看,HEIC 转 PNG,heic-to,libheif" />
+    <meta name="keywords" content="HEIC,HEIF,浏览器扩展,Chrome 扩展,图片查看,HEIC 转 JPEG,heic-to,libheif" />
     <link rel="canonical" href="https://vingeraycn.github.io/view-heic-browser-extension/" />
 
     <!-- OpenGraph -->
@@ -160,7 +160,7 @@
     <section class="hero-blob pt-28 pb-20 px-6">
       <div class="max-w-3xl mx-auto text-center">
         <span class="animate-fade-up inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-6 border border-indigo-100">
-          🎉 最新版本 v1.0.9 · 支持动画 HEIC 序列帧
+          🎉 最新版本 v1.0.10 · 默认 JPEG 快速预览
         </span>
         <h1 class="animate-fade-up-d1 text-5xl sm:text-6xl font-extrabold leading-tight tracking-tight mb-6">
           让 HEIC 图片<br />
@@ -196,7 +196,7 @@
         <!-- trust strip -->
         <p class="animate-fade-up-d4 mt-10 text-xs text-gray-400 flex flex-wrap items-center justify-center gap-4">
           <span>🔒 完全本地转换 · 不上传数据</span>
-          <span>⚡ 支持 HEIC / HEIF / 动画序列帧</span>
+          <span>⚡ 支持 HEIC / HEIF / 序列帧首帧预览</span>
           <span>🌐 适配所有网站</span>
           <span>📦 开源 · MIT 协议</span>
         </p>
@@ -215,8 +215,8 @@
           <div class="text-indigo-200 text-sm mt-1">支持的 HEIC 品牌</div>
         </div>
         <div class="stat-card rounded-lg py-3 transition-all cursor-default">
-          <div class="text-3xl font-extrabold">24fps</div>
-          <div class="text-indigo-200 text-sm mt-1">动画序列帧播放</div>
+          <div class="text-3xl font-extrabold">JPEG</div>
+          <div class="text-indigo-200 text-sm mt-1">默认 JPEG 预览</div>
         </div>
         <div class="stat-card rounded-lg py-3 transition-all cursor-default">
           <div class="text-3xl font-extrabold">0</div>
@@ -231,7 +231,7 @@
         <div class="text-center mb-14">
           <h2 class="text-3xl sm:text-4xl font-extrabold mb-4">✨ 核心特性</h2>
           <p class="text-gray-500 text-lg max-w-xl mx-auto">
-            从自动检测到动画支持，覆盖所有 HEIC 使用场景
+            从自动检测到高效预览，覆盖常见 HEIC 使用场景
           </p>
         </div>
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -248,10 +248,10 @@
 
           <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
             <div class="text-3xl mb-3">🎞️</div>
-            <h3 class="font-bold text-gray-900 mb-2">动画 HEIC 序列帧</h3>
+            <h3 class="font-bold text-gray-900 mb-2">序列帧首帧预览</h3>
             <p class="text-gray-500 text-sm leading-relaxed">
-              自动识别 HEIC 动画序列（品牌 msf1 / hevc / hevx），
-              在页面中以 Canvas 动画形式播放，24fps 流畅显示。
+              自动识别 HEIC 序列文件（品牌 msf1 / hevc / hevx），
+              默认降级为首帧 JPEG 预览，避免多帧解码拖慢页面。
             </p>
           </div>
 
@@ -324,7 +324,7 @@
             <div class="w-20 h-20 rounded-2xl bg-pink-50 flex items-center justify-center text-4xl mx-auto mb-4 shadow-sm">🖼️</div>
             <div class="absolute -top-2 -right-2 sm:top-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 w-7 h-7 bg-pink-500 text-white text-xs font-bold rounded-full flex items-center justify-center">3</div>
             <h3 class="font-bold text-gray-900 mb-2">即时显示</h3>
-            <p class="text-gray-500 text-sm">HEIC 图片自动转换为 PNG，在原位无缝展示</p>
+            <p class="text-gray-500 text-sm">HEIC 图片自动转换为 JPEG，在原位快速展示</p>
           </div>
         </div>
 
@@ -342,7 +342,7 @@
             <span class="text-gray-400">→</span>
             <span class="bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-medium">Blob URL 替换 src ✓</span>
           </div>
-          <p class="text-xs text-gray-400 mt-3">动画 HEIC 序列会额外经过 heic-decode.all() 帧解码，并渲染到 &lt;canvas&gt; 动画</p>
+          <p class="text-xs text-gray-400 mt-3">序列 HEIC 默认只转换首帧；如需动画播放，可在代码中开启实验配置</p>
         </div>
       </div>
     </section>
@@ -396,7 +396,7 @@
             <div class="p-4">
               <h4 class="font-semibold text-gray-800 text-sm mb-1">小文件快速转换</h4>
               <p class="text-xs text-gray-500">medium-test.heic · 219 KB</p>
-              <span class="mt-2 inline-block px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded-full">⚡ 极速处理</span>
+              <span class="mt-2 inline-block px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded-full">⚡ 快速处理</span>
             </div>
           </div>
 
@@ -537,14 +537,14 @@ pnpm install</pre>
 
           <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm text-center">
             <div class="text-2xl mb-2">🖼️</div>
-            <div class="font-bold text-gray-800 mb-1">heic-to 1.2.1</div>
-            <div class="text-xs text-gray-500">基于 libheif 1.20.1，支持 CSP 变体</div>
+            <div class="font-bold text-gray-800 mb-1">heic-to 1.5.2</div>
+            <div class="text-xs text-gray-500">基于 libheif 1.22.2，支持 CSP 变体</div>
           </div>
 
           <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm text-center">
             <div class="text-2xl mb-2">🧩</div>
             <div class="font-bold text-gray-800 mb-1">heic-decode 2.1</div>
-            <div class="text-xs text-gray-500">多帧解码，驱动动画 HEIC 序列播放</div>
+            <div class="text-xs text-gray-500">多帧解码能力保留，默认关闭动画播放</div>
           </div>
 
         </div>
@@ -557,7 +557,7 @@ pnpm install</pre>
 │   ├── content.ts           ← 内容脚本，DOM 扫描与 MutationObserver
 │   └── background.ts        ← Service Worker 后台脚本
 ├── utils/
-│   ├── heic-converter.ts    ← 核心转换引擎（单帧 + 动画序列）
+│   ├── heic-converter.ts    ← 核心转换引擎（单帧 + 序列首帧）
 │   ├── constants.ts         ← 配置常量（SELECTORS、CONFIG、ANIMATION_FPS…）
 │   └── types.ts             ← TypeScript 类型定义
 └── docs/                    ← GitHub Pages 官网（本页面）</pre>
@@ -630,8 +630,8 @@ pnpm install</pre>
               HEIC 容器支持多帧图片序列（类似 GIF），其 ISO BMFF 品牌为
               <code class="bg-gray-100 px-1 rounded">msf1</code>、<code class="bg-gray-100 px-1 rounded">hevc</code> 或
               <code class="bg-gray-100 px-1 rounded">hevx</code>。扩展检测到这类文件后，
-              会用 <code class="bg-gray-100 px-1 rounded">heic-decode.all()</code> 解码所有帧，
-              然后用 <code class="bg-gray-100 px-1 rounded">&lt;canvas&gt;</code> 在原位播放约 24fps 的动画。
+              默认只转换首帧，避免一次性解码所有帧。代码中保留实验开关，可按需开启
+              <code class="bg-gray-100 px-1 rounded">heic-decode.all()</code> + Canvas 动画播放。
               若解码失败，会自动回退显示第一帧的静态图。
             </div>
           </details>
