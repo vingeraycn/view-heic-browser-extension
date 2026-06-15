@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>View HEIC - View HEIC / HEIF images directly in your browser</title>
+    <title>View HEIC - View HEIC / HEIF Images Directly In Your Browser</title>
     <meta
       name="description"
       content="A free open-source Chrome extension that displays HEIC and HEIF images directly on web pages with local conversion and zero setup."
@@ -16,13 +16,13 @@
     <link rel="icon" href="./assets/logo.svg" type="image/svg+xml" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="View HEIC - View HEIC / HEIF images directly in your browser" />
+    <meta property="og:title" content="View HEIC - View HEIC / HEIF Images Directly In Your Browser" />
     <meta property="og:description" content="A free open-source Chrome extension that displays HEIC and HEIF images directly on web pages." />
     <meta property="og:url" content="https://vingeraycn.github.io/view-heic-browser-extension/" />
     <meta property="og:image" content="https://vingeraycn.github.io/view-heic-browser-extension/store-assets/01-browser-heic-preview.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="View HEIC - View HEIC / HEIF images directly in your browser" />
+    <meta name="twitter:title" content="View HEIC - View HEIC / HEIF Images Directly In Your Browser" />
     <meta name="twitter:description" content="A free open-source Chrome extension that displays HEIC and HEIF images directly on web pages." />
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -274,50 +274,50 @@
       const messages = {
         en: {
           lang: 'en',
-          title: 'View HEIC - View HEIC / HEIF images directly in your browser',
+          title: 'View HEIC - View HEIC / HEIF Images Directly In Your Browser',
           description: 'A free open-source Chrome extension that displays HEIC and HEIF images directly on web pages with local conversion and zero setup.',
           nav: [
             ['features', 'Features'],
-            ['how-it-works', 'How it works'],
+            ['how-it-works', 'How It Works'],
             ['demo', 'Demo'],
             ['faq', 'FAQ'],
           ],
           installShort: 'Install',
           heroBadge: 'Version 1.0.11 · Fast JPEG preview by default',
-          heroTitle: 'View HEIC images directly in your browser.',
+          heroTitle: 'View HEIC Images Directly In Your Browser.',
           heroLead: 'View HEIC is a free open-source Chrome extension that detects HEIC and HEIF images on web pages, converts them locally, and renders them in place without configuration.',
-          primaryCta: 'Add to Chrome for free',
-          secondaryCta: 'View source on GitHub',
-          githubCta: 'GitHub project',
-          heroMockStatus: 'HEIC image converted locally',
-          trust: ['Local conversion', 'No uploads', 'HEIC / HEIF support', 'Open source'],
+          primaryCta: 'Add To Chrome For Free',
+          secondaryCta: 'View Source On GitHub',
+          githubCta: 'GitHub Project',
+          heroMockStatus: 'HEIC Image Converted Locally',
+          trust: ['Local Conversion', 'No Uploads', 'HEIC / HEIF Support', 'Open Source'],
           stats: [
-            ['50MB', 'Maximum file size'],
+            ['50MB', 'Maximum File Size'],
             ['6', 'Recognized HEIC brands'],
-            ['JPEG', 'Default preview format'],
-            ['0', 'Server uploads'],
+            ['JPEG', 'Default Preview Format'],
+            ['0', 'Server Uploads'],
           ],
-          featuresTitle: 'Built for the HEIC gap on the web',
+          featuresTitle: 'Built For The HEIC Gap On The Web',
           featuresLead: 'The extension handles real-world web pages, strict browser security rules, and common HEIC edge cases without asking users to manually convert files.',
           features: [
-            ['Automatic detection', 'Scans existing and dynamically inserted images, including HEIC and HEIF URLs added after page load.'],
-            ['First-frame sequence preview', 'Recognizes HEIC sequence brands such as msf1, hevc, and hevx, then previews the first frame by default to keep pages responsive.'],
-            ['Magic-byte validation', 'Reads ISO BMFF brands from file headers, so HEIC files can still be handled when servers send an incorrect MIME type.'],
-            ['Smart cache', 'Stores converted results as Blob URLs and deduplicates concurrent work so the same image is converted only once.'],
-            ['Private by design', 'All decoding runs in the browser through WebAssembly. Image data never leaves the device.'],
-            ['CSP compatible', 'Uses the heic-to/csp variant to fit Manifest V3 content security requirements on strict websites.'],
+            ['Automatic Detection', 'Scans existing and dynamically inserted images, including HEIC and HEIF URLs added after page load.'],
+            ['First-Frame Sequence Preview', 'Recognizes HEIC sequence brands such as msf1, hevc, and hevx, then previews the first frame by default to keep pages responsive.'],
+            ['Magic-Byte Validation', 'Reads ISO BMFF brands from file headers, so HEIC files can still be handled when servers send an incorrect MIME type.'],
+            ['Smart Cache', 'Stores converted results as Blob URLs and deduplicates concurrent work so the same image is converted only once.'],
+            ['Private By Design', 'All decoding runs in the browser through WebAssembly. Image data never leaves the device.'],
+            ['CSP Compatible', 'Uses the heic-to/csp variant to fit Manifest V3 content security requirements on strict websites.'],
           ],
-          howTitle: 'How it works',
+          howTitle: 'How It Works',
           howLead: 'Install once, browse normally, and let HEIC images render in place.',
           steps: [
-            ['1', 'Install the extension', 'Add View HEIC from the Chrome Web Store with no extra setup.'],
-            ['2', 'Browse normally', 'Open any page with HEIC or HEIF images. The content script monitors the page.'],
-            ['3', 'See the image', 'The extension converts compatible images to JPEG Blob URLs and swaps them in place.'],
+            ['1', 'Install The Extension', 'Add View HEIC from the Chrome Web Store with no extra setup.'],
+            ['2', 'Browse Normally', 'Open any page with HEIC or HEIF images. The content script monitors the page.'],
+            ['3', 'See The Image', 'The extension converts compatible images to JPEG Blob URLs and swaps them in place.'],
           ],
-          flowTitle: 'Internal conversion flow',
-          flow: ['Page <img>', 'fetch(src)', 'Magic-byte check', 'libheif WebAssembly decode', 'Blob URL replacement'],
+          flowTitle: 'Internal Conversion Flow',
+          flow: ['Page <img>', 'fetch(src)', 'Magic-Byte Check', 'libheif WebAssembly Decode', 'Blob URL Replacement'],
           flowNote: 'HEIC sequences use a first-frame preview by default. Experimental animation support can be enabled in code if needed.',
-          demoTitle: 'Live HEIC demo',
+          demoTitle: 'Live HEIC Demo',
           demoLead: 'The files below are real HEIC samples. After installing the extension, they are converted and displayed automatically.',
           detecting: 'Checking extension status...',
           detected: 'View HEIC is running. The images below are being converted automatically.',
@@ -329,29 +329,29 @@
           failed: 'Failed',
           processing: 'Converting',
           demoCases: [
-            ['example.heic', 'Standard HEIC', '1.1 MB', 'Large file performance'],
-            ['small-test.heic', 'Nokia sample', '873 KB', 'Format compatibility'],
-            ['medium-test.heic', 'Small HEIC', '219 KB', 'Fast processing'],
-            ['corrupted-test.heic', 'Broken file', '78 B', 'Graceful fallback'],
+            ['example.heic', 'Standard HEIC', '1.1 MB', 'Large File Performance'],
+            ['small-test.heic', 'Nokia Sample', '873 KB', 'Format Compatibility'],
+            ['medium-test.heic', 'Small HEIC', '219 KB', 'Fast Processing'],
+            ['corrupted-test.heic', 'Broken File', '78 B', 'Graceful Fallback'],
           ],
-          dynamicTitle: 'Dynamic image test',
+          dynamicTitle: 'Dynamic Image Test',
           dynamicLead: 'Validate that images inserted by JavaScript are still picked up by the extension through MutationObserver.',
-          dynamicButton: 'Add dynamic HEIC image',
-          counters: ['Successful conversions', 'Failed conversions', 'Total images'],
+          dynamicButton: 'Add Dynamic HEIC Image',
+          counters: ['Successful Conversions', 'Failed Conversions', 'Total Images'],
           installTitle: 'Install View HEIC',
           installLead: 'Choose the store build for normal use, or load the project manually for development.',
           installCards: [
-            ['Recommended', 'Chrome Web Store', ['Open the Chrome Web Store listing.', 'Click Add to Chrome.', 'Confirm the browser prompt and refresh pages that contain HEIC images.'], 'Go to Chrome Web Store'],
-            ['For developers', 'Manual installation', ['Clone the repository and install dependencies.', 'Run pnpm build.', 'Open chrome://extensions/, enable Developer mode, and load .output/chrome-mv3.'], 'View developer guide'],
+            ['Recommended', 'Chrome Web Store', ['Open the Chrome Web Store listing.', 'Click Add to Chrome.', 'Confirm the browser prompt and refresh pages that contain HEIC images.'], 'Go To Chrome Web Store'],
+            ['For Developers', 'Manual Installation', ['Clone the repository and install dependencies.', 'Run pnpm build.', 'Open chrome://extensions/, enable Developer mode, and load .output/chrome-mv3.'], 'View Developer Guide'],
           ],
-          techTitle: 'Technology and architecture',
+          techTitle: 'Technology And Architecture',
           tech: [
             ['WXT Framework', 'Modern browser extension framework powered by Vite.'],
             ['TypeScript', 'Typed modules for maintainable extension logic.'],
             ['heic-to 1.5.2', 'Conversion engine based on libheif 1.22.2 with CSP support.'],
             ['heic-decode 2.1', 'Sequence decoding capability kept available for future animation work.'],
           ],
-          structureTitle: 'Project structure',
+          structureTitle: 'Project Structure',
           structureCode: `view-heic-browser-extension/
 ├── entrypoints/
 │   ├── content.ts           # DOM scan and MutationObserver
@@ -363,19 +363,19 @@
 └── docs/                    # GitHub Pages website and demo files`,
           faqTitle: 'FAQ',
           faqs: [
-            ['Images still do not display after installation. What should I check?', 'Make sure the extension is enabled, refresh the page, and open DevTools to confirm the View HEIC content script loaded. If the source server blocks cross-origin fetching, open the original image in a new tab.'],
-            ['Are images uploaded to a server?', 'No. Decoding happens locally in your browser through WebAssembly. Converted images live as Blob URLs in the current tab and are released when the page closes.'],
-            ['Does it support Firefox?', 'The codebase is built with WXT and can build a Firefox target with pnpm build:firefox. The current store listing is for Chromium browsers.'],
-            ['What is the maximum HEIC file size?', 'The default limit is 50 MB. It is configured in utils/constants.ts as CONFIG.MAX_FILE_SIZE.'],
-            ['How are animated HEIC files handled?', 'Sequence HEIC files are detected by ISO BMFF brands such as msf1, hevc, or hevx. The extension previews the first frame by default to avoid expensive multi-frame decoding.'],
+            ['Images Still Do Not Display After Installation. What Should I Check?', 'Make sure the extension is enabled, refresh the page, and open DevTools to confirm the View HEIC content script loaded. If the source server blocks cross-origin fetching, open the original image in a new tab.'],
+            ['Are Images Uploaded To A Server?', 'No. Decoding happens locally in your browser through WebAssembly. Converted images live as Blob URLs in the current tab and are released when the page closes.'],
+            ['Does It Support Firefox?', 'The codebase is built with WXT and can build a Firefox target with pnpm build:firefox. The current store listing is for Chromium browsers.'],
+            ['What Is The Maximum HEIC File Size?', 'The default limit is 50 MB. It is configured in utils/constants.ts as CONFIG.MAX_FILE_SIZE.'],
+            ['How Are Animated HEIC Files Handled?', 'Sequence HEIC files are detected by ISO BMFF brands such as msf1, hevc, or hevx. The extension previews the first frame by default to avoid expensive multi-frame decoding.'],
           ],
-          ctaTitle: 'Make HEIC images work on the web.',
+          ctaTitle: 'Make HEIC Images Work On The Web.',
           ctaLead: 'Install View HEIC for free and stop downloading files just to inspect them.',
           footerLead: 'A free open-source browser extension that displays HEIC and HEIF images directly on web pages while keeping conversion local.',
           footerLinks: 'Links',
           footerProject: 'Project',
-          license: 'Open source under the MIT License.',
-          devTest: 'Developer test page',
+          license: 'Open Source under the MIT License.',
+          devTest: 'Developer Test Page',
         },
         zh: {
           lang: 'zh-CN',

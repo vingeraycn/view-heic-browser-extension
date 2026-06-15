@@ -27,15 +27,15 @@
   </g>
   <text x="194" y="126" class="body ink">View HEIC</text>
   <text x="96" y="232" class="label blue">FAST DEFAULTS</text>
-  <text x="96" y="300" class="h1 ink">Fast JPEG</text><text x="96" y="362" class="h1 ink">previews</text>
-  <text x="98" y="434" class="body muted">Caching keeps pages responsive.</text>
+  <text x="96" y="300" class="h1 ink">Fast JPEG</text><text x="96" y="362" class="h1 ink">Previews</text>
+  <text x="98" y="434" class="body muted">Caching Keeps Pages Responsive.</text>
   <rect x="96" y="466" width="236" height="62" rx="31" class="blue"/>
-  <text x="141" y="506" class="small" fill="white">Install for free</text>
+  <text x="141" y="506" class="small" fill="white">Install For Free</text>
   <rect x="358" y="466" width="220" height="62" rx="31" fill="white" stroke="#CBD5E1" stroke-width="2"/>
-  <text x="410" y="506" class="small ink">Open source</text>
+  <text x="410" y="506" class="small ink">Open Source</text>
   <g transform="translate(96 612)">
     <rect width="146" height="58" rx="18" fill="#EFF6FF"/><text x="34" y="38" class="small blue">50MB</text>
-    <rect x="164" width="176" height="58" rx="18" fill="#F0FDF4"/><text x="197" y="38" class="small good">Local only</text>
+    <rect x="164" width="176" height="58" rx="18" fill="#F0FDF4"/><text x="197" y="38" class="small good">Local Only</text>
     <rect x="358" width="150" height="58" rx="18" fill="#F5F3FF"/><text x="397" y="38" class="small violet">JPEG</text>
   </g>
   

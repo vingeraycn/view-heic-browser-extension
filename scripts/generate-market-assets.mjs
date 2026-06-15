@@ -9,7 +9,7 @@ const publicIconDir = join(root, "public", "icon")
 
 const logoSvg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
-  <title id="title">View HEIC logo</title>
+  <title id="title">View HEIC Logo</title>
   <desc id="desc">A folded HEIC photo tile with a clear viewing lens.</desc>
   <defs>
     <linearGradient id="tile" x1="92" y1="78" x2="424" y2="436" gradientUnits="userSpaceOnUse">
@@ -82,7 +82,7 @@ function screenshotSvg({ titleLines, subtitle, tag, variant }) {
       <rect x="278" y="96" width="210" height="130" rx="22" fill="#EDE9FE"/>
       <circle cx="354" cy="154" r="42" fill="#7C3AED" opacity=".38"/>
       <rect x="36" y="266" width="452" height="46" rx="23" fill="#EFF6FF"/>
-      <text x="62" y="297" class="small blue">HEIC images render in place</text>
+      <text x="62" y="297" class="small blue">HEIC Images Render In Place</text>
     </g>`
 
   const privacy = `
@@ -115,12 +115,12 @@ function screenshotSvg({ titleLines, subtitle, tag, variant }) {
   ${titleLines.map((line, index) => `<text x="96" y="${300 + index * 62}" class="h1 ink">${line}</text>`).join('')}
   <text x="98" y="${titleLines.length > 1 ? 434 : 374}" class="body muted">${subtitle}</text>
   <rect x="96" y="466" width="236" height="62" rx="31" class="blue"/>
-  <text x="141" y="506" class="small" fill="white">Install for free</text>
+  <text x="141" y="506" class="small" fill="white">Install For Free</text>
   <rect x="358" y="466" width="220" height="62" rx="31" fill="white" stroke="#CBD5E1" stroke-width="2"/>
-  <text x="410" y="506" class="small ink">Open source</text>
+  <text x="410" y="506" class="small ink">Open Source</text>
   <g transform="translate(96 612)">
     <rect width="146" height="58" rx="18" fill="#EFF6FF"/><text x="34" y="38" class="small blue">50MB</text>
-    <rect x="164" width="176" height="58" rx="18" fill="#F0FDF4"/><text x="197" y="38" class="small good">Local only</text>
+    <rect x="164" width="176" height="58" rx="18" fill="#F0FDF4"/><text x="197" y="38" class="small good">Local Only</text>
     <rect x="358" width="150" height="58" rx="18" fill="#F5F3FF"/><text x="397" y="38" class="small violet">JPEG</text>
   </g>
   ${visual}
@@ -132,22 +132,22 @@ const screenshotSpecs = [
   {
     file: "01-browser-heic-preview",
     tag: "HEIC PREVIEW",
-    titleLines: ["View HEIC", "images"],
-    subtitle: "HEIC and HEIF files render in Chrome.",
+    titleLines: ["View HEIC", "Images"],
+    subtitle: "HEIC And HEIF Files Render In Chrome.",
     variant: "browser",
   },
   {
     file: "02-local-private-conversion",
     tag: "PRIVATE BY DESIGN",
-    titleLines: ["Local", "conversion"],
-    subtitle: "Images stay on your device. No uploads.",
+    titleLines: ["Local", "Conversion"],
+    subtitle: "Images Stay On Your Device. No Uploads.",
     variant: "privacy",
   },
   {
     file: "03-fast-jpeg-rendering",
     tag: "FAST DEFAULTS",
-    titleLines: ["Fast JPEG", "previews"],
-    subtitle: "Caching keeps pages responsive.",
+    titleLines: ["Fast JPEG", "Previews"],
+    subtitle: "Caching Keeps Pages Responsive.",
     variant: "cards",
   },
 ]
