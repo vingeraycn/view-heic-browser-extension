@@ -69,8 +69,11 @@ const server = http.createServer((req, res) => {
     return
   }
 
+  const requestUrl = new URL(req.url, SITE_URL)
+  const pathname = decodeURIComponent(requestUrl.pathname)
+
   // 默认页面重定向
-  let filePath = path.join(DOCS_DIR, req.url === "/" ? "index.html" : req.url)
+  const filePath = path.join(DOCS_DIR, pathname === "/" ? "index.html" : pathname)
 
   // 安全检查，防止目录遍历
   if (!filePath.startsWith(DOCS_DIR)) {
@@ -79,10 +82,7 @@ const server = http.createServer((req, res) => {
     return
   }
 
-  // 处理查询参数（去除）
-  const urlWithoutQuery = filePath.split("?")[0]
-
-  fs.readFile(urlWithoutQuery, (err, content) => {
+  fs.readFile(filePath, (err, content) => {
     if (err) {
       if (err.code === "ENOENT") {
         // 404处理
@@ -104,7 +104,7 @@ const server = http.createServer((req, res) => {
       return
     }
 
-    const ext = path.extname(urlWithoutQuery).toLowerCase()
+    const ext = path.extname(filePath).toLowerCase()
     const contentType = mimeTypes[ext] || "application/octet-stream"
 
     res.setHeader("Content-Type", contentType)

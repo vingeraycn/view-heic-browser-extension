@@ -6,6 +6,9 @@
 
 ```
 docs/
+├── assets/
+│   └── logo.svg        # 🎨 官网与市场素材共享 Logo
+├── store-assets/       # 🛍️ 应用市场截图素材（1280×800 PNG + SVG 源文件）
 ├── index.html          # 🏠 官网首页（GitHub Pages 主页）
 ├── test-improved.html  # 🧪 开发者详细测试页面
 ├── README.md          # 📋 本说明文件
@@ -23,7 +26,7 @@ docs/
 
 ## 🏠 官网首页 (index.html)
 
-完整的产品落地页，包含：
+完整的中英双语产品落地页，默认英文，可通过右上角语言切换入口在英文和中文之间切换：
 
 - 🎯 Hero 区域：标题、CTA 按钮、信任标语
 - 📊 数据亮点栏：50MB 上限、6 种 HEIC 品牌、默认 JPEG 预览、0 数据上传
@@ -35,7 +38,29 @@ docs/
 - ❓ FAQ 折叠面板
 - 📣 CTA Banner + 完整页脚
 
-所有 SEO meta 标签（description、OpenGraph、Twitter Card）均已配置。
+SEO meta 标签（description、OpenGraph、Twitter Card）和 `hreflang` 均已配置，语言 URL 使用：
+
+- 英文：`https://vingeraycn.github.io/view-heic-browser-extension/?lang=en`
+- 中文：`https://vingeraycn.github.io/view-heic-browser-extension/?lang=zh`
+
+## 🛍️ 应用市场素材
+
+市场素材由项目脚本统一生成，避免 Logo、扩展图标和截图风格漂移：
+
+```bash
+pnpm assets:market
+```
+
+生成内容：
+
+- `docs/assets/logo.svg`
+- `public/icon/32.png`
+- `public/icon/48.png`
+- `public/icon/96.png`
+- `public/icon/128.png`
+- `docs/store-assets/01-browser-heic-preview.png`
+- `docs/store-assets/02-local-private-conversion.png`
+- `docs/store-assets/03-fast-jpeg-rendering.png`
 
 ## 🧪 测试页面 (test-improved.html)
 

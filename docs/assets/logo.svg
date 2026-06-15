@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">View HEIC Logo</title>
+  <desc id="desc">A folded HEIC photo tile with a clear viewing lens.</desc>
+  <defs>
+    <linearGradient id="tile" x1="92" y1="78" x2="424" y2="436" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0EA5E9"/>
+      <stop offset="0.48" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="330" y1="86" x2="430" y2="188" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFC" stop-opacity="0.94"/>
+      <stop offset="1" stop-color="#BAE6FD" stop-opacity="0.72"/>
+    </linearGradient>
+    <filter id="shadow" x="44" y="48" width="424" height="424" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#0F172A" flood-opacity="0.20"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#F8FAFC"/>
+  <g filter="url(#shadow)">
+    <path d="M112 84H326L420 178V428H112V84Z" fill="url(#tile)"/>
+    <path d="M326 84V178H420L326 84Z" fill="url(#fold)"/>
+    <path d="M326 84V178H420" stroke="white" stroke-opacity="0.68" stroke-width="10" stroke-linejoin="round"/>
+    <path d="M162 356L232 270L286 326L322 284L372 356H162Z" fill="white" fill-opacity="0.96"/>
+    <circle cx="212" cy="182" r="28" fill="#FDE68A"/>
+    <circle cx="270" cy="244" r="78" fill="#F8FAFC" fill-opacity="0.16" stroke="white" stroke-width="28"/>
+    <path d="M326 300L374 348" stroke="white" stroke-width="28" stroke-linecap="round"/>
+    <path d="M178 116H270" stroke="white" stroke-opacity="0.42" stroke-width="14" stroke-linecap="round"/>
+    <path d="M178 400H354" stroke="white" stroke-opacity="0.28" stroke-width="12" stroke-linecap="round"/>
+  </g>
+</svg>
