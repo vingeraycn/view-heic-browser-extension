@@ -1,6 +1,6 @@
 # 🖼️ View HEIC Browser Extension
 
-[![Version](https://img.shields.io/badge/version-1.0.8-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
+[![Version](https://img.shields.io/badge/version-1.0.11-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/typescript-5.5.2-blue.svg)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/tailwind-latest-06B6D4.svg)](https://tailwindcss.com/)
@@ -202,7 +202,7 @@ A: 使用本地测试服务器而非 `file://` 协议
 
 查看 [CHANGELOG.md](CHANGELOG.md) 了解详细的版本历史。
 
-### 最新版本 v1.0.8 🆕
+### 最新版本 v1.0.11 🆕
 
 - ✅ 升级到 heic-to@1.5.2 (基于 libheif 1.22.2)
 - ✅ 重构为 TypeScript 模块化架构
@@ -210,6 +210,7 @@ A: 使用本地测试服务器而非 `file://` 协议
 - ✅ Node.js 测试服务器替代 Python
 - ✅ 完整的本地测试环境
 - ✅ 内存泄漏修复和性能优化
+- ✅ 优化默认 JPEG 预览与 HEIC src 变更处理
 
 ## 📄 许可证
 
