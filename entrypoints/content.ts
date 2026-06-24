@@ -6,7 +6,7 @@ const STORE_REVIEW_URL =
   "https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge/reviews"
 const ISSUE_URL = "https://github.com/vingeraycn/view-heic-browser-extension/issues/new"
 const RATING_PROMPT_STORAGE_KEY = "viewHeicRatingPrompt"
-const MIN_SUCCESSFUL_IMAGES_FOR_PROMPT = 5
+const MIN_SUCCESSFUL_IMAGES_FOR_PROMPT = 11
 const RATING_PROMPT_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000
 
 interface RatingPromptState {
