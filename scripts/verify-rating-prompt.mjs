@@ -10,16 +10,25 @@ const checks = [
       content.includes("MIN_SUCCESSFUL_IMAGES_FOR_PROMPT = 5") &&
       content.includes("View HEIC 插件帮你显示了 ${successCount} 张图片") &&
       content.includes("View HEIC helped you display ${successCount} images") &&
-      content.includes("去商店好评") &&
+      content.includes("去商店评价") &&
       content.includes("Review in store"),
   },
   {
     name: "rating prompt only appears after successful batches",
-    pass: content.includes("failureCount > 0") && content.includes("MIN_SUCCESSFUL_IMAGES_FOR_PROMPT"),
+    pass:
+      content.includes("import.meta.env.FIREFOX") &&
+      content.includes("failureCount > 0") &&
+      content.includes("MIN_SUCCESSFUL_IMAGES_FOR_PROMPT"),
+  },
+  {
+    name: "review tab opens before persisting review state",
+    pass:
+      content.indexOf('window.open(STORE_REVIEW_URL, "_blank", "noopener")') <
+      content.indexOf("[RATING_PROMPT_STORAGE_KEY]: { reviewClicked: true"),
   },
   {
     name: "rating prompt has local storage permission",
-    pass: config.includes('permissions: ["storage"]'),
+    pass: /permissions\s*:\s*\[[^\]]*["']storage["'][^\]]*\]/m.test(config),
   },
 ]
 

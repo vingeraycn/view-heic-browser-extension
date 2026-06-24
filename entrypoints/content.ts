@@ -200,7 +200,7 @@ async function processHEICImages(converter: HEICConverter): Promise<void> {
 }
 
 async function maybeShowRatingPrompt(successCount: number, failureCount: number): Promise<void> {
-  if (successCount < MIN_SUCCESSFUL_IMAGES_FOR_PROMPT || failureCount > 0) return
+  if (import.meta.env.FIREFOX || successCount < MIN_SUCCESSFUL_IMAGES_FOR_PROMPT || failureCount > 0) return
 
   try {
     const stored = await browser.storage.local.get(RATING_PROMPT_STORAGE_KEY)
@@ -247,10 +247,10 @@ function showRatingPrompt(successCount: number): void {
   reviewButton.type = "button"
   reviewButton.textContent = copy.review
   reviewButton.addEventListener("click", async () => {
+    window.open(STORE_REVIEW_URL, "_blank", "noopener")
     await browser.storage.local.set({
       [RATING_PROMPT_STORAGE_KEY]: { reviewClicked: true, lastPromptedAt: Date.now() },
     })
-    window.open(STORE_REVIEW_URL, "_blank", "noopener")
     prompt.remove()
   })
 
@@ -278,15 +278,15 @@ function showRatingPrompt(successCount: number): void {
 function getRatingPromptCopy(successCount: number): { text: string; review: string; feedback: string; close: string } {
   if (navigator.language.toLowerCase().startsWith("zh")) {
     return {
-      text: `View HEIC 插件帮你显示了 ${successCount} 张图片，如果觉得有帮助，请为我们好评，这将帮助更多需要的人。`,
-      review: "去商店好评",
+      text: `View HEIC 插件帮你显示了 ${successCount} 张图片，如果觉得有帮助，请为我们评价，这将帮助更多需要的人。`,
+      review: "去商店评价",
       feedback: "反馈问题",
       close: "关闭",
     }
   }
 
   return {
-    text: `View HEIC helped you display ${successCount} images. If it was useful, please leave us a good review so more people who need it can find it.`,
+    text: `View HEIC helped you display ${successCount} images. If it was useful, please leave us a review so more people who need it can find it.`,
     review: "Review in store",
     feedback: "Report issue",
     close: "Close",
