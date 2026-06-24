@@ -200,12 +200,13 @@ async function processHEICImages(converter: HEICConverter): Promise<void> {
 }
 
 async function maybeShowRatingPrompt(successCount: number, failureCount: number): Promise<void> {
-  if (import.meta.env.FIREFOX || successCount < MIN_SUCCESSFUL_IMAGES_FOR_PROMPT || failureCount > 0) return
+  if (import.meta.env.FIREFOX || successCount === 0) return
 
   try {
     const stored = await browser.storage.local.get(RATING_PROMPT_STORAGE_KEY)
     const state: RatingPromptState = stored[RATING_PROMPT_STORAGE_KEY] ?? {}
     const now = Date.now()
+    const nextSuccessCount = (state.successCount ?? 0) + successCount
 
     if (
       state.reviewClicked ||
@@ -214,14 +215,21 @@ async function maybeShowRatingPrompt(successCount: number, failureCount: number)
       return
     }
 
-    const nextState = {
-      ...state,
-      successCount: (state.successCount ?? 0) + successCount,
-      lastPromptedAt: now,
+    if (nextSuccessCount < MIN_SUCCESSFUL_IMAGES_FOR_PROMPT) {
+      await browser.storage.local.set({
+        [RATING_PROMPT_STORAGE_KEY]: { ...state, successCount: nextSuccessCount },
+      })
+      return
     }
 
-    await browser.storage.local.set({ [RATING_PROMPT_STORAGE_KEY]: nextState })
-    showRatingPrompt(successCount)
+    await browser.storage.local.set({
+      [RATING_PROMPT_STORAGE_KEY]: {
+        ...state,
+        successCount: nextSuccessCount,
+        lastPromptedAt: now,
+      },
+    })
+    showRatingPrompt(nextSuccessCount)
   } catch (error) {
     console.warn("View HEIC rating prompt skipped:", error)
   }

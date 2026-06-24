@@ -14,10 +14,12 @@ const checks = [
       content.includes("Review in store"),
   },
   {
-    name: "rating prompt only appears after successful batches",
+    name: "rating prompt tracks successful conversions cumulatively",
     pass:
       content.includes("import.meta.env.FIREFOX") &&
-      content.includes("failureCount > 0") &&
+      content.includes("successCount === 0") &&
+      content.includes("nextSuccessCount < MIN_SUCCESSFUL_IMAGES_FOR_PROMPT") &&
+      content.includes("showRatingPrompt(nextSuccessCount)") &&
       content.includes("MIN_SUCCESSFUL_IMAGES_FOR_PROMPT"),
   },
   {
