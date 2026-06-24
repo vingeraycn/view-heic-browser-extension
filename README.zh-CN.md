@@ -1,0 +1,107 @@
+# View HEIC 浏览器扩展
+
+[![Version](https://img.shields.io/badge/version-1.0.12-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?logo=google-chrome&logoColor=white)](https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge)
+
+阅读 [English README](README.md)。
+
+View HEIC 可以让浏览器直接显示 HEIC / HEIF 图片。扩展会自动识别网页中的兼容图片地址，在浏览器本地完成转换，并把原图替换成可直接渲染的 JPEG 预览。
+
+## 功能
+
+- 自动检测页面已有和动态插入的 HEIC / HEIF 图片。
+- 使用 `heic-to` 和 libheif 在浏览器本地转换图片。
+- 默认输出 JPEG 预览，提升渲染速度并减少输出体积。
+- 支持图片 `src` 变更、重试、大小限制和常见错误状态处理。
+- 转换数据只保存在当前标签页内存中，不上传图片。
+- 在多次成功转换后展示轻量的应用商店评价入口。
+
+## 安装
+
+推荐从 [Chrome Web Store](https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge) 安装。
+
+本地开发安装：
+
+```bash
+git clone https://github.com/vingeraycn/view-heic-browser-extension.git
+cd view-heic-browser-extension
+pnpm install
+pnpm build
+```
+
+然后打开 `chrome://extensions/`，启用“开发者模式”，点击“加载已解压的扩展程序”，选择 `.output/chrome-mv3`。
+
+## 开发
+
+```bash
+pnpm compile
+pnpm verify:rating-prompt
+pnpm verify:performance
+pnpm verify:src-change
+pnpm build
+pnpm zip
+```
+
+启动本地测试服务：
+
+```bash
+pnpm test:server
+```
+
+访问 `http://127.0.0.1:8080/test-improved.html`，使用本地 HEIC 测试文件验证转换行为。
+
+## 项目结构
+
+```text
+view-heic-browser-extension/
+├── entrypoints/
+│   ├── content.ts
+│   └── background.ts
+├── utils/
+│   ├── constants.ts
+│   ├── heic-converter.ts
+│   └── types.ts
+├── docs/
+│   ├── index.html
+│   ├── test-improved.html
+│   └── *.heic
+├── scripts/
+└── wxt.config.ts
+```
+
+## 权限说明
+
+View HEIC 使用 `storage` 权限仅用于保存评价提示相关的本地状态，例如用户是否已经关闭或点击过提示。扩展不会收集、上传、出售或共享这些数据，也不会存储浏览历史、页面内容、图片地址或转换后的图片数据。
+
+## 最新版本
+
+### v1.0.12
+
+- 在累计多次成功转换后新增本地化的 Chrome Web Store 评价入口。
+- 增加本地频控，避免重复打扰用户。
+- 为提示增加进入和退出缓动动画。
+- Firefox 构建中不展示 Chrome Web Store 评价入口。
+
+完整版本记录见 [CHANGELOG.md](CHANGELOG.md)。
+
+## 故障排除
+
+如果图片无法显示：
+
+- 确认扩展已启用。
+- 安装后刷新页面。
+- 确认文件是有效的 HEIC / HEIF 图片。
+- 确认图片大小没有超过默认 50 MB 限制。
+- 打开浏览器控制台查看 View HEIC 日志。
+
+## 许可证
+
+MIT。见 [LICENSE](LICENSE)。
+
+## 致谢
+
+- [libheif](https://github.com/strukturag/libheif)
+- [heic-to](https://github.com/hoppergee/heic-to)
+- [WXT](https://wxt.dev/)
+- [Nokia HEIF](https://github.com/nokiatech/heif)
