@@ -12,6 +12,7 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",
+    "verify:rating-prompt": "node scripts/verify-rating-prompt.mjs",
     "verify:performance": "node scripts/verify-performance-defaults.mjs",
     "verify:src-change": "node scripts/verify-src-change-handling.mjs",
     "assets:market": "node scripts/generate-market-assets.mjs",

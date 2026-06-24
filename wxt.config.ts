@@ -5,6 +5,7 @@ export default defineConfig({
   manifest: {
     name: "View HEIC",
     description: "View HEIC as Normal Image in Your Browser",
+    permissions: ["storage"],
   },
   runner: {
     disabled: true,
