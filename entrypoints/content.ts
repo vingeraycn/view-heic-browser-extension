@@ -116,6 +116,38 @@ function injectStyles(): void {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       font-size: 14px;
       line-height: 1.45;
+      transform-origin: right bottom;
+      animation: view-heic-rating-prompt-enter 180ms cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+
+    .view-heic-rating-prompt--leaving {
+      pointer-events: none;
+      animation: view-heic-rating-prompt-exit 140ms cubic-bezier(0.4, 0, 1, 1) forwards;
+    }
+
+    @keyframes view-heic-rating-prompt-enter {
+      from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.96);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes view-heic-rating-prompt-exit {
+      from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      to {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+      }
     }
 
     .view-heic-rating-prompt__text {
@@ -166,6 +198,13 @@ function injectStyles(): void {
         bottom: 12px;
         left: 12px;
         max-width: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .view-heic-rating-prompt,
+      .view-heic-rating-prompt--leaving {
+        animation: none;
       }
     }
   `
@@ -259,7 +298,7 @@ function showRatingPrompt(successCount: number): void {
     await browser.storage.local.set({
       [RATING_PROMPT_STORAGE_KEY]: { reviewClicked: true, lastPromptedAt: Date.now() },
     })
-    prompt.remove()
+    dismissRatingPrompt(prompt)
   })
 
   const feedbackButton = document.createElement("button")
@@ -268,7 +307,7 @@ function showRatingPrompt(successCount: number): void {
   feedbackButton.textContent = copy.feedback
   feedbackButton.addEventListener("click", () => {
     window.open(ISSUE_URL, "_blank", "noopener")
-    prompt.remove()
+    dismissRatingPrompt(prompt)
   })
 
   const closeButton = document.createElement("button")
@@ -276,11 +315,17 @@ function showRatingPrompt(successCount: number): void {
   closeButton.type = "button"
   closeButton.setAttribute("aria-label", copy.close)
   closeButton.textContent = "×"
-  closeButton.addEventListener("click", () => prompt.remove())
+  closeButton.addEventListener("click", () => dismissRatingPrompt(prompt))
 
   actions.append(reviewButton, feedbackButton)
   prompt.append(closeButton, text, actions)
   document.body.appendChild(prompt)
+}
+
+function dismissRatingPrompt(prompt: HTMLElement): void {
+  if (prompt.classList.contains("view-heic-rating-prompt--leaving")) return
+  prompt.classList.add("view-heic-rating-prompt--leaving")
+  prompt.addEventListener("animationend", () => prompt.remove(), { once: true })
 }
 
 function getRatingPromptCopy(successCount: number): { text: string; review: string; feedback: string; close: string } {

@@ -29,6 +29,14 @@ const checks = [
       content.indexOf("[RATING_PROMPT_STORAGE_KEY]: { reviewClicked: true"),
   },
   {
+    name: "rating prompt animates in and out",
+    pass:
+      content.includes("@keyframes view-heic-rating-prompt-enter") &&
+      content.includes("@keyframes view-heic-rating-prompt-exit") &&
+      content.includes("prefers-reduced-motion") &&
+      content.includes("dismissRatingPrompt(prompt)"),
+  },
+  {
     name: "rating prompt has local storage permission",
     pass: /permissions\s*:\s*\[[^\]]*["']storage["'][^\]]*\]/m.test(config),
   },
