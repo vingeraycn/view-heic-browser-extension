@@ -11,6 +11,7 @@ const content = read("entrypoints/content.ts")
 const converter = read("utils/heic-converter.ts")
 
 const resetBody = converter.match(/resetImageProcessed\(img: HTMLImageElement\): void \{([\s\S]*?)\n  \}/)?.[1] ?? ""
+const errorBody = converter.match(/handleConversionError\([\s\S]*?\): ConversionResult \{([\s\S]*?)\n  \}/)?.[1] ?? ""
 
 const checks = [
   {
@@ -38,6 +39,16 @@ const checks = [
       !/style\.removeProperty\("border"\)/.test(resetBody) &&
       !/img\.title\s*=\s*""/.test(resetBody) &&
       !/img\.onclick\s*=\s*null/.test(resetBody),
+  },
+  {
+    name: "conversion failures silently restore the original image",
+    pass:
+      /img\.src\s*=\s*originalSrc/.test(errorBody) &&
+      /console\.debug/.test(errorBody) &&
+      !/classList\.add\("heic-error"\)/.test(errorBody) &&
+      !/img\.title\s*=/.test(errorBody) &&
+      !/addEventListener\("click"/.test(errorBody) &&
+      !/confirm\(/.test(errorBody),
   },
 ]
 

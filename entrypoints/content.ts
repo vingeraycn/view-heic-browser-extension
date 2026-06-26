@@ -75,34 +75,6 @@ function injectStyles(): void {
       transition: opacity 0.3s ease;
     }
 
-    .heic-error {
-      position: relative;
-      opacity: 0.8;
-      filter: grayscale(50%);
-      cursor: pointer;
-    }
-
-    .heic-error::after {
-      content: "❌ 转换失败 - 点击查看原图";
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(255, 107, 107, 0.9);
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      white-space: nowrap;
-      z-index: 1000;
-      pointer-events: none;
-    }
-
-    .heic-error:hover {
-      opacity: 1;
-      filter: grayscale(0%);
-    }
-
     .view-heic-rating-prompt {
       position: fixed;
       right: 20px;
