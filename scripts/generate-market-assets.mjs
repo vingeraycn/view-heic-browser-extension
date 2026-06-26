@@ -152,6 +152,55 @@ const screenshotSpecs = [
   },
 ]
 
+function smallPromoTileSvg() {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="440" height="280" viewBox="0 0 440 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tile" x1="92" y1="78" x2="424" y2="436" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0EA5E9"/><stop offset=".48" stop-color="#2563EB"/><stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="bg" x1="24" y1="24" x2="410" y2="270" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/><stop offset=".52" stop-color="#1D4ED8"/><stop offset="1" stop-color="#06B6D4"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(338 36) rotate(128) scale(250 170)">
+      <stop stop-color="#BAE6FD" stop-opacity=".78"/><stop offset="1" stop-color="#BAE6FD" stop-opacity="0"/>
+    </radialGradient>
+    <style>
+      .title{font:800 42px Inter,Arial,sans-serif;fill:white}
+      .body{font:700 20px Inter,Arial,sans-serif;fill:#DBEAFE}
+      .chip{font:800 16px Inter,Arial,sans-serif;fill:#0F172A}
+    </style>
+  </defs>
+  <rect width="440" height="280" fill="url(#bg)"/>
+  <rect width="440" height="280" fill="url(#shine)"/>
+  <path d="M310 42L420 96V280H246L310 42Z" fill="#0F172A" fill-opacity=".18"/>
+  <path d="M26 224C100 186 151 196 205 224C255 250 313 250 410 198" stroke="#E0F2FE" stroke-opacity=".20" stroke-width="24" stroke-linecap="round"/>
+
+  ${logoMark(34, 38, 84)}
+  <text x="136" y="78" class="title">View HEIC</text>
+  <text x="138" y="112" class="body">iPhone photos open in Chrome</text>
+
+  <g transform="translate(42 154)">
+    <rect width="116" height="72" rx="18" fill="white" fill-opacity=".18" stroke="#BFDBFE" stroke-opacity=".48"/>
+    <path d="M20 55L42 31L62 48L76 35L98 55H20Z" fill="#E0F2FE"/>
+    <circle cx="46" cy="26" r="9" fill="#FDE68A"/>
+    <rect x="22" y="82" width="72" height="28" rx="14" fill="white"/>
+    <text x="37" y="102" class="chip">HEIC</text>
+  </g>
+
+  <g transform="translate(180 154)">
+    <rect width="116" height="72" rx="18" fill="white" fill-opacity=".92"/>
+    <path d="M20 55L42 31L62 48L76 35L98 55H20Z" fill="#2563EB" opacity=".82"/>
+    <circle cx="46" cy="26" r="9" fill="#FDE68A"/>
+    <path d="M134 36H160" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+    <path d="M152 24L164 36L152 48" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="21" y="82" width="76" height="28" rx="14" fill="#DCFCE7"/>
+    <text x="35" y="102" class="chip">JPEG</text>
+  </g>
+</svg>
+`
+}
+
 async function writeText(path, content) {
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, content)
@@ -178,5 +227,10 @@ for (const spec of screenshotSpecs) {
   await writeText(svgPath, screenshotSvg(spec))
   renderPng(svgPath, pngPath, 1280, 800)
 }
+
+const smallPromoSvgPath = join(storeAssetsDir, "00-small-promo-tile.svg")
+const smallPromoPngPath = join(storeAssetsDir, "00-small-promo-tile.png")
+await writeText(smallPromoSvgPath, smallPromoTileSvg())
+renderPng(smallPromoSvgPath, smallPromoPngPath, 440, 280)
 
 console.log("Generated logo, extension icons, and Chrome Web Store screenshots.")
