@@ -82,40 +82,85 @@
 
         <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6" id="static-images">
           <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <img src="./example.heic" alt="大文件HEIC测试" class="w-full h-48 object-cover" />
+            <img data-test-image src="./samples/heic-still.heic" alt="heic still测试" class="w-full h-48 object-cover" />
             <div class="p-4">
-              <h4 class="font-semibold text-gray-800 mb-1">大文件测试</h4>
-              <p class="text-sm text-gray-600 mb-1">文件: example.heic (1.1MB)</p>
+              <h4 class="font-semibold text-gray-800 mb-1">heic still</h4>
+              <p class="text-sm text-gray-600 mb-1">文件: heic-still.heic (1.1MB)</p>
               <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                ✅ 测试大文件转换性能
+                ✅ HEVC 静态图
               </span>
             </div>
           </div>
 
           <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <img src="./small-test.heic" alt="标准HEIC测试" class="w-full h-48 object-cover" />
+            <img data-test-image src="./samples/msf1-sequence.heic" alt="msf1 sequence测试" class="w-full h-48 object-cover" />
             <div class="p-4">
-              <h4 class="font-semibold text-gray-800 mb-1">标准HEIC文件</h4>
-              <p class="text-sm text-gray-600 mb-1">文件: small-test.heic (873KB)</p>
+              <h4 class="font-semibold text-gray-800 mb-1">msf1 sequence</h4>
+              <p class="text-sm text-gray-600 mb-1">文件: msf1-sequence.heic (873KB)</p>
               <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                ✅ Nokia标准测试文件
+                ✅ 序列图首帧预览
               </span>
             </div>
           </div>
 
           <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <img src="./medium-test.heic" alt="小文件HEIC测试" class="w-full h-48 object-cover" />
+            <img data-test-image src="./samples/mif1-still.heic?v=2#preview" alt="mif1 still测试" class="w-full h-48 object-cover" />
             <div class="p-4">
-              <h4 class="font-semibold text-gray-800 mb-1">小文件测试</h4>
-              <p class="text-sm text-gray-600 mb-1">文件: medium-test.heic (219KB)</p>
+              <h4 class="font-semibold text-gray-800 mb-1">mif1 still + query</h4>
+              <p class="text-sm text-gray-600 mb-1">文件: mif1-still.heic?v=2#preview</p>
               <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                ✅ 测试小文件快速转换
+                ✅ query/hash URL
               </span>
             </div>
           </div>
 
           <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <img src="./corrupted-test.heic" alt="损坏文件测试" class="w-full h-48 object-cover" />
+            <img data-test-image src="./samples/heix-compatible.heic" alt="heix compatible测试" class="w-full h-48 object-cover" />
+            <div class="p-4">
+              <h4 class="font-semibold text-gray-800 mb-1">heix compatible</h4>
+              <p class="text-sm text-gray-600 mb-1">文件: heix-compatible.heic (301KB)</p>
+              <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded"> ✅ range extension </span>
+            </div>
+          </div>
+
+          <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <img data-test-image src="./samples/hevx-compatible-sequence.heic" alt="hevx sequence测试" class="w-full h-48 object-cover" />
+            <div class="p-4">
+              <h4 class="font-semibold text-gray-800 mb-1">hevx sequence</h4>
+              <p class="text-sm text-gray-600 mb-1">文件: hevx-compatible-sequence.heic (472KB)</p>
+              <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded"> ✅ range sequence </span>
+            </div>
+          </div>
+
+          <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <img data-test-image src="./samples/heis-multilayer.heic" alt="heis multilayer测试" class="w-full h-48 object-cover" />
+            <div class="p-4">
+              <h4 class="font-semibold text-gray-800 mb-1">heis multilayer</h4>
+              <p class="text-sm text-gray-600 mb-1">文件: heis-multilayer.heic (18KB)</p>
+              <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded"> ✅ heis brand </span>
+            </div>
+          </div>
+
+          <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <img data-test-image src="/mime-only/heic-still" alt="无后缀MIME测试" class="w-full h-48 object-cover" />
+            <div class="p-4">
+              <h4 class="font-semibold text-gray-800 mb-1">无后缀 MIME</h4>
+              <p class="text-sm text-gray-600 mb-1">路径: /mime-only/heic-still</p>
+              <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded"> HEAD MIME 探测 </span>
+            </div>
+          </div>
+
+          <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <img data-test-image src="/wrong-mime/heic-still.heic" alt="错误MIME测试" class="w-full h-48 object-cover" />
+            <div class="p-4">
+              <h4 class="font-semibold text-gray-800 mb-1">错误 MIME</h4>
+              <p class="text-sm text-gray-600 mb-1">路径: /wrong-mime/heic-still.heic</p>
+              <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded"> 文件头兜底 </span>
+            </div>
+          </div>
+
+          <div class="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <img data-test-image src="./samples/corrupted-test.heic" alt="损坏文件测试" class="w-full h-48 object-cover" />
             <div class="p-4">
               <h4 class="font-semibold text-gray-800 mb-1">错误处理测试</h4>
               <p class="text-sm text-gray-600 mb-1">文件: corrupted-test.heic (78B)</p>
@@ -253,7 +298,7 @@
 
         // 通过检查是否有HEIC处理相关的类名来判断扩展是否工作
         setTimeout(() => {
-          const heicImages = document.querySelectorAll('img[src$=".heic"], img[src$=".HEIC"]')
+          const heicImages = document.querySelectorAll("[data-test-image]")
           let hasProcessed = false
 
           heicImages.forEach((img) => {
@@ -288,22 +333,22 @@
         // 测试用例：循环使用不同的本地测试文件
         const testCases = [
           {
-            src: "./example.heic",
-            name: "大文件测试",
-            description: "1.1MB文件转换测试",
+            src: "./samples/heic-still.heic",
+            name: "heic still",
+            description: "HEVC静态图转换测试",
           },
           {
-            src: "./small-test.heic",
-            name: "标准文件测试",
-            description: "Nokia标准HEIC文件",
+            src: "./samples/msf1-sequence.heic",
+            name: "msf1 sequence",
+            description: "序列图首帧预览测试",
           },
           {
-            src: "./medium-test.heic",
-            name: "小文件测试",
-            description: "快速转换测试",
+            src: "./samples/heix-compatible.heic",
+            name: "heix compatible",
+            description: "range extension测试",
           },
           {
-            src: "./corrupted-test.heic",
+            src: "./samples/corrupted-test.heic",
             name: "错误处理测试",
             description: "损坏文件格式测试",
           },
@@ -312,7 +357,7 @@
         const testCase = testCases[(imageCount - 1) % testCases.length]
 
         dynamicItem.innerHTML = `
-                <img src="${testCase.src}" alt="动态HEIC图片 ${imageCount}" class="w-full h-48 object-cover">
+                <img data-test-image src="${testCase.src}" alt="动态HEIC图片 ${imageCount}" class="w-full h-48 object-cover">
                 <div class="p-4">
                     <h4 class="font-semibold text-gray-800 mb-1">动态图片 #${imageCount}</h4>
                     <p class="text-sm text-gray-600 mb-1">类型: ${testCase.name}</p>
@@ -331,7 +376,7 @@
       // 更新转换统计
       function updateStats() {
         setTimeout(() => {
-          const allImages = document.querySelectorAll('img[src$=".heic"], img[src$=".HEIC"]')
+          const allImages = document.querySelectorAll("[data-test-image]")
           const successImages = document.querySelectorAll("img.heic-converted")
           const errorImages = document.querySelectorAll("img.heic-error")
 

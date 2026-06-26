@@ -6,7 +6,7 @@
     <title>View HEIC - View HEIC / HEIF Images Directly In Your Browser</title>
     <meta
       name="description"
-      content="A free open-source Chrome extension that displays HEIC and HEIF images directly on web pages with local conversion and zero setup."
+      content="A free open-source Chrome extension that helps Chrome display iPhone HEIC and HEIF photos on web pages with local conversion and zero setup."
     />
     <meta name="keywords" content="HEIC,HEIF,Chrome extension,image viewer,HEIC viewer,HEIC to JPEG,heic-to,libheif" />
     <link rel="canonical" href="https://vingeraycn.github.io/view-heic-browser-extension/" />
@@ -17,13 +17,13 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:title" content="View HEIC - View HEIC / HEIF Images Directly In Your Browser" />
-    <meta property="og:description" content="A free open-source Chrome extension that displays HEIC and HEIF images directly on web pages." />
+    <meta property="og:description" content="A free open-source Chrome extension that helps Chrome display iPhone HEIC and HEIF photos on web pages." />
     <meta property="og:url" content="https://vingeraycn.github.io/view-heic-browser-extension/" />
     <meta property="og:image" content="https://vingeraycn.github.io/view-heic-browser-extension/store-assets/01-browser-heic-preview.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="View HEIC - View HEIC / HEIF Images Directly In Your Browser" />
-    <meta name="twitter:description" content="A free open-source Chrome extension that displays HEIC and HEIF images directly on web pages." />
+    <meta name="twitter:description" content="A free open-source Chrome extension that helps Chrome display iPhone HEIC and HEIF photos on web pages." />
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -275,7 +275,7 @@
         en: {
           lang: 'en',
           title: 'View HEIC - View HEIC / HEIF Images Directly In Your Browser',
-          description: 'A free open-source Chrome extension that displays HEIC and HEIF images directly on web pages with local conversion and zero setup.',
+          description: 'A free open-source Chrome extension that helps Chrome display iPhone HEIC and HEIF photos on web pages with local conversion and zero setup.',
           nav: [
             ['features', 'Features'],
             ['how-it-works', 'How It Works'],
@@ -285,7 +285,7 @@
           installShort: 'Install',
           heroBadge: 'Version 1.0.11 · Fast JPEG preview by default',
           heroTitle: 'View HEIC Images Directly In Your Browser.',
-          heroLead: 'View HEIC is a free open-source Chrome extension that detects HEIC and HEIF images on web pages, converts them locally, and renders them in place without configuration.',
+          heroLead: 'View HEIC is a free open-source Chrome extension that detects likely HEIC and HEIF images on web pages, converts them locally, and renders them in place without configuration.',
           primaryCta: 'Add To Chrome For Free',
           secondaryCta: 'View Source On GitHub',
           githubCta: 'GitHub Project',
@@ -301,7 +301,7 @@
           featuresLead: 'The extension handles real-world web pages, strict browser security rules, and common HEIC edge cases without asking users to manually convert files.',
           features: [
             ['Automatic Detection', 'Scans existing and dynamically inserted images, including HEIC and HEIF URLs added after page load.'],
-            ['First-Frame Sequence Preview', 'Recognizes HEIC sequence brands such as msf1, hevc, and hevx, then previews the first frame by default to keep pages responsive.'],
+            ['Broader HEIF Detection', 'Checks extensions, MIME types, and ISO BMFF brands such as heic, mif1, msf1, heix, hevx, and heis.'],
             ['Magic-Byte Validation', 'Reads ISO BMFF brands from file headers, so HEIC files can still be handled when servers send an incorrect MIME type.'],
             ['Smart Cache', 'Stores converted results as Blob URLs and deduplicates concurrent work so the same image is converted only once.'],
             ['Private By Design', 'All decoding runs in the browser through WebAssembly. Image data never leaves the device.'],
@@ -329,10 +329,10 @@
           failed: 'Failed',
           processing: 'Converting',
           demoCases: [
-            ['example.heic', 'Standard HEIC', '1.1 MB', 'Large File Performance'],
-            ['small-test.heic', 'Nokia Sample', '873 KB', 'Format Compatibility'],
-            ['medium-test.heic', 'Small HEIC', '219 KB', 'Fast Processing'],
-            ['corrupted-test.heic', 'Broken File', '78 B', 'Graceful Fallback'],
+            ['samples/heic-still.heic', 'Standard HEIC', '1.1 MB', 'HEVC Still'],
+            ['samples/msf1-sequence.heic', 'HEIF Sequence', '873 KB', 'First-Frame Preview'],
+            ['samples/heix-compatible.heic', 'HEIX Compatible', '301 KB', 'Range Extension'],
+            ['samples/corrupted-test.heic', 'Broken File', '78 B', 'Graceful Fallback'],
           ],
           dynamicTitle: 'Dynamic Image Test',
           dynamicLead: 'Validate that images inserted by JavaScript are still picked up by the extension through MutationObserver.',
@@ -371,7 +371,7 @@
           ],
           ctaTitle: 'Make HEIC Images Work On The Web.',
           ctaLead: 'Install View HEIC for free and stop downloading files just to inspect them.',
-          footerLead: 'A free open-source browser extension that displays HEIC and HEIF images directly on web pages while keeping conversion local.',
+          footerLead: 'A free open-source browser extension that helps Chrome display HEIC and HEIF images on web pages while keeping conversion local.',
           footerLinks: 'Links',
           footerProject: 'Project',
           license: 'Open Source under the MIT License.',
@@ -406,7 +406,7 @@
           featuresLead: '扩展覆盖真实网页、严格浏览器安全规则和常见 HEIC 边界场景，不需要用户手动转换文件。',
           features: [
             ['自动检测与转换', '扫描页面已有图片和动态注入图片，支持页面加载后才出现的 HEIC / HEIF URL。'],
-            ['序列帧首帧预览', '识别 msf1、hevc、hevx 等 HEIC 序列品牌，默认只预览首帧，避免拖慢页面。'],
+            ['更完整的 HEIF 识别', '检查扩展名、MIME 类型，以及 heic、mif1、msf1、heix、hevx、heis 等 ISO BMFF brand。'],
             ['魔法字节格式验证', '读取文件头 ISO BMFF 品牌，即使服务器 MIME 类型错误，也能判断 HEIC 文件。'],
             ['智能缓存', '转换结果缓存为 Blob URL，并发去重保证同一张图片只处理一次。'],
             ['完全本地，保护隐私', '所有解码都通过 WebAssembly 在浏览器本地完成，图片数据不会离开设备。'],
@@ -434,10 +434,10 @@
           failed: '转换失败',
           processing: '转换中',
           demoCases: [
-            ['example.heic', '标准 HEIC', '1.1 MB', '大文件性能测试'],
-            ['small-test.heic', 'Nokia 标准文件', '873 KB', '标准格式兼容'],
-            ['medium-test.heic', '小文件快速转换', '219 KB', '快速处理'],
-            ['corrupted-test.heic', '错误处理', '78 B', '优雅降级演示'],
+            ['samples/heic-still.heic', '标准 HEIC', '1.1 MB', 'HEVC 静态图'],
+            ['samples/msf1-sequence.heic', 'HEIF 序列图', '873 KB', '首帧预览'],
+            ['samples/heix-compatible.heic', 'HEIX 兼容', '301 KB', 'Range Extension'],
+            ['samples/corrupted-test.heic', '错误处理', '78 B', '优雅降级演示'],
           ],
           dynamicTitle: '动态加载测试',
           dynamicLead: '验证 JavaScript 动态插入的图片也能通过 MutationObserver 被扩展监听处理。',

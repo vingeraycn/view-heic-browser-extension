@@ -14,8 +14,10 @@ const resetBody = converter.match(/resetImageProcessed\(img: HTMLImageElement\):
 
 const checks = [
   {
-    name: "src mutation observer uses the shared HEIC selector",
-    pass: /img\.matches\(SELECTORS\.HEIC_IMAGES\)/.test(content),
+    name: "src mutation observer uses shared image candidates and HEIF extension filtering",
+    pass:
+      /SELECTORS\.IMAGE_CANDIDATES/.test(content) &&
+      /hasHeifExtension\(getImageSrc\(img\)\)/.test(content),
   },
   {
     name: "src mutation observer resets every changed HEIC image in the batch",

@@ -6,14 +6,14 @@
 
 Read this in [Chinese](README.zh-CN.md).
 
-View HEIC displays HEIC and HEIF images directly in the browser. It detects compatible image URLs on web pages, converts them locally, and replaces the original image with a browser-friendly JPEG preview.
+View HEIC helps Chrome display iPhone HEIC/HEIF photos on web pages. It detects likely HEIC/HEIF images, converts them locally, and replaces the original image with a browser-friendly JPEG preview.
 
 ## Features
 
-- Automatically detects existing and dynamically inserted HEIC/HEIF images.
+- Automatically detects existing and dynamically inserted HEIC/HEIF images by extension, MIME type, and file signature.
 - Converts images locally in the browser with `heic-to` and libheif.
 - Uses JPEG previews by default for faster rendering and smaller output.
-- Handles source changes, retries, size limits, and common error states.
+- Handles source changes, retries, size limits, unsupported variants, and common error states.
 - Keeps converted data in the current tab only; images are not uploaded.
 - Shows a lightweight review prompt after repeated successful conversions.
 
@@ -36,6 +36,7 @@ Then open `chrome://extensions/`, enable Developer mode, choose "Load unpacked",
 
 ```bash
 pnpm compile
+pnpm verify:heif-detection
 pnpm verify:rating-prompt
 pnpm verify:performance
 pnpm verify:src-change
@@ -65,7 +66,7 @@ view-heic-browser-extension/
 ├── docs/
 │   ├── index.html
 │   ├── test-improved.html
-│   └── *.heic
+│   └── samples/
 ├── scripts/
 └── wxt.config.ts
 ```
@@ -93,6 +94,7 @@ If an image does not display:
 - Refresh the page after installation.
 - Check whether the file is a valid HEIC/HEIF image.
 - Confirm the image is under the configured 50 MB limit.
+- Some websites block extensions from reading image bytes; in that case View HEIC cannot convert the file in place.
 - Open the browser console for View HEIC logs.
 
 ## License

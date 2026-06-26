@@ -6,14 +6,14 @@
 
 阅读 [English README](README.md)。
 
-View HEIC 可以让浏览器直接显示 HEIC / HEIF 图片。扩展会自动识别网页中的兼容图片地址，在浏览器本地完成转换，并把原图替换成可直接渲染的 JPEG 预览。
+View HEIC 帮助 Chrome 显示网页里的 iPhone HEIC / HEIF 照片。扩展会识别疑似 HEIC / HEIF 图片，在浏览器本地完成转换，并把原图替换成可直接渲染的 JPEG 预览。
 
 ## 功能
 
-- 自动检测页面已有和动态插入的 HEIC / HEIF 图片。
+- 通过扩展名、MIME 类型和文件头自动检测页面已有和动态插入的 HEIC / HEIF 图片。
 - 使用 `heic-to` 和 libheif 在浏览器本地转换图片。
 - 默认输出 JPEG 预览，提升渲染速度并减少输出体积。
-- 支持图片 `src` 变更、重试、大小限制和常见错误状态处理。
+- 支持图片 `src` 变更、重试、大小限制、不支持变体和常见错误状态处理。
 - 转换数据只保存在当前标签页内存中，不上传图片。
 - 在多次成功转换后展示轻量的应用商店评价入口。
 
@@ -36,6 +36,7 @@ pnpm build
 
 ```bash
 pnpm compile
+pnpm verify:heif-detection
 pnpm verify:rating-prompt
 pnpm verify:performance
 pnpm verify:src-change
@@ -65,7 +66,7 @@ view-heic-browser-extension/
 ├── docs/
 │   ├── index.html
 │   ├── test-improved.html
-│   └── *.heic
+│   └── samples/
 ├── scripts/
 └── wxt.config.ts
 ```
@@ -93,6 +94,7 @@ View HEIC 使用 `storage` 权限仅用于保存评价提示相关的本地状�
 - 安装后刷新页面。
 - 确认文件是有效的 HEIC / HEIF 图片。
 - 确认图片大小没有超过默认 50 MB 限制。
+- 有些网站会阻止扩展读取图片字节；这种情况下 View HEIC 无法在页面内完成转换。
 - 打开浏览器控制台查看 View HEIC 日志。
 
 ## 许可证

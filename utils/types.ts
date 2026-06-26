@@ -2,6 +2,7 @@ export interface ConversionOptions {
   quality?: number
   format?: "png" | "jpeg"
   maxRetries?: number
+  ignoreInvalidFormat?: boolean
 }
 
 export interface ConversionResult {
@@ -11,7 +12,7 @@ export interface ConversionResult {
 }
 
 export interface ConversionError {
-  type: "network" | "cors" | "size" | "format" | "conversion" | "unknown"
+  type: "network" | "cors" | "size" | "format" | "unsupported" | "conversion" | "unknown"
   message: string
   originalError?: any
 }

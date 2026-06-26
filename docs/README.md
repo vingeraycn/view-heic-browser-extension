@@ -12,7 +12,7 @@ docs/
 ├── index.html          # 🏠 官网首页（GitHub Pages 主页）
 ├── test-improved.html  # 🧪 开发者详细测试页面
 ├── README.md          # 📋 本说明文件
-└── *.heic             # 🖼️ 测试用的 HEIC 图片文件
+└── samples/           # 🖼️ 测试用的 HEIC / HEIF 样本矩阵
 ```
 
 ## 🌐 GitHub Pages 配置
@@ -29,7 +29,7 @@ docs/
 完整的中英双语产品落地页，默认英文，可通过右上角语言切换入口在英文和中文之间切换：
 
 - 🎯 Hero 区域：标题、CTA 按钮、信任标语
-- 📊 数据亮点栏：50MB 上限、6 种 HEIC 品牌、默认 JPEG 预览、0 数据上传
+- 📊 数据亮点栏：50MB 上限、HEIC/HEIF brand 覆盖、默认 JPEG 预览、0 数据上传
 - ✨ 核心特性：6 张特性卡片
 - 🚀 工作原理：三步流程 + 内部转换流程图
 - 🎬 实时演示：4 张真实 HEIC 文件 + 动态注入测试 + 转换统计
@@ -66,19 +66,24 @@ pnpm assets:market
 
 面向开发者的详细测试页面，包含：
 
-- 📷 静态 HEIC 图片测试（4 个场景）
+- 📷 静态 HEIC 图片测试（brand、MIME、query/hash、错误文件等场景）
 - 🔄 动态加载测试（MutationObserver 验证）
 - 📈 实时转换统计
 - 🚀 主要改进点说明
 
 ## 🖼️ 测试文件
 
-| 文件名                | 大小  | 用途               |
-| --------------------- | ----- | ------------------ |
-| `example.heic`        | 1.1MB | 大文件性能测试     |
-| `small-test.heic`     | 873KB | Nokia 标准格式测试 |
-| `medium-test.heic`    | 219KB | 小文件快速转换测试 |
-| `corrupted-test.heic` | 78B   | 错误处理和异常测试 |
+| 文件名 | 覆盖点 |
+| --- | --- |
+| `samples/heic-still.heic` | major `heic` |
+| `samples/mif1-still.heic` | major `mif1` |
+| `samples/msf1-sequence.heic` | major `msf1` |
+| `samples/heix-compatible.heic` | compatible `heix` |
+| `samples/hevx-compatible-sequence.heic` | compatible `hevx` |
+| `samples/heis-multilayer.heic` | major `heis` |
+| `samples/corrupted-test.heic` | 错误处理和异常测试 |
+
+完整来源和缺口见 `samples/README.md`。
 
 ## 🛠️ 本地预览
 
