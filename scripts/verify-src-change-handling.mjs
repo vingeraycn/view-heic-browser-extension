@@ -11,11 +11,29 @@ const content = read("entrypoints/content.ts")
 const converter = read("utils/heic-converter.ts")
 
 const resetBody = converter.match(/resetImageProcessed\(img: HTMLImageElement\): void \{([\s\S]*?)\n  \}/)?.[1] ?? ""
+const errorBody = converter.match(/handleConversionError\([\s\S]*?\): ConversionResult \{([\s\S]*?)\n  \}/)?.[1] ?? ""
 
 const checks = [
   {
-    name: "src mutation observer uses the shared HEIC selector",
-    pass: /img\.matches\(SELECTORS\.HEIC_IMAGES\)/.test(content),
+    name: "src mutation observer uses shared image candidates and HEIF extension filtering",
+    pass:
+      /SELECTORS\.IMAGE_CANDIDATES/.test(content) &&
+      /hasHeifExtension\(getImageSrc\(img\)\)/.test(content),
+  },
+  {
+    name: "srcset is not half-supported",
+    pass:
+      /IMAGE_CANDIDATES:\s*"img\[src\]"/.test(read("utils/constants.ts")) &&
+      /attributeFilter:\s*\["src"\]/.test(content) &&
+      !/srcset/.test(content),
+  },
+  {
+    name: "MIME-only fallback probes are same-origin and cached",
+    pass:
+      /mimeOnlyProbeCache\s*=\s*new Set<string>\(\)/.test(content) &&
+      /isSameOriginUrl/.test(content) &&
+      /mimeOnlyProbeCache\.has\(src\)/.test(content) &&
+      /mimeOnlyProbeCache\.add\(src\)/.test(content),
   },
   {
     name: "src mutation observer resets every changed HEIC image in the batch",
@@ -36,6 +54,16 @@ const checks = [
       !/style\.removeProperty\("border"\)/.test(resetBody) &&
       !/img\.title\s*=\s*""/.test(resetBody) &&
       !/img\.onclick\s*=\s*null/.test(resetBody),
+  },
+  {
+    name: "conversion failures silently restore the original image",
+    pass:
+      /img\.src\s*=\s*originalSrc/.test(errorBody) &&
+      /console\.debug/.test(errorBody) &&
+      !/classList\.add\("heic-error"\)/.test(errorBody) &&
+      !/img\.title\s*=/.test(errorBody) &&
+      !/addEventListener\("click"/.test(errorBody) &&
+      !/confirm\(/.test(errorBody),
   },
 ]
 

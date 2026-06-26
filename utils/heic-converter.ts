@@ -1,11 +1,7 @@
 import { heicTo } from "heic-to/csp"
 import { CONFIG, DATA_ATTRIBUTES, ERROR_MESSAGES } from "./constants"
+import { getHeifFileType, isHeifBuffer, isHeifMimeType, isHeifSequenceBuffer } from "./heif-format"
 import type { ConversionError, ConversionOptions, ConversionResult } from "./types"
-
-// ─── Magic-bytes helpers ────────────────────────────────────────────────────
-
-const HEIC_BRANDS_SINGLE = new Set(["mif1", "heic", "heix"])
-const HEIC_BRANDS_SEQUENCE = new Set(["msf1", "hevc", "hevx"])
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -26,23 +22,6 @@ interface HeicDecodeFrame {
 /** Return type of `heic-decode.all()` – an array that also carries a `dispose()`. */
 type HeicDecodeFrameList = HeicDecodeFrame[] & { dispose?: () => void }
 
-function getHeicBrand(buffer: ArrayBuffer): string {
-  if (buffer.byteLength < 12) return ""
-  const bytes = new Uint8Array(buffer, 8, 4)
-  return String.fromCharCode(...Array.from(bytes))
-    .replace(/\0/g, " ")
-    .trim()
-}
-
-function isHeicBuffer(buffer: ArrayBuffer): boolean {
-  const brand = getHeicBrand(buffer)
-  return HEIC_BRANDS_SINGLE.has(brand) || HEIC_BRANDS_SEQUENCE.has(brand)
-}
-
-function isAnimatedHeicBuffer(buffer: ArrayBuffer): boolean {
-  return HEIC_BRANDS_SEQUENCE.has(getHeicBrand(buffer))
-}
-
 function logStageTiming(src: string, stage: string, startTime: number): void {
   const elapsedMs = Math.round(performance.now() - startTime)
   console.debug("[View HEIC] conversion timing", { stage, elapsedMs, src })
@@ -52,6 +31,7 @@ function shouldRetryConversion(error: any): boolean {
   const message = error?.message ?? ""
   const nonRetryableMessages = [
     ERROR_MESSAGES.INVALID_FORMAT,
+    ERROR_MESSAGES.UNSUPPORTED_CODEC,
     ERROR_MESSAGES.FILE_TOO_LARGE,
     ERROR_MESSAGES.CORS_ERROR,
     "HEIF image not found",
@@ -62,6 +42,10 @@ function shouldRetryConversion(error: any): boolean {
   return !nonRetryableMessages.some((deterministicError) => message.includes(deterministicError))
 }
 
+function getSupportedCodecBrands(brands: string[]): string[] {
+  return brands.filter((brand) => ["heic", "heix", "heim", "heis", "hevc", "hevx"].includes(brand))
+}
+
 // ─── Converter ──────────────────────────────────────────────────────────────
 
 /**
@@ -70,7 +54,6 @@ function shouldRetryConversion(error: any): boolean {
 export class HEICConverter {
   private processedImages = new WeakSet<HTMLImageElement>()
   private conversionGeneration = new WeakMap<HTMLImageElement, number>()
-  private errorClickHandlers = new WeakMap<HTMLImageElement, (event: MouseEvent) => void>()
   /** Prevents duplicate concurrent conversions of the same element. */
   private processingQueue = new Map<HTMLImageElement, Promise<ConversionResult>>()
   /** Cache: original src → converted blob URL. */
@@ -103,18 +86,6 @@ export class HEICConverter {
     return this.getGeneration(img) === generation
   }
 
-  private preserveImageStateForError(img: HTMLImageElement): void {
-    if (!img.hasAttribute(DATA_ATTRIBUTES.PREVIOUS_FILTER)) {
-      img.setAttribute(DATA_ATTRIBUTES.PREVIOUS_FILTER, img.style.getPropertyValue("filter"))
-    }
-    if (!img.hasAttribute(DATA_ATTRIBUTES.PREVIOUS_CURSOR)) {
-      img.setAttribute(DATA_ATTRIBUTES.PREVIOUS_CURSOR, img.style.getPropertyValue("cursor"))
-    }
-    if (!img.hasAttribute(DATA_ATTRIBUTES.PREVIOUS_TITLE)) {
-      img.setAttribute(DATA_ATTRIBUTES.PREVIOUS_TITLE, img.title)
-    }
-  }
-
   private restoreExtensionErrorState(img: HTMLImageElement): void {
     if (img.hasAttribute(DATA_ATTRIBUTES.PREVIOUS_FILTER)) {
       img.style.setProperty("filter", img.getAttribute(DATA_ATTRIBUTES.PREVIOUS_FILTER) ?? "")
@@ -127,12 +98,6 @@ export class HEICConverter {
     if (img.hasAttribute(DATA_ATTRIBUTES.PREVIOUS_TITLE)) {
       img.title = img.getAttribute(DATA_ATTRIBUTES.PREVIOUS_TITLE) ?? ""
       img.removeAttribute(DATA_ATTRIBUTES.PREVIOUS_TITLE)
-    }
-
-    const errorClickHandler = this.errorClickHandlers.get(img)
-    if (errorClickHandler) {
-      img.removeEventListener("click", errorClickHandler)
-      this.errorClickHandlers.delete(img)
     }
   }
 
@@ -193,13 +158,9 @@ export class HEICConverter {
     logStageTiming(src, "read-blob", blobStart)
 
     // Accept if magic bytes confirm HEIC, or if the MIME type is heic/heif.
-    const mimeOk =
-      blob.type === "image/heic" ||
-      blob.type === "image/heif" ||
-      blob.type === "image/heic-sequence" ||
-      blob.type === "image/heif-sequence"
+    const mimeOk = isHeifMimeType(blob.type)
 
-    if (!isHeicBuffer(buffer) && !mimeOk) {
+    if (!isHeifBuffer(buffer) && !mimeOk) {
       throw new Error(ERROR_MESSAGES.INVALID_FORMAT)
     }
 
@@ -216,9 +177,21 @@ export class HEICConverter {
     const { quality = CONFIG.CONVERSION_QUALITY, format = "jpeg" } = options
     const blob = new Blob([buffer])
     const convertStart = performance.now()
-    const result = await heicTo({ blob, type: `image/${format}`, quality })
-    logStageTiming(src, `convert-${format}`, convertStart)
-    return URL.createObjectURL(result)
+    try {
+      const result = await heicTo({ blob, type: `image/${format}`, quality })
+      logStageTiming(src, `convert-${format}`, convertStart)
+      return URL.createObjectURL(result)
+    } catch (error) {
+      const fileType = getHeifFileType(buffer)
+      if (fileType.isHeif && getSupportedCodecBrands(fileType.brands).length === 0) {
+        const unsupportedError = new Error(`${ERROR_MESSAGES.UNSUPPORTED_CODEC}: ${fileType.brands.join(", ")}`)
+        ;(unsupportedError as any).fileType = fileType
+        throw unsupportedError
+      }
+
+      ;(error as any).fileType = fileType
+      throw error
+    }
   }
 
   // ── Animated (sequence) conversion ──────────────────────────────────────
@@ -354,7 +327,7 @@ export class HEICConverter {
     const { maxRetries = CONFIG.RETRY_ATTEMPTS } = options
     const generation = this.nextGeneration(img)
 
-    // Persist original src for error-recovery click handlers
+    // Persist original src so failure paths can restore the page state silently.
     if (!img.hasAttribute(DATA_ATTRIBUTES.ORIGINAL_SRC)) {
       img.setAttribute(DATA_ATTRIBUTES.ORIGINAL_SRC, originalSrc)
     }
@@ -378,7 +351,7 @@ export class HEICConverter {
         const buffer = await this.fetchImageData(originalSrc)
 
         // ── Animated path ──────────────────────────────────────────────
-        if (isAnimatedHeicBuffer(buffer)) {
+        if (isHeifSequenceBuffer(buffer)) {
           const canvasResult = await this.convertAnimatedToCanvas(img, buffer, generation, options)
           if (canvasResult !== null) {
             if (!this.isCurrentGeneration(img, generation)) {
@@ -427,6 +400,12 @@ export class HEICConverter {
 
     if (!this.isCurrentGeneration(img, generation) || img.src !== originalSrc) {
       return { success: false }
+    }
+
+    if (options.ignoreInvalidFormat && lastError?.message?.includes(ERROR_MESSAGES.INVALID_FORMAT)) {
+      img.classList.remove("heic-processing")
+      img.removeAttribute(DATA_ATTRIBUTES.ORIGINAL_SRC)
+      return { success: false, error: { type: "format", message: ERROR_MESSAGES.INVALID_FORMAT } }
     }
 
     return this.handleConversionError(img, lastError, originalSrc)
@@ -483,12 +462,12 @@ export class HEICConverter {
     originalSrc: string
   ): ConversionResult {
     img.classList.remove("heic-processing")
-    img.classList.add("heic-error")
-    this.preserveImageStateForError(img)
+    img.classList.remove("heic-error")
+    img.src = originalSrc
+    this.restoreExtensionErrorState(img)
 
     let errorType: ConversionError["type"] = "unknown"
     let errorMessage: string = error?.message ?? ERROR_MESSAGES.CONVERSION_FAILED
-    let displayMessage = errorMessage
 
     if (
       errorMessage.includes("CORS") ||
@@ -497,54 +476,26 @@ export class HEICConverter {
     ) {
       errorType = "cors"
       errorMessage = ERROR_MESSAGES.CORS_ERROR
-      displayMessage = "跨域访问被拒绝"
     } else if (errorMessage.includes("Failed to fetch") || errorMessage.includes("网络")) {
       errorType = "network"
       errorMessage = ERROR_MESSAGES.NETWORK_ERROR
-      displayMessage = "网络请求失败"
     } else if (errorMessage.includes("50MB")) {
       errorType = "size"
-      displayMessage = "文件过大"
+    } else if (errorMessage.includes(ERROR_MESSAGES.UNSUPPORTED_CODEC) || errorMessage.includes("unsupported")) {
+      errorType = "unsupported"
     } else if (errorMessage.includes("格式") || errorMessage.includes("HEIC")) {
       errorType = "format"
-      displayMessage = "格式不支持"
     } else if (errorMessage.includes("转换")) {
       errorType = "conversion"
-      displayMessage = "转换失败"
     } else if (error?.name === "AbortError") {
       errorType = "network"
-      displayMessage = "请求超时"
     }
 
-    img.title = `${displayMessage} - 点击查看原图`
-    img.style.filter = "grayscale(50%) opacity(0.8)"
-    img.style.cursor = "pointer"
-    img.setAttribute("data-error-type", errorType)
-    img.setAttribute("data-error-message", displayMessage)
-
-    const previousErrorClickHandler = this.errorClickHandlers.get(img)
-    if (previousErrorClickHandler) {
-      img.removeEventListener("click", previousErrorClickHandler)
-    }
-
-    const errorClickHandler = (e: MouseEvent) => {
-      e.preventDefault()
-      if (errorType === "cors") {
-        const confirmed = confirm(
-          `图片因跨域限制无法转换。\n\n错误详情: ${displayMessage}\n\n是否在新窗口中查看原图？`
-        )
-        if (confirmed) window.open(originalSrc, "_blank")
-      } else {
-        window.open(originalSrc, "_blank")
-      }
-    }
-    img.addEventListener("click", errorClickHandler)
-    this.errorClickHandlers.set(img, errorClickHandler)
-
-    console.warn("🔴 HEIC转换失败:", {
+    console.debug("[View HEIC] conversion skipped", {
       src: originalSrc,
       type: errorType,
       message: errorMessage,
+      fileType: error?.fileType,
       originalError: error,
     })
 

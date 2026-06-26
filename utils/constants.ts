@@ -12,8 +12,7 @@ export const CONFIG = {
 
 // 选择器
 export const SELECTORS = {
-  HEIC_IMAGES:
-    'img[src*=".HEIC"], img[src*=".heic"], img[src*=".HEIF"], img[src*=".heif"]',
+  IMAGE_CANDIDATES: "img[src]",
   PROCESSING_CLASS: "heic-processing",
   ERROR_CLASS: "heic-error",
 } as const
@@ -32,6 +31,7 @@ export const DATA_ATTRIBUTES = {
 export const ERROR_MESSAGES = {
   FILE_TOO_LARGE: "图片文件过大，超过50MB限制",
   INVALID_FORMAT: "不是有效的HEIC格式文件",
+  UNSUPPORTED_CODEC: "HEIF容器使用了当前版本暂不支持的编码",
   NETWORK_ERROR: "网络错误，无法获取图片",
   CONVERSION_FAILED: "HEIC转换失败",
   CORS_ERROR: "跨域访问被拒绝",

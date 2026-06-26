@@ -23,6 +23,8 @@ const mimeTypes = {
   ".json": "application/json",
   ".heic": "image/heic",
   ".heif": "image/heif",
+  ".heics": "image/heic-sequence",
+  ".heifs": "image/heif-sequence",
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
@@ -71,6 +73,43 @@ const server = http.createServer((req, res) => {
 
   const requestUrl = new URL(req.url, SITE_URL)
   const pathname = decodeURIComponent(requestUrl.pathname)
+
+  const routeFile = (relativePath, contentType) => {
+    const filePath = path.join(DOCS_DIR, relativePath)
+    if (!filePath.startsWith(DOCS_DIR)) {
+      res.writeHead(403, { "Content-Type": "text/plain" })
+      res.end("Forbidden")
+      return true
+    }
+
+    if (req.method === "HEAD") {
+      res.setHeader("Content-Type", contentType)
+      res.writeHead(200)
+      res.end()
+      return true
+    }
+
+    fs.readFile(filePath, (err, content) => {
+      if (err) {
+        res.writeHead(404, { "Content-Type": "text/plain" })
+        res.end("Not found")
+        return
+      }
+
+      res.setHeader("Content-Type", contentType)
+      res.writeHead(200)
+      res.end(content)
+    })
+    return true
+  }
+
+  if (pathname === "/mime-only/heic-still") {
+    return routeFile("samples/heic-still.heic", "image/heic")
+  }
+
+  if (pathname === "/wrong-mime/heic-still.heic") {
+    return routeFile("samples/heic-still.heic", "text/plain")
+  }
 
   // 默认页面重定向
   const filePath = path.join(DOCS_DIR, pathname === "/" ? "index.html" : pathname)
@@ -123,12 +162,12 @@ server.listen(PORT, "127.0.0.1", () => {
 
   // 列出HEIC测试文件
   try {
-    const files = fs.readdirSync(DOCS_DIR)
+    const files = fs.readdirSync(path.join(DOCS_DIR, "samples"))
     const heicFiles = files.filter((f) => f.endsWith(".heic"))
     heicFiles.forEach((file) => {
-      const stats = fs.statSync(path.join(DOCS_DIR, file))
+      const stats = fs.statSync(path.join(DOCS_DIR, "samples", file))
       const size = (stats.size / 1024).toFixed(1) + "KB"
-      console.log(`   📷 ${file} (${size})`)
+      console.log(`   📷 samples/${file} (${size})`)
     })
   } catch (error) {
     console.log(`   ⚠️  无法读取docs目录`)

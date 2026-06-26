@@ -1,5 +1,6 @@
 import { debounce } from "lodash-es"
 import { CONFIG, SELECTORS } from "../utils/constants"
+import { hasHeifExtension, isHeifMimeType } from "../utils/heif-format"
 import { HEICConverter } from "../utils/heic-converter"
 
 const STORE_REVIEW_URL =
@@ -8,6 +9,7 @@ const ISSUE_URL = "https://github.com/vingeraycn/view-heic-browser-extension/iss
 const RATING_PROMPT_STORAGE_KEY = "viewHeicRatingPrompt"
 const MIN_SUCCESSFUL_IMAGES_FOR_PROMPT = 11
 const RATING_PROMPT_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000
+const mimeOnlyProbeCache = new Set<string>()
 
 interface RatingPromptState {
   successCount?: number
@@ -31,6 +33,7 @@ export default defineContentScript({
 
     // 监听动态加载的图片
     observeHEICImages(converter)
+    observeFailedImageLoads(converter)
 
     // 页面卸载时清理资源
     window.addEventListener("beforeunload", () => {
@@ -71,34 +74,6 @@ function injectStyles(): void {
     .heic-converted {
       opacity: 1;
       transition: opacity 0.3s ease;
-    }
-
-    .heic-error {
-      position: relative;
-      opacity: 0.8;
-      filter: grayscale(50%);
-      cursor: pointer;
-    }
-
-    .heic-error::after {
-      content: "❌ 转换失败 - 点击查看原图";
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(255, 107, 107, 0.9);
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      white-space: nowrap;
-      z-index: 1000;
-      pointer-events: none;
-    }
-
-    .heic-error:hover {
-      opacity: 1;
-      filter: grayscale(0%);
     }
 
     .view-heic-rating-prompt {
@@ -215,7 +190,7 @@ function injectStyles(): void {
  * 处理页面中的所有HEIC图片
  */
 async function processHEICImages(converter: HEICConverter): Promise<void> {
-  const images = document.querySelectorAll<HTMLImageElement>(SELECTORS.HEIC_IMAGES)
+  const images = findHEICImages(document)
 
   if (images.length === 0) {
     return
@@ -236,6 +211,18 @@ async function processHEICImages(converter: HEICConverter): Promise<void> {
   }
 
   await maybeShowRatingPrompt(successCount, failureCount)
+}
+
+function getImageSrc(img: HTMLImageElement): string {
+  return img.src
+}
+
+function isHEICImageCandidate(img: HTMLImageElement): boolean {
+  return hasHeifExtension(getImageSrc(img))
+}
+
+function findHEICImages(root: ParentNode): HTMLImageElement[] {
+  return Array.from(root.querySelectorAll<HTMLImageElement>(SELECTORS.IMAGE_CANDIDATES)).filter(isHEICImageCandidate)
 }
 
 async function maybeShowRatingPrompt(successCount: number, failureCount: number): Promise<void> {
@@ -374,11 +361,11 @@ function observeHEICImages(converter: HEICConverter): void {
             // 检查节点本身或其子元素是否为HEIC图片
             if (element.tagName === "IMG") {
               const img = element as HTMLImageElement
-              if (img.matches(SELECTORS.HEIC_IMAGES)) {
+              if (isHEICImageCandidate(img)) {
                 hasNewImages = true
                 break
               }
-            } else if (element.querySelector && element.querySelector(SELECTORS.HEIC_IMAGES)) {
+            } else if (findHEICImages(element).length > 0) {
               hasNewImages = true
               break
             }
@@ -394,7 +381,7 @@ function observeHEICImages(converter: HEICConverter): void {
         mutation.target instanceof HTMLImageElement
       ) {
         const img = mutation.target
-        if (img.matches(SELECTORS.HEIC_IMAGES)) {
+        if (isHEICImageCandidate(img)) {
           converter.resetImageProcessed(img)
           hasNewImages = true
         }
@@ -413,4 +400,36 @@ function observeHEICImages(converter: HEICConverter): void {
     attributeFilter: ["src"],
     subtree: true,
   })
+}
+
+function isSameOriginUrl(src: string): boolean {
+  try {
+    return new URL(src, location.href).origin === location.origin
+  } catch {
+    return false
+  }
+}
+
+function observeFailedImageLoads(converter: HEICConverter): void {
+  document.addEventListener(
+    "error",
+    async (event) => {
+      if (!(event.target instanceof HTMLImageElement)) return
+
+      const img = event.target
+      const src = getImageSrc(img)
+      if (!src || hasHeifExtension(src) || !isSameOriginUrl(src) || mimeOnlyProbeCache.has(src)) return
+      mimeOnlyProbeCache.add(src)
+
+      try {
+        const response = await fetch(src, { method: "HEAD" })
+        if (!response.ok || !isHeifMimeType(response.headers.get("content-type") ?? "")) return
+
+        await converter.convertImage(img, { ignoreInvalidFormat: true })
+      } catch {
+        // Ignore ordinary broken images and cross-origin probes we cannot classify.
+      }
+    },
+    true
+  )
 }
