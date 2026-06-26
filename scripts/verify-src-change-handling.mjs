@@ -21,6 +21,21 @@ const checks = [
       /hasHeifExtension\(getImageSrc\(img\)\)/.test(content),
   },
   {
+    name: "srcset is not half-supported",
+    pass:
+      /IMAGE_CANDIDATES:\s*"img\[src\]"/.test(read("utils/constants.ts")) &&
+      /attributeFilter:\s*\["src"\]/.test(content) &&
+      !/srcset/.test(content),
+  },
+  {
+    name: "MIME-only fallback probes are same-origin and cached",
+    pass:
+      /mimeOnlyProbeCache\s*=\s*new Set<string>\(\)/.test(content) &&
+      /isSameOriginUrl/.test(content) &&
+      /mimeOnlyProbeCache\.has\(src\)/.test(content) &&
+      /mimeOnlyProbeCache\.add\(src\)/.test(content),
+  },
+  {
     name: "src mutation observer resets every changed HEIC image in the batch",
     pass: !/attributeName === "src"[\s\S]*?break/.test(content),
   },

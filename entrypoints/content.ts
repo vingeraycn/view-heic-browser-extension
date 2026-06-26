@@ -9,6 +9,7 @@ const ISSUE_URL = "https://github.com/vingeraycn/view-heic-browser-extension/iss
 const RATING_PROMPT_STORAGE_KEY = "viewHeicRatingPrompt"
 const MIN_SUCCESSFUL_IMAGES_FOR_PROMPT = 11
 const RATING_PROMPT_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000
+const mimeOnlyProbeCache = new Set<string>()
 
 interface RatingPromptState {
   successCount?: number
@@ -213,7 +214,7 @@ async function processHEICImages(converter: HEICConverter): Promise<void> {
 }
 
 function getImageSrc(img: HTMLImageElement): string {
-  return img.currentSrc || img.src
+  return img.src
 }
 
 function isHEICImageCandidate(img: HTMLImageElement): boolean {
@@ -376,7 +377,7 @@ function observeHEICImages(converter: HEICConverter): void {
 
       if (
         mutation.type === "attributes" &&
-        (mutation.attributeName === "src" || mutation.attributeName === "srcset") &&
+        mutation.attributeName === "src" &&
         mutation.target instanceof HTMLImageElement
       ) {
         const img = mutation.target
@@ -396,9 +397,17 @@ function observeHEICImages(converter: HEICConverter): void {
   observer.observe(document.body, {
     childList: true,
     attributes: true,
-    attributeFilter: ["src", "srcset"],
+    attributeFilter: ["src"],
     subtree: true,
   })
+}
+
+function isSameOriginUrl(src: string): boolean {
+  try {
+    return new URL(src, location.href).origin === location.origin
+  } catch {
+    return false
+  }
 }
 
 function observeFailedImageLoads(converter: HEICConverter): void {
@@ -409,7 +418,8 @@ function observeFailedImageLoads(converter: HEICConverter): void {
 
       const img = event.target
       const src = getImageSrc(img)
-      if (!src || hasHeifExtension(src)) return
+      if (!src || hasHeifExtension(src) || !isSameOriginUrl(src) || mimeOnlyProbeCache.has(src)) return
+      mimeOnlyProbeCache.add(src)
 
       try {
         const response = await fetch(src, { method: "HEAD" })

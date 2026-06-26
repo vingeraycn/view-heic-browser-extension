@@ -218,7 +218,7 @@
           </div>
           <div class="text-center p-4 bg-red-50 rounded-lg">
             <div class="text-2xl font-bold text-red-600" id="failure-count">0</div>
-            <div class="text-sm text-red-800">转换失败</div>
+            <div class="text-sm text-red-800">未转换</div>
           </div>
           <div class="text-center p-4 bg-blue-50 rounded-lg">
             <div class="text-2xl font-bold text-blue-600" id="total-count">0</div>
@@ -258,34 +258,6 @@
         transition: opacity 0.3s ease;
       }
 
-      .heic-error {
-        position: relative;
-        border: 2px dashed #ef4444 !important;
-        opacity: 0.8;
-        filter: grayscale(50%);
-        cursor: pointer;
-      }
-
-      .heic-error::after {
-        content: "❌ 转换失败 - 点击查看原图";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(239, 68, 68, 0.9);
-        color: white;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        white-space: nowrap;
-        z-index: 1000;
-        pointer-events: none;
-      }
-
-      .heic-error:hover {
-        opacity: 1;
-        filter: grayscale(0%);
-      }
     </style>
 
     <script>
@@ -304,8 +276,7 @@
           heicImages.forEach((img) => {
             if (
               img.classList.contains("heic-converted") ||
-              img.classList.contains("heic-processing") ||
-              img.classList.contains("heic-error")
+              img.classList.contains("heic-processing")
             ) {
               hasProcessed = true
             }
@@ -378,11 +349,10 @@
         setTimeout(() => {
           const allImages = document.querySelectorAll("[data-test-image]")
           const successImages = document.querySelectorAll("img.heic-converted")
-          const errorImages = document.querySelectorAll("img.heic-error")
 
           document.getElementById("total-count").textContent = allImages.length
           document.getElementById("success-count").textContent = successImages.length
-          document.getElementById("failure-count").textContent = errorImages.length
+          document.getElementById("failure-count").textContent = allImages.length - successImages.length
         }, 1000)
       }
 

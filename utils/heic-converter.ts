@@ -327,7 +327,7 @@ export class HEICConverter {
     const { maxRetries = CONFIG.RETRY_ATTEMPTS } = options
     const generation = this.nextGeneration(img)
 
-    // Persist original src for error-recovery click handlers
+    // Persist original src so failure paths can restore the page state silently.
     if (!img.hasAttribute(DATA_ATTRIBUTES.ORIGINAL_SRC)) {
       img.setAttribute(DATA_ATTRIBUTES.ORIGINAL_SRC, originalSrc)
     }

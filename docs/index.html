@@ -77,7 +77,6 @@
       .heic-processing { opacity: 0.65; }
       img.heic-processing ~ .status-badge { background: #fef3c7; color: #92400e; }
       img.heic-converted ~ .status-badge { background: #dcfce7; color: #166534; }
-      img.heic-error ~ .status-badge { background: #fee2e2; color: #b91c1c; }
       pre { white-space: pre-wrap; word-break: break-word; }
     </style>
   </head>
@@ -326,7 +325,6 @@
           notDetectedSuffix: ' and refresh this page.',
           waiting: 'Waiting',
           converted: 'Converted',
-          failed: 'Failed',
           processing: 'Converting',
           demoCases: [
             ['samples/heic-still.heic', 'Standard HEIC', '1.1 MB', 'HEVC Still'],
@@ -337,7 +335,7 @@
           dynamicTitle: 'Dynamic Image Test',
           dynamicLead: 'Validate that images inserted by JavaScript are still picked up by the extension through MutationObserver.',
           dynamicButton: 'Add Dynamic HEIC Image',
-          counters: ['Successful Conversions', 'Failed Conversions', 'Total Images'],
+          counters: ['Successful Conversions', 'Not Converted', 'Total Images'],
           installTitle: 'Install View HEIC',
           installLead: 'Choose the store build for normal use, or load the project manually for development.',
           installCards: [
@@ -431,7 +429,6 @@
           notDetectedSuffix: ' 后刷新本页面。',
           waiting: '等待扩展',
           converted: '已转换',
-          failed: '转换失败',
           processing: '转换中',
           demoCases: [
             ['samples/heic-still.heic', '标准 HEIC', '1.1 MB', 'HEVC 静态图'],
@@ -442,7 +439,7 @@
           dynamicTitle: '动态加载测试',
           dynamicLead: '验证 JavaScript 动态插入的图片也能通过 MutationObserver 被扩展监听处理。',
           dynamicButton: '动态添加 HEIC 图片',
-          counters: ['成功转换', '转换失败', '总计图片'],
+          counters: ['成功转换', '未转换', '总计图片'],
           installTitle: '安装 View HEIC',
           installLead: '日常使用请选择商店版本；开发调试可以手动加载项目。',
           installCards: [
@@ -586,7 +583,7 @@
           .join('')
 
         document.getElementById('demo-stats').innerHTML = t.counters
-          .map((label, index) => `<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm"><div class="text-3xl font-extrabold ${index === 0 ? 'text-emerald-600' : index === 1 ? 'text-red-500' : 'text-brand-600'}" id="${index === 0 ? 'success-count' : index === 1 ? 'failure-count' : 'total-count'}">0</div><div class="mt-1 text-xs font-bold text-slate-500">${label}</div></div>`)
+          .map((label, index) => `<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm"><div class="text-3xl font-extrabold ${index === 0 ? 'text-emerald-600' : index === 1 ? 'text-slate-500' : 'text-brand-600'}" id="${index === 0 ? 'success-count' : index === 1 ? 'failure-count' : 'total-count'}">0</div><div class="mt-1 text-xs font-bold text-slate-500">${label}</div></div>`)
           .join('')
       }
 
@@ -629,7 +626,7 @@
         const t = messages[currentLang]
         const banner = document.getElementById('ext-status-banner')
         setTimeout(() => {
-          const active = document.querySelector('img.heic-converted, img.heic-processing, img.heic-error') !== null
+          const active = document.querySelector('img.heic-converted, img.heic-processing') !== null
           if (active) {
             banner.className = 'mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center text-sm font-bold text-emerald-800'
             banner.textContent = t.detected
@@ -660,9 +657,6 @@
           if (img.classList.contains('heic-converted')) {
             badge.textContent = t.converted
             badge.className = 'status-badge bg-emerald-100 text-emerald-700'
-          } else if (img.classList.contains('heic-error')) {
-            badge.textContent = t.failed
-            badge.className = 'status-badge bg-red-100 text-red-700'
           } else if (img.classList.contains('heic-processing')) {
             badge.textContent = t.processing
             badge.className = 'status-badge bg-amber-100 text-amber-800'
@@ -676,13 +670,12 @@
       function updateStats() {
         const all = document.querySelectorAll('.heic-card img')
         const ok = document.querySelectorAll('.heic-card img.heic-converted')
-        const err = document.querySelectorAll('.heic-card img.heic-error')
         const total = document.getElementById('total-count')
         const success = document.getElementById('success-count')
         const failure = document.getElementById('failure-count')
         if (total) total.textContent = all.length
         if (success) success.textContent = ok.length
-        if (failure) failure.textContent = err.length
+        if (failure) failure.textContent = all.length - ok.length
         updateBadges()
       }
 
