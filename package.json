@@ -14,6 +14,7 @@
     "compile": "tsc --noEmit",
     "verify:heif-detection": "node scripts/verify-heif-detection.mjs",
     "verify:rating-prompt": "node scripts/verify-rating-prompt.mjs",
+    "verify:analytics-events": "node scripts/verify-analytics-events.mjs",
     "verify:performance": "node scripts/verify-performance-defaults.mjs",
     "verify:src-change": "node scripts/verify-src-change-handling.mjs",
     "assets:market": "node scripts/generate-market-assets.mjs",

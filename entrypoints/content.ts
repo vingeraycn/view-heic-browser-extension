@@ -2,6 +2,8 @@ import { debounce } from "lodash-es"
 import { CONFIG, SELECTORS } from "../utils/constants"
 import { hasHeifExtension, isHeifMimeType } from "../utils/heif-format"
 import { HEICConverter } from "../utils/heic-converter"
+import type { AnalyticsEventName, AnalyticsParams } from "../utils/analytics"
+import type { ConversionError } from "../utils/types"
 
 const STORE_REVIEW_URL =
   "https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge/reviews"
@@ -11,8 +13,13 @@ const MIN_SUCCESSFUL_IMAGES_FOR_PROMPT = 11
 const RATING_PROMPT_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000
 const mimeOnlyProbeCache = new Set<string>()
 
+type ConversionTrigger = "initial" | "mutation"
+type ConversionErrorType = ConversionError["type"] | "mixed"
+type ConversionResults = Awaited<ReturnType<HEICConverter["convertAllImages"]>>
+
 interface RatingPromptState {
   successCount?: number
+  failureCount?: number
   lastPromptedAt?: number
   reviewClicked?: boolean
 }
@@ -29,7 +36,7 @@ export default defineContentScript({
     const converter = new HEICConverter()
 
     // 初始处理页面中的HEIC图片
-    await processHEICImages(converter)
+    await processHEICImages(converter, "initial")
 
     // 监听动态加载的图片
     observeHEICImages(converter)
@@ -189,7 +196,7 @@ function injectStyles(): void {
 /**
  * 处理页面中的所有HEIC图片
  */
-async function processHEICImages(converter: HEICConverter): Promise<void> {
+async function processHEICImages(converter: HEICConverter, trigger: ConversionTrigger): Promise<void> {
   const images = findHEICImages(document)
 
   if (images.length === 0) {
@@ -197,16 +204,35 @@ async function processHEICImages(converter: HEICConverter): Promise<void> {
   }
 
   console.log(`📷 发现 ${images.length} 张HEIC图片，开始转换...`)
+  sendAnalyticsEvent("heic_detected", { image_count: images.length })
 
   const results = await converter.convertAllImages(images)
+  await recordConversionResults(results, trigger)
+}
 
+async function recordConversionResults(results: ConversionResults, trigger: ConversionTrigger): Promise<void> {
   // 统计转换结果
   const successCount = results.filter((r) => r.success).length
   const failureCount = results.length - successCount
+  const errorType = getAggregateErrorType(
+    results
+      .filter((r) => !r.success)
+      .map((r) => r.error?.type)
+      .filter(Boolean) as ConversionError["type"][]
+  )
 
   console.log(`✅ 转换完成: ${successCount} 成功, ${failureCount} 失败`)
 
+  if (successCount > 0) {
+    sendAnalyticsEvent("conversion_success", { success_count: successCount, trigger })
+  }
+
   if (failureCount > 0) {
+    sendAnalyticsEvent("conversion_failed", {
+      failure_count: failureCount,
+      error_type: errorType ?? "unknown",
+      trigger,
+    })
     console.warn("⚠️ 部分图片转换失败，可能是由于CORS限制或格式问题")
   }
 
@@ -226,13 +252,26 @@ function findHEICImages(root: ParentNode): HTMLImageElement[] {
 }
 
 async function maybeShowRatingPrompt(successCount: number, failureCount: number): Promise<void> {
-  if (import.meta.env.FIREFOX || successCount === 0) return
+  if (import.meta.env.FIREFOX) return
 
   try {
     const stored = await browser.storage.local.get(RATING_PROMPT_STORAGE_KEY)
     const state: RatingPromptState = stored[RATING_PROMPT_STORAGE_KEY] ?? {}
     const now = Date.now()
     const nextSuccessCount = (state.successCount ?? 0) + successCount
+    const nextFailureCount = (state.failureCount ?? 0) + failureCount
+
+    if (successCount === 0) {
+      if (failureCount > 0) {
+        await browser.storage.local.set({
+          [RATING_PROMPT_STORAGE_KEY]: {
+            ...state,
+            failureCount: nextFailureCount,
+          },
+        })
+      }
+      return
+    }
 
     if (
       state.reviewClicked ||
@@ -243,7 +282,11 @@ async function maybeShowRatingPrompt(successCount: number, failureCount: number)
 
     if (nextSuccessCount < MIN_SUCCESSFUL_IMAGES_FOR_PROMPT) {
       await browser.storage.local.set({
-        [RATING_PROMPT_STORAGE_KEY]: { ...state, successCount: nextSuccessCount },
+        [RATING_PROMPT_STORAGE_KEY]: {
+          ...state,
+          successCount: nextSuccessCount,
+          failureCount: nextFailureCount,
+        },
       })
       return
     }
@@ -252,16 +295,18 @@ async function maybeShowRatingPrompt(successCount: number, failureCount: number)
       [RATING_PROMPT_STORAGE_KEY]: {
         ...state,
         successCount: nextSuccessCount,
+        failureCount: nextFailureCount,
         lastPromptedAt: now,
       },
     })
-    showRatingPrompt(nextSuccessCount)
+    sendAnalyticsEvent("review_prompt_shown", { success_total: nextSuccessCount })
+    showRatingPrompt(nextSuccessCount, nextFailureCount)
   } catch (error) {
     console.warn("View HEIC rating prompt skipped:", error)
   }
 }
 
-function showRatingPrompt(successCount: number): void {
+function showRatingPrompt(successCount: number, failureCount: number): void {
   if (document.querySelector(".view-heic-rating-prompt")) return
   const copy = getRatingPromptCopy(successCount)
 
@@ -282,8 +327,14 @@ function showRatingPrompt(successCount: number): void {
   reviewButton.textContent = copy.review
   reviewButton.addEventListener("click", async () => {
     window.open(STORE_REVIEW_URL, "_blank", "noopener")
+    sendAnalyticsEvent("review_prompt_clicked", { success_total: successCount })
     await browser.storage.local.set({
-      [RATING_PROMPT_STORAGE_KEY]: { reviewClicked: true, lastPromptedAt: Date.now() },
+      [RATING_PROMPT_STORAGE_KEY]: {
+        successCount,
+        failureCount,
+        reviewClicked: true,
+        lastPromptedAt: Date.now(),
+      },
     })
     dismissRatingPrompt(prompt)
   })
@@ -292,8 +343,9 @@ function showRatingPrompt(successCount: number): void {
   feedbackButton.className = "view-heic-rating-prompt__secondary"
   feedbackButton.type = "button"
   feedbackButton.textContent = copy.feedback
-  feedbackButton.addEventListener("click", () => {
+  feedbackButton.addEventListener("click", async () => {
     window.open(ISSUE_URL, "_blank", "noopener")
+    sendAnalyticsEvent("feedback_clicked", { failure_total: failureCount })
     dismissRatingPrompt(prompt)
   })
 
@@ -302,7 +354,10 @@ function showRatingPrompt(successCount: number): void {
   closeButton.type = "button"
   closeButton.setAttribute("aria-label", copy.close)
   closeButton.textContent = "×"
-  closeButton.addEventListener("click", () => dismissRatingPrompt(prompt))
+  closeButton.addEventListener("click", async () => {
+    sendAnalyticsEvent("review_prompt_dismissed", { success_total: successCount })
+    dismissRatingPrompt(prompt)
+  })
 
   actions.append(reviewButton, feedbackButton)
   prompt.append(closeButton, text, actions)
@@ -313,6 +368,7 @@ function dismissRatingPrompt(prompt: HTMLElement): void {
   if (prompt.classList.contains("view-heic-rating-prompt--leaving")) return
   prompt.classList.add("view-heic-rating-prompt--leaving")
   prompt.addEventListener("animationend", () => prompt.remove(), { once: true })
+  setTimeout(() => prompt.remove(), 250)
 }
 
 function getRatingPromptCopy(successCount: number): { text: string; review: string; feedback: string; close: string } {
@@ -333,13 +389,29 @@ function getRatingPromptCopy(successCount: number): { text: string; review: stri
   }
 }
 
+function getAggregateErrorType(errorTypes: ConversionError["type"][]): ConversionErrorType | undefined {
+  if (errorTypes.length === 0) return undefined
+  const normalized = errorTypes.map((type) => (type === "unsupported" ? "conversion" : type))
+  const first = normalized[0]
+  return normalized.every((type) => type === first) ? first : "mixed"
+}
+
+async function sendAnalyticsEvent(name: AnalyticsEventName, params: AnalyticsParams = {}): Promise<boolean> {
+  try {
+    return Boolean(await browser.runtime.sendMessage({ type: "analytics:event", name, params }))
+  } catch (error) {
+    console.warn("View HEIC analytics message failed:", error)
+    return false
+  }
+}
+
 /**
  * 监听DOM变化，处理动态添加的HEIC图片
  */
 function observeHEICImages(converter: HEICConverter): void {
   const debouncedProcess = debounce(
     () => {
-      processHEICImages(converter)
+      processHEICImages(converter, "mutation")
     },
     CONFIG.DEBOUNCE_DELAY,
     {
@@ -425,7 +497,9 @@ function observeFailedImageLoads(converter: HEICConverter): void {
         const response = await fetch(src, { method: "HEAD" })
         if (!response.ok || !isHeifMimeType(response.headers.get("content-type") ?? "")) return
 
-        await converter.convertImage(img, { ignoreInvalidFormat: true })
+        sendAnalyticsEvent("heic_detected", { image_count: 1 })
+        const result = await converter.convertImage(img, { ignoreInvalidFormat: true })
+        await recordConversionResults([result], "mutation")
       } catch {
         // Ignore ordinary broken images and cross-origin probes we cannot classify.
       }
