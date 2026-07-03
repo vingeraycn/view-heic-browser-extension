@@ -14,7 +14,7 @@ View HEIC helps Chrome display iPhone HEIC/HEIF photos on web pages. It detects 
 - Converts images locally in the browser with `heic-to` and libheif.
 - Uses JPEG previews by default for faster rendering and smaller output.
 - Handles source changes, retries, size limits, unsupported variants, and common error states.
-- Keeps converted data in the current tab only; images are not uploaded.
+- Keeps converted image data in the current tab only; image contents and image URLs are not uploaded.
 - Shows a lightweight review prompt after repeated successful conversions.
 
 ## Install
@@ -73,7 +73,7 @@ view-heic-browser-extension/
 
 ## Permissions
 
-View HEIC uses the `storage` permission only to save local state for the review prompt, such as whether the user has dismissed or clicked it. The extension does not collect, upload, sell, or share this data, and it never stores browsing history, page content, image URLs, or converted image data.
+View HEIC uses the `storage` permission to save local state for the review prompt, such as whether the user has dismissed or clicked it. Image conversion still runs locally in the browser. When extension analytics are enabled for a release, View HEIC sends anonymous product events such as conversion success/failure and review prompt clicks. It does not upload image contents, image URLs, page URLs, file names, browsing history, or converted image data.
 
 ## Latest Release
 

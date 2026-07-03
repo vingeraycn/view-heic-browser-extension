@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs"
 
 const content = readFileSync("entrypoints/content.ts", "utf8")
 const config = readFileSync("wxt.config.ts", "utf8")
+const reviewClickIndex = content.indexOf('window.open(STORE_REVIEW_URL, "_blank", "noopener")')
 
 const checks = [
   {
@@ -19,14 +20,14 @@ const checks = [
       content.includes("import.meta.env.FIREFOX") &&
       content.includes("successCount === 0") &&
       content.includes("nextSuccessCount < MIN_SUCCESSFUL_IMAGES_FOR_PROMPT") &&
-      content.includes("showRatingPrompt(nextSuccessCount)") &&
+      content.includes("showRatingPrompt(nextSuccessCount") &&
       content.includes("MIN_SUCCESSFUL_IMAGES_FOR_PROMPT"),
   },
   {
     name: "review tab opens before persisting review state",
     pass:
-      content.indexOf('window.open(STORE_REVIEW_URL, "_blank", "noopener")') <
-      content.indexOf("[RATING_PROMPT_STORAGE_KEY]: { reviewClicked: true"),
+      reviewClickIndex > -1 &&
+      reviewClickIndex < content.indexOf("[RATING_PROMPT_STORAGE_KEY]:", reviewClickIndex),
   },
   {
     name: "rating prompt animates in and out",
