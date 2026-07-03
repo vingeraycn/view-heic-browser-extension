@@ -252,7 +252,7 @@ function findHEICImages(root: ParentNode): HTMLImageElement[] {
 }
 
 async function maybeShowRatingPrompt(successCount: number, failureCount: number): Promise<void> {
-  if (import.meta.env.FIREFOX || successCount === 0) return
+  if (import.meta.env.FIREFOX) return
 
   try {
     const stored = await browser.storage.local.get(RATING_PROMPT_STORAGE_KEY)
@@ -260,6 +260,18 @@ async function maybeShowRatingPrompt(successCount: number, failureCount: number)
     const now = Date.now()
     const nextSuccessCount = (state.successCount ?? 0) + successCount
     const nextFailureCount = (state.failureCount ?? 0) + failureCount
+
+    if (successCount === 0) {
+      if (failureCount > 0) {
+        await browser.storage.local.set({
+          [RATING_PROMPT_STORAGE_KEY]: {
+            ...state,
+            failureCount: nextFailureCount,
+          },
+        })
+      }
+      return
+    }
 
     if (
       state.reviewClicked ||
@@ -315,7 +327,7 @@ function showRatingPrompt(successCount: number, failureCount: number): void {
   reviewButton.textContent = copy.review
   reviewButton.addEventListener("click", async () => {
     window.open(STORE_REVIEW_URL, "_blank", "noopener")
-    await sendAnalyticsEvent("review_prompt_clicked", { success_total: successCount })
+    sendAnalyticsEvent("review_prompt_clicked", { success_total: successCount })
     await browser.storage.local.set({
       [RATING_PROMPT_STORAGE_KEY]: {
         successCount,
@@ -333,7 +345,7 @@ function showRatingPrompt(successCount: number, failureCount: number): void {
   feedbackButton.textContent = copy.feedback
   feedbackButton.addEventListener("click", async () => {
     window.open(ISSUE_URL, "_blank", "noopener")
-    await sendAnalyticsEvent("feedback_clicked", { failure_total: failureCount })
+    sendAnalyticsEvent("feedback_clicked", { failure_total: failureCount })
     dismissRatingPrompt(prompt)
   })
 
@@ -343,7 +355,7 @@ function showRatingPrompt(successCount: number, failureCount: number): void {
   closeButton.setAttribute("aria-label", copy.close)
   closeButton.textContent = "×"
   closeButton.addEventListener("click", async () => {
-    await sendAnalyticsEvent("review_prompt_dismissed", { success_total: successCount })
+    sendAnalyticsEvent("review_prompt_dismissed", { success_total: successCount })
     dismissRatingPrompt(prompt)
   })
 

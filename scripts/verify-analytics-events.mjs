@@ -17,7 +17,7 @@ const eventNames = [
   "feedback_clicked",
 ]
 
-const analyticsCallBlocks = content.match(/sendAnalyticsEvent\([\s\S]*?\n\s*\)/g) ?? []
+const analyticsCallBlocks = findCalls(content, "sendAnalyticsEvent")
 const forbiddenParamPatterns = [/\bpage_url\s*:/, /\burl\s*:/, /\bimage_url\s*:/, /\bfile_name\s*:/, /\bfilename\s*:/, /\bsrc\s*:/]
 
 const checks = [
@@ -74,4 +74,29 @@ for (const check of checks) {
 
 if (failed.length > 0) {
   process.exit(1)
+}
+
+function findCalls(source, name) {
+  const calls = []
+  let index = 0
+
+  while ((index = source.indexOf(`${name}(`, index)) !== -1) {
+    let depth = 0
+    let cursor = index + name.length
+
+    for (; cursor < source.length; cursor++) {
+      const char = source[cursor]
+      if (char === "(") depth++
+      if (char === ")") depth--
+      if (depth === 0) {
+        cursor++
+        break
+      }
+    }
+
+    calls.push(source.slice(index, cursor))
+    index = cursor
+  }
+
+  return calls
 }

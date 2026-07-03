@@ -50,6 +50,8 @@ export async function sendAnalyticsEvent(
       `${GA_ENDPOINT}?measurement_id=${encodeURIComponent(measurementId)}&api_secret=${encodeURIComponent(apiSecret)}`,
       {
         method: "POST",
+        keepalive: true,
+        signal: AbortSignal.timeout(5000),
         body: JSON.stringify({
           client_id: clientId,
           events: [
