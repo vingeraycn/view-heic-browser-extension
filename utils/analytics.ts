@@ -14,6 +14,15 @@ const CLIENT_ID_KEY = "viewHeicAnalyticsClientId"
 const SESSION_KEY = "viewHeicAnalyticsSession"
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000
 const DEFAULT_ENGAGEMENT_TIME_MS = 100
+const EVENT_PARAM_ALLOWLIST: Record<AnalyticsEventName, readonly string[]> = {
+  heic_detected: ["image_count"],
+  conversion_success: ["success_count", "trigger"],
+  conversion_failed: ["failure_count", "error_type", "trigger"],
+  review_prompt_shown: ["success_total"],
+  review_prompt_clicked: ["success_total"],
+  review_prompt_dismissed: ["success_total"],
+  feedback_clicked: ["failure_total"],
+}
 
 interface AnalyticsSession {
   id: number
@@ -24,6 +33,9 @@ export async function sendAnalyticsEvent(
   name: AnalyticsEventName,
   params: AnalyticsParams = {}
 ): Promise<boolean> {
+  const allowedParams = EVENT_PARAM_ALLOWLIST[name]
+  if (!allowedParams) return false
+
   if (import.meta.env.WXT_ENABLE_EXTENSION_ANALYTICS !== "true") return false
 
   const measurementId = import.meta.env.WXT_GA_MEASUREMENT_ID
@@ -44,7 +56,7 @@ export async function sendAnalyticsEvent(
             {
               name,
               params: {
-                ...sanitizeParams(params),
+                ...sanitizeParams(params, allowedParams),
                 session_id: sessionId,
                 engagement_time_msec: DEFAULT_ENGAGEMENT_TIME_MS,
               },
@@ -85,8 +97,9 @@ async function getOrCreateSessionId(now: number): Promise<number> {
   return nextSession.id
 }
 
-function sanitizeParams(params: AnalyticsParams): AnalyticsParams {
+function sanitizeParams(params: AnalyticsParams, allowedParams: readonly string[]): AnalyticsParams {
+  const allowed = new Set(allowedParams)
   return Object.fromEntries(
-    Object.entries(params).filter(([, value]) => value !== undefined)
+    Object.entries(params).filter(([key, value]) => allowed.has(key) && value !== undefined)
   ) as AnalyticsParams
 }

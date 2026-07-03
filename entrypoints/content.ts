@@ -15,6 +15,7 @@ const mimeOnlyProbeCache = new Set<string>()
 
 type ConversionTrigger = "initial" | "mutation"
 type ConversionErrorType = ConversionError["type"] | "mixed"
+type ConversionResults = Awaited<ReturnType<HEICConverter["convertAllImages"]>>
 
 interface RatingPromptState {
   successCount?: number
@@ -206,7 +207,10 @@ async function processHEICImages(converter: HEICConverter, trigger: ConversionTr
   sendAnalyticsEvent("heic_detected", { image_count: images.length })
 
   const results = await converter.convertAllImages(images)
+  await recordConversionResults(results, trigger)
+}
 
+async function recordConversionResults(results: ConversionResults, trigger: ConversionTrigger): Promise<void> {
   // 统计转换结果
   const successCount = results.filter((r) => r.success).length
   const failureCount = results.length - successCount
@@ -352,6 +356,7 @@ function dismissRatingPrompt(prompt: HTMLElement): void {
   if (prompt.classList.contains("view-heic-rating-prompt--leaving")) return
   prompt.classList.add("view-heic-rating-prompt--leaving")
   prompt.addEventListener("animationend", () => prompt.remove(), { once: true })
+  setTimeout(() => prompt.remove(), 250)
 }
 
 function getRatingPromptCopy(successCount: number): { text: string; review: string; feedback: string; close: string } {
@@ -374,8 +379,9 @@ function getRatingPromptCopy(successCount: number): { text: string; review: stri
 
 function getAggregateErrorType(errorTypes: ConversionError["type"][]): ConversionErrorType | undefined {
   if (errorTypes.length === 0) return undefined
-  const first = errorTypes[0]
-  return errorTypes.every((type) => type === first) ? first : "mixed"
+  const normalized = errorTypes.map((type) => (type === "unsupported" ? "conversion" : type))
+  const first = normalized[0]
+  return normalized.every((type) => type === first) ? first : "mixed"
 }
 
 async function sendAnalyticsEvent(name: AnalyticsEventName, params: AnalyticsParams = {}): Promise<boolean> {
@@ -479,7 +485,9 @@ function observeFailedImageLoads(converter: HEICConverter): void {
         const response = await fetch(src, { method: "HEAD" })
         if (!response.ok || !isHeifMimeType(response.headers.get("content-type") ?? "")) return
 
-        await converter.convertImage(img, { ignoreInvalidFormat: true })
+        sendAnalyticsEvent("heic_detected", { image_count: 1 })
+        const result = await converter.convertImage(img, { ignoreInvalidFormat: true })
+        await recordConversionResults([result], "mutation")
       } catch {
         // Ignore ordinary broken images and cross-origin probes we cannot classify.
       }

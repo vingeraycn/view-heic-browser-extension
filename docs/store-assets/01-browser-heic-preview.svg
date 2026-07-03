@@ -15,7 +15,7 @@
   </defs>
   <rect width="1280" height="800" class="bg"/>
   <rect width="1280" height="800" fill="url(#glow)"/>
-  
+
   <g transform="translate(92 78) scale(0.16015625)">
     <rect width="512" height="512" rx="112" fill="#F8FAFC"/>
     <path d="M112 84H326L420 178V428H112V84Z" fill="url(#tile)"/>
@@ -38,7 +38,7 @@
     <rect x="164" width="176" height="58" rx="18" fill="#F0FDF4"/><text x="197" y="38" class="small good">Local Only</text>
     <rect x="358" width="150" height="58" rx="18" fill="#F5F3FF"/><text x="397" y="38" class="small violet">JPEG</text>
   </g>
-  
+
     <g transform="translate(704 132)">
       <rect width="520" height="390" rx="30" class="panel"/>
       <rect width="520" height="58" rx="30" fill="#F1F5F9"/>

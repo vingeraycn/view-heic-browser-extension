@@ -32,8 +32,18 @@ const checks = [
       background.includes("sendAnalyticsEvent(message.name, message.params)"),
   },
   {
+    name: "analytics sender allowlists event params",
+    pass:
+      analytics.includes("EVENT_PARAM_ALLOWLIST") &&
+      eventNames.every((event) => analytics.includes(`${event}: [`)) &&
+      analytics.includes("allowed.has(key)") &&
+      analytics.includes("if (!allowedParams) return false"),
+  },
+  {
     name: "content script records conversion and review funnel events",
-    pass: eventNames.every((event) => content.includes(`"${event}"`)),
+    pass:
+      eventNames.every((event) => content.includes(`"${event}"`)) &&
+      content.includes("recordConversionResults([result], \"mutation\")"),
   },
   {
     name: "event payload avoids URLs and file names",
