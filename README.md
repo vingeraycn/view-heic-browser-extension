@@ -1,6 +1,6 @@
 # View HEIC Browser Extension
 
-[![Version](https://img.shields.io/badge/version-1.0.12-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
+[![Version](https://img.shields.io/badge/version-1.0.15-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?logo=google-chrome&logoColor=white)](https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge)
 
@@ -76,6 +76,12 @@ view-heic-browser-extension/
 View HEIC uses the `storage` permission to save local state for the review prompt, such as whether the user has dismissed or clicked it. Image conversion still runs locally in the browser. When extension analytics are enabled for a release, View HEIC sends anonymous product events such as conversion success/failure and review prompt clicks. It does not upload image contents, image URLs, page URLs, file names, browsing history, or converted image data.
 
 ## Latest Release
+
+### v1.0.15
+
+- Added anonymous conversion and review funnel analytics for release diagnostics.
+- Kept image conversion local and excluded image contents, image URLs, page URLs, file names, browsing history, and converted images from analytics.
+- Hardened analytics event validation and non-blocking review prompt interactions.
 
 ### v1.0.12
 

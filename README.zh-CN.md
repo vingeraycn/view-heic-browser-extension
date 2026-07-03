@@ -1,6 +1,6 @@
 # View HEIC 浏览器扩展
 
-[![Version](https://img.shields.io/badge/version-1.0.12-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
+[![Version](https://img.shields.io/badge/version-1.0.15-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?logo=google-chrome&logoColor=white)](https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge)
 
@@ -76,6 +76,12 @@ view-heic-browser-extension/
 View HEIC 使用 `storage` 权限保存评价提示相关的本地状态，例如用户是否已经关闭或点击过提示。图片转换仍然完全在浏览器本地完成。发布版本启用扩展分析时，View HEIC 会发送匿名产品事件，例如转换成功/失败和评价提示点击。扩展不会上传图片内容、图片地址、页面地址、文件名、浏览历史或转换后的图片数据。
 
 ## 最新版本
+
+### v1.0.15
+
+- 新增匿名转换与评价漏斗埋点，用于判断发布后的真实使用链路。
+- 图片仍在浏览器本地转换，埋点不包含图片内容、图片地址、页面地址、文件名、浏览历史或转换后的图片。
+- 收紧埋点事件校验，并让评价提示按钮不被网络请求阻塞。
 
 ### v1.0.12
 
