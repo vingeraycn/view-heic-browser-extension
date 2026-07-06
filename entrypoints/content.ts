@@ -1,4 +1,5 @@
 import { debounce } from "lodash-es"
+import { animate } from "motion"
 import { CONFIG, SELECTORS } from "../utils/constants"
 import { hasHeifExtension, isHeifMimeType } from "../utils/heif-format"
 import { HEICConverter, convertHeifFileToJpegFile } from "../utils/heic-converter"
@@ -28,6 +29,20 @@ interface RatingPromptState {
 }
 
 let uploadToastContainer: HTMLElement | undefined
+
+const UPLOAD_TOAST_LAYOUT_SPRING = {
+  type: "spring",
+  stiffness: 520,
+  damping: 38,
+  mass: 0.8,
+} as const
+
+const UPLOAD_TOAST_ENTER_SPRING = {
+  type: "spring",
+  stiffness: 460,
+  damping: 30,
+  mass: 0.72,
+} as const
 
 export default defineContentScript({
   matches: ["<all_urls>"],
@@ -378,6 +393,7 @@ function showUploadToast(
   options: { durationMs?: number } = {}
 ): HTMLElement {
   const container = getUploadToastContainer()
+  const previousRects = measureUploadToastRects(container)
   const toast = document.createElement("div")
   toast.className = `view-heic-upload-toast view-heic-upload-toast--${type}`
   toast.setAttribute("role", type === "error" ? "alert" : "status")
@@ -394,6 +410,8 @@ function showUploadToast(
 
   toast.append(icon, text)
   container.appendChild(toast)
+  animateUploadToastLayout(container, previousRects)
+  animateUploadToastEnter(toast)
 
   if (options.durationMs) {
     setTimeout(() => dismissUploadToast(toast), options.durationMs)
@@ -404,9 +422,66 @@ function showUploadToast(
 
 function dismissUploadToast(toast: HTMLElement): void {
   if (!toast.isConnected || toast.classList.contains("view-heic-upload-toast--leaving")) return
+  const container = toast.parentElement
   toast.classList.add("view-heic-upload-toast--leaving")
-  toast.addEventListener("animationend", () => toast.remove(), { once: true })
-  setTimeout(() => toast.remove(), 220)
+
+  const removeToast = () => {
+    if (!toast.isConnected) return
+    const previousRects = container ? measureUploadToastRects(container) : new Map<HTMLElement, DOMRect>()
+    toast.remove()
+    if (container) animateUploadToastLayout(container, previousRects)
+  }
+
+  if (prefersReducedMotion()) {
+    removeToast()
+    return
+  }
+
+  const controls = animate(
+    toast,
+    { opacity: 0, y: -8, scale: 0.98 },
+    { duration: 0.16, ease: "easeIn" }
+  )
+  controls.finished.then(removeToast, removeToast)
+}
+
+function animateUploadToastEnter(toast: HTMLElement): void {
+  if (prefersReducedMotion()) return
+
+  animate(
+    toast,
+    { opacity: [0, 1], y: [-12, 0], scale: [0.96, 1] },
+    UPLOAD_TOAST_ENTER_SPRING
+  )
+}
+
+function animateUploadToastLayout(container: HTMLElement, previousRects: Map<HTMLElement, DOMRect>): void {
+  if (prefersReducedMotion()) return
+
+  for (const child of Array.from(container.children)) {
+    if (!(child instanceof HTMLElement) || child.classList.contains("view-heic-upload-toast--leaving")) continue
+
+    const previousRect = previousRects.get(child)
+    if (!previousRect) continue
+
+    const nextRect = child.getBoundingClientRect()
+    const deltaY = previousRect.top - nextRect.top
+    if (Math.abs(deltaY) < 1) continue
+
+    animate(child, { y: [deltaY, 0] }, UPLOAD_TOAST_LAYOUT_SPRING)
+  }
+}
+
+function measureUploadToastRects(container: HTMLElement): Map<HTMLElement, DOMRect> {
+  return new Map(
+    Array.from(container.children)
+      .filter((child): child is HTMLElement => child instanceof HTMLElement)
+      .map((child) => [child, child.getBoundingClientRect()])
+  )
+}
+
+function prefersReducedMotion(): boolean {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches
 }
 
 function getUploadToastContainer(): HTMLElement {
@@ -446,19 +521,18 @@ function getUploadToastContainer(): HTMLElement {
       min-height: 44px;
       padding: 10px 12px;
       border: 1px solid rgba(15, 23, 42, 0.1);
-      border-radius: 16px;
+      border-radius: 20px;
       background: #ffffff;
       color: #0f172a;
       box-shadow: 0 16px 45px rgba(15, 23, 42, 0.18);
       font-size: 14px;
       line-height: 1.4;
       pointer-events: auto;
-      animation: view-heic-upload-toast-enter 180ms cubic-bezier(0.16, 1, 0.3, 1);
       will-change: opacity, transform;
     }
 
     .view-heic-upload-toast--leaving {
-      animation: view-heic-upload-toast-exit 140ms cubic-bezier(0.4, 0, 1, 1) forwards;
+      pointer-events: none;
     }
 
     .view-heic-upload-toast__icon {
@@ -496,30 +570,6 @@ function getUploadToastContainer(): HTMLElement {
       animation: view-heic-upload-toast-spin 800ms linear infinite;
     }
 
-    @keyframes view-heic-upload-toast-enter {
-      from {
-        opacity: 0;
-        transform: translateY(-8px) scale(0.96);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-
-    @keyframes view-heic-upload-toast-exit {
-      from {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-
-      to {
-        opacity: 0;
-        transform: translateY(-6px) scale(0.98);
-      }
-    }
-
     @keyframes view-heic-upload-toast-spin {
       to {
         transform: rotate(360deg);
@@ -552,8 +602,6 @@ function getUploadToastContainer(): HTMLElement {
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .view-heic-upload-toast,
-      .view-heic-upload-toast--leaving,
       .view-heic-upload-toast--loading .view-heic-upload-toast__icon {
         animation: none;
       }

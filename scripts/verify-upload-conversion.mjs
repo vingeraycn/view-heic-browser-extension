@@ -59,10 +59,14 @@ assert(
 
 assert(
   content.includes("attachShadow({ mode: \"open\" })") &&
+    content.includes('import { animate } from "motion"') &&
+    content.includes("UPLOAD_TOAST_LAYOUT_SPRING") &&
+    content.includes("animateUploadToastLayout") &&
     content.includes("view-heic-upload-toast--loading") &&
+    content.includes("border-radius: 20px") &&
     content.includes("@media (prefers-color-scheme: dark)") &&
     content.includes("@media (prefers-reduced-motion: reduce)"),
-  "upload toast is isolated, supports loading state, and adapts UI preferences"
+  "upload toast is isolated, spring-animated, supports loading state, and adapts UI preferences"
 )
 
 assert(
