@@ -374,11 +374,11 @@ function isHEIFUploadCandidate(file: File): boolean {
 }
 
 function getUploadLoadingMessage(count: number): string {
-  return count > 1 ? `View HEIC 正在将 ${count} 张 HEIC 转为 JPG...` : "View HEIC 正在将 HEIC 转为 JPG..."
+  return count > 1 ? `正在将 ${count} 张图片转为 JPG...` : "正在转换为 JPG..."
 }
 
 function getUploadSuccessMessage(count: number): string {
-  return count > 1 ? `View HEIC 已将 ${count} 张图片转为 JPG 格式` : "View HEIC 已将此图转为 JPG 格式"
+  return count > 1 ? `已将 ${count} 张图片转成 JPG` : "已转成 JPG"
 }
 
 function getUploadErrorMessage(count: number): string {
