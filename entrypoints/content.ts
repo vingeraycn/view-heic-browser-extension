@@ -265,6 +265,7 @@ function findHEICImages(root: ParentNode): HTMLImageElement[] {
 
 function observeHEICUploads(): void {
   window.addEventListener(UPLOAD_REQUEST_EVENT, handleUploadChange, true)
+  window.addEventListener("drop", handleUploadDrop, true)
 }
 
 async function handleUploadChange(event: Event): Promise<void> {
@@ -281,12 +282,7 @@ async function handleUploadChange(event: Event): Promise<void> {
   const loadingToast = showUploadToast("loading", getUploadLoadingMessage(heifCount))
 
   try {
-    const convertedFiles: File[] = []
-
-    for (const file of files) {
-      convertedFiles.push(isHEIFUploadCandidate(file) ? await convertHeifFileToJpegFile(file) : file)
-    }
-
+    const convertedFiles = await convertUploadFiles(files)
     const dataTransfer = new DataTransfer()
     convertedFiles.forEach((file) => dataTransfer.items.add(file))
     input.files = dataTransfer.files
@@ -304,6 +300,60 @@ async function handleUploadChange(event: Event): Promise<void> {
     console.warn("View HEIC upload conversion failed:", error)
     showUploadToast("error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
   }
+}
+
+async function handleUploadDrop(event: DragEvent): Promise<void> {
+  const files = Array.from(event.dataTransfer?.files ?? [])
+  const heifCount = files.filter(isHEIFUploadCandidate).length
+  if (heifCount === 0) return
+
+  const target = event.target
+  if (!(target instanceof EventTarget)) return
+
+  event.preventDefault()
+  event.stopImmediatePropagation()
+
+  const loadingToast = showUploadToast("loading", getUploadLoadingMessage(heifCount))
+
+  try {
+    const convertedFiles = await convertUploadFiles(files)
+    const dataTransfer = new DataTransfer()
+    convertedFiles.forEach((file) => dataTransfer.items.add(file))
+
+    target.dispatchEvent(
+      new DragEvent("drop", {
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        dataTransfer,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        screenX: event.screenX,
+        screenY: event.screenY,
+        ctrlKey: event.ctrlKey,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+        metaKey: event.metaKey,
+      })
+    )
+
+    dismissUploadToast(loadingToast)
+    showUploadToast("success", getUploadSuccessMessage(heifCount), { durationMs: 3000 })
+  } catch (error) {
+    dismissUploadToast(loadingToast)
+    console.warn("View HEIC drag upload conversion failed:", error)
+    showUploadToast("error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
+  }
+}
+
+async function convertUploadFiles(files: File[]): Promise<File[]> {
+  const convertedFiles: File[] = []
+
+  for (const file of files) {
+    convertedFiles.push(isHEIFUploadCandidate(file) ? await convertHeifFileToJpegFile(file) : file)
+  }
+
+  return convertedFiles
 }
 
 function isHEIFUploadCandidate(file: File): boolean {
@@ -375,12 +425,15 @@ function getUploadToastContainer(): HTMLElement {
     .view-heic-upload-toast-list {
       position: fixed;
       top: 20px;
-      right: 20px;
+      left: 50%;
+      transform: translateX(-50%);
       z-index: 2147483647;
       display: flex;
       flex-direction: column;
+      align-items: center;
       gap: 10px;
-      width: min(380px, calc(100vw - 32px));
+      width: max-content;
+      max-width: calc(100vw - 32px);
       pointer-events: none;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
@@ -393,10 +446,10 @@ function getUploadToastContainer(): HTMLElement {
       min-height: 44px;
       padding: 10px 12px;
       border: 1px solid rgba(15, 23, 42, 0.1);
-      border-radius: 8px;
+      border-radius: 16px;
       background: #ffffff;
       color: #0f172a;
-      box-shadow: 0 14px 35px rgba(15, 23, 42, 0.16);
+      box-shadow: 0 16px 45px rgba(15, 23, 42, 0.18);
       font-size: 14px;
       line-height: 1.4;
       pointer-events: auto;
@@ -490,9 +543,11 @@ function getUploadToastContainer(): HTMLElement {
     @media (max-width: 480px) {
       .view-heic-upload-toast-list {
         top: 12px;
-        right: 12px;
-        left: 12px;
-        width: auto;
+        width: calc(100vw - 24px);
+      }
+
+      .view-heic-upload-toast {
+        width: 100%;
       }
     }
 

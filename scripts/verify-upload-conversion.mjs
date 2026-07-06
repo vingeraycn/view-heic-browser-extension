@@ -42,6 +42,15 @@ assert(
 )
 
 assert(
+  content.includes('window.addEventListener("drop", handleUploadDrop, true)') &&
+    content.includes("event.stopImmediatePropagation()") &&
+    content.includes('new DragEvent("drop"') &&
+    content.includes("dataTransfer,") &&
+    content.includes("target.dispatchEvent("),
+  "dragged HEIF files are converted and replayed as JPG drop events"
+)
+
+assert(
   converter.includes("export async function convertHeifFileToJpegFile(file: File): Promise<File>") &&
     converter.includes('type: "image/jpeg"') &&
     converter.includes("getJpegFileName(file.name)"),
