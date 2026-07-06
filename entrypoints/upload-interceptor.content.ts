@@ -1,12 +1,5 @@
-const UPLOAD_REQUEST_EVENT = "view-heic-upload-request"
-const UPLOAD_REPLAY_ATTRIBUTE = "data-view-heic-upload-replayed"
-const HEIF_EXTENSION_PATTERN = /\.(heic|heif|heics|heifs)$/i
-const HEIF_MIME_TYPES = new Set([
-  "image/heic",
-  "image/heif",
-  "image/heic-sequence",
-  "image/heif-sequence",
-])
+import { hasHeifExtension, isHeifMimeType } from "../utils/heif-format"
+import { UPLOAD_REPLAY_ATTRIBUTE, UPLOAD_REQUEST_EVENT } from "../utils/upload-constants"
 
 export default defineContentScript({
   matches: ["<all_urls>"],
@@ -35,5 +28,5 @@ function interceptHeifUpload(event: Event): void {
 }
 
 function isHeifFile(file: File): boolean {
-  return HEIF_EXTENSION_PATTERN.test(file.name) || HEIF_MIME_TYPES.has(file.type.split(";")[0].trim().toLowerCase())
+  return hasHeifExtension(file.name) || isHeifMimeType(file.type)
 }

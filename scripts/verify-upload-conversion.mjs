@@ -29,8 +29,18 @@ assert(
 assert(
   interceptor.includes("UPLOAD_REPLAY_ATTRIBUTE") &&
     interceptor.includes("input.removeAttribute(UPLOAD_REPLAY_ATTRIBUTE)") &&
+    interceptor.includes('../utils/upload-constants') &&
+    content.includes('../utils/upload-constants') &&
     content.includes("input.setAttribute(UPLOAD_REPLAY_ATTRIBUTE"),
   "replayed upload events are guarded against recursive conversion"
+)
+
+assert(
+  interceptor.includes('../utils/heif-format') &&
+    interceptor.includes("hasHeifExtension(file.name)") &&
+    interceptor.includes("isHeifMimeType(file.type)") &&
+    !interceptor.includes("HEIF_EXTENSION_PATTERN"),
+  "page-world upload interception reuses shared HEIF detection helpers"
 )
 
 assert(
@@ -44,17 +54,39 @@ assert(
 assert(
   content.includes('window.addEventListener("drop", handleUploadDrop, true)') &&
     content.includes("event.stopImmediatePropagation()") &&
+    content.includes("getFileInputDropTarget(event)") &&
+    content.includes("replayInputFiles(input, result.files)") &&
     content.includes('new DragEvent("drop"') &&
     content.includes("dataTransfer,") &&
     content.includes("target.dispatchEvent("),
-  "dragged HEIF files are converted and replayed as JPG drop events"
+  "dragged HEIF files are converted and replayed for native inputs and drop targets"
 )
 
 assert(
-  converter.includes("export async function convertHeifFileToJpegFile(file: File): Promise<File>") &&
+  /export\s+async\s+function\s+convertHeifFileToJpegFile\s*\(/.test(converter) &&
     converter.includes('type: "image/jpeg"') &&
     converter.includes("getJpegFileName(file.name)"),
   "HEIF upload files are converted into JPEG File objects"
+)
+
+assert(
+  content.includes("interface UploadConversionResult") &&
+    content.includes("convertedCount") &&
+    content.includes("failedCount") &&
+    content.includes("convertedFiles.push(file)") &&
+    content.includes("View HEIC upload file conversion failed"),
+  "per-file conversion failures keep the original file instead of dropping the whole selection"
+)
+
+assert(
+  content.includes("const uploadGenerations = new WeakMap<HTMLInputElement, number>()") &&
+    content.includes('window.addEventListener("change", rememberFileInputSelection, true)') &&
+    content.includes("Array.from(event.target.files ?? []).some(isHEIFUploadCandidate)") &&
+    content.includes("function nextUploadGeneration(") &&
+    content.includes("function isCurrentUploadGeneration(") &&
+    content.includes("dismissUploadToast(loadingToast)") &&
+    content.includes("replayInputFiles(input, files)"),
+  "stale async upload conversion results do not overwrite a newer file selection"
 )
 
 assert(
