@@ -306,14 +306,12 @@ async function handleUploadChange(event: Event): Promise<void> {
     input.dispatchEvent(new Event("input", { bubbles: true }))
     input.dispatchEvent(new Event("change", { bubbles: true }))
 
-    dismissUploadToast(loadingToast)
-    showUploadToast("success", getUploadSuccessMessage(heifCount), { durationMs: 3000 })
+    updateUploadToast(loadingToast, "success", getUploadSuccessMessage(heifCount), { durationMs: 3000 })
   } catch (error) {
-    dismissUploadToast(loadingToast)
     input.removeAttribute(UPLOAD_REPLAY_ATTRIBUTE)
     input.value = ""
     console.warn("View HEIC upload conversion failed:", error)
-    showUploadToast("error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
+    updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
   }
 }
 
@@ -352,12 +350,10 @@ async function handleUploadDrop(event: DragEvent): Promise<void> {
       })
     )
 
-    dismissUploadToast(loadingToast)
-    showUploadToast("success", getUploadSuccessMessage(heifCount), { durationMs: 3000 })
+    updateUploadToast(loadingToast, "success", getUploadSuccessMessage(heifCount), { durationMs: 3000 })
   } catch (error) {
-    dismissUploadToast(loadingToast)
     console.warn("View HEIC drag upload conversion failed:", error)
-    showUploadToast("error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
+    updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
   }
 }
 
@@ -418,6 +414,32 @@ function showUploadToast(
   }
 
   return toast
+}
+
+function updateUploadToast(
+  toast: HTMLElement,
+  type: Exclude<UploadToastType, "loading">,
+  message: string,
+  options: { durationMs?: number } = {}
+): void {
+  if (!toast.isConnected || toast.classList.contains("view-heic-upload-toast--leaving")) return
+
+  toast.className = `view-heic-upload-toast view-heic-upload-toast--${type}`
+  toast.setAttribute("role", type === "error" ? "alert" : "status")
+  toast.setAttribute("aria-live", type === "error" ? "assertive" : "polite")
+
+  const icon = toast.querySelector<HTMLElement>(".view-heic-upload-toast__icon")
+  const text = toast.querySelector<HTMLElement>(".view-heic-upload-toast__text")
+  if (icon) icon.textContent = type === "success" ? "✓" : "!"
+  if (text) text.textContent = message
+
+  if (!prefersReducedMotion()) {
+    animate(toast, { scale: [0.98, 1] }, UPLOAD_TOAST_ENTER_SPRING)
+  }
+
+  if (options.durationMs) {
+    setTimeout(() => dismissUploadToast(toast), options.durationMs)
+  }
 }
 
 function dismissUploadToast(toast: HTMLElement): void {

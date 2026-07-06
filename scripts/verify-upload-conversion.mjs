@@ -62,6 +62,7 @@ assert(
     content.includes('import { animate } from "motion"') &&
     content.includes("UPLOAD_TOAST_LAYOUT_SPRING") &&
     content.includes("animateUploadToastLayout") &&
+    content.includes("function updateUploadToast(") &&
     content.includes("view-heic-upload-toast--loading") &&
     content.includes("border-radius: 20px") &&
     content.includes("@media (prefers-color-scheme: dark)") &&
