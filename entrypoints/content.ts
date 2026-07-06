@@ -400,11 +400,18 @@ function showUploadToast(
   icon.setAttribute("aria-hidden", "true")
   icon.textContent = type === "success" ? "✓" : type === "error" ? "!" : ""
 
+  const logo = document.createElement("img")
+  logo.className = "view-heic-upload-toast__logo"
+  logo.src = browser.runtime.getURL("/icon/32.png")
+  logo.alt = ""
+  logo.decoding = "async"
+  logo.setAttribute("aria-hidden", "true")
+
   const text = document.createElement("span")
   text.className = "view-heic-upload-toast__text"
   text.textContent = message
 
-  toast.append(icon, text)
+  toast.append(logo, text, icon)
   container.appendChild(toast)
   animateUploadToastLayout(container, previousRects)
   animateUploadToastEnter(toast)
@@ -568,6 +575,15 @@ function getUploadToastContainer(): HTMLElement {
       font-size: 14px;
       font-weight: 800;
       line-height: 1;
+    }
+
+    .view-heic-upload-toast__logo {
+      flex: 0 0 22px;
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      object-fit: cover;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.16);
     }
 
     .view-heic-upload-toast__text {

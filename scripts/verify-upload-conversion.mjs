@@ -63,6 +63,8 @@ assert(
     content.includes("UPLOAD_TOAST_LAYOUT_SPRING") &&
     content.includes("animateUploadToastLayout") &&
     content.includes("function updateUploadToast(") &&
+    content.includes('browser.runtime.getURL("/icon/32.png")') &&
+    content.includes("view-heic-upload-toast__logo") &&
     content.includes("view-heic-upload-toast--loading") &&
     content.includes("border-radius: 20px") &&
     content.includes("@media (prefers-color-scheme: dark)") &&
