@@ -6,11 +6,12 @@
 
 阅读 [English README](README.md)。
 
-View HEIC 帮助 Chrome 显示网页里的 iPhone HEIC / HEIF 照片。扩展会识别疑似 HEIC / HEIF 图片，在浏览器本地完成转换，并把原图替换成可直接渲染的 JPEG 预览。
+View HEIC 帮助 Chrome 显示和上传网页里的 iPhone HEIC / HEIF 照片。扩展会识别疑似 HEIC / HEIF 图片，在浏览器本地完成转换，并把原图或上传文件替换成浏览器友好的 JPEG。
 
 ## 功能
 
 - 通过扩展名、MIME 类型和文件头自动检测页面已有和动态插入的 HEIC / HEIF 图片。
+- 在网页上传控件选择 HEIC / HEIF 文件时，先转成 JPEG，再交给页面上传流程。
 - 使用 `heic-to` 和 libheif 在浏览器本地转换图片。
 - 默认输出 JPEG 预览，提升渲染速度并减少输出体积。
 - 支持图片 `src` 变更、重试、大小限制、不支持变体和常见错误状态处理。
@@ -38,6 +39,7 @@ pnpm build
 pnpm compile
 pnpm verify:heif-detection
 pnpm verify:rating-prompt
+pnpm verify:upload-conversion
 pnpm verify:performance
 pnpm verify:src-change
 pnpm build
