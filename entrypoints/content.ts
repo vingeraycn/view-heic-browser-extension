@@ -32,16 +32,16 @@ let uploadToastContainer: HTMLElement | undefined
 
 const UPLOAD_TOAST_LAYOUT_SPRING = {
   type: "spring",
-  stiffness: 520,
-  damping: 38,
-  mass: 0.8,
+  stiffness: 360,
+  damping: 34,
+  mass: 0.95,
 } as const
 
 const UPLOAD_TOAST_ENTER_SPRING = {
   type: "spring",
-  stiffness: 460,
+  stiffness: 320,
   damping: 30,
-  mass: 0.72,
+  mass: 0.9,
 } as const
 
 export default defineContentScript({
@@ -440,7 +440,7 @@ function dismissUploadToast(toast: HTMLElement): void {
   const controls = animate(
     toast,
     { opacity: 0, y: -8, scale: 0.98 },
-    { duration: 0.16, ease: "easeIn" }
+    { duration: 0.24, ease: "easeIn" }
   )
   controls.finished.then(removeToast, removeToast)
 }
