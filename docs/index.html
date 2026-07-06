@@ -190,14 +190,6 @@
           <div class="text-center">
             <h2 data-i18n="demoTitle" class="text-4xl font-extrabold tracking-normal text-slate-950"></h2>
             <p data-i18n="demoLead" class="mx-auto mt-4 max-w-2xl text-lg leading-8 text-slate-600"></p>
-            <div class="mx-auto mt-6 flex max-w-2xl flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <a
-                href="./test-improved.html#upload-playground"
-                data-i18n="uploadPlaygroundCta"
-                class="inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800"
-              ></a>
-              <span data-i18n="uploadPlaygroundLead" class="text-sm leading-6 text-slate-500"></span>
-            </div>
           </div>
           <div id="ext-status-banner" class="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center text-sm font-bold text-amber-800"></div>
           <div class="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4" id="demo-grid"></div>
@@ -206,6 +198,24 @@
             <p data-i18n="dynamicLead" class="mt-2 text-sm leading-6 text-slate-600"></p>
             <button id="add-dynamic-btn" type="button" onclick="addDynamicImage()" class="mt-5 rounded-full bg-brand-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-brand-700"></button>
             <div id="dynamic-images" class="mt-5 grid gap-5 md:grid-cols-2 lg:grid-cols-4 empty:hidden"></div>
+          </div>
+          <div class="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
+              <div>
+                <h3 data-i18n="uploadDemoTitle" class="text-lg font-extrabold text-slate-900"></h3>
+                <p data-i18n="uploadDemoLead" class="mt-2 text-sm leading-6 text-slate-600"></p>
+                <label class="mt-5 inline-flex cursor-pointer rounded-full bg-brand-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-brand-700">
+                  <span data-i18n="uploadDemoButton"></span>
+                  <input id="upload-demo-input" type="file" accept="image/*,.heic,.heif,.heics,.heifs" class="sr-only" />
+                </label>
+                <p id="upload-demo-status" data-i18n="uploadDemoEmpty" class="mt-4 text-sm font-bold text-slate-500"></p>
+                <p id="upload-demo-meta" class="mt-1 text-xs text-slate-500"></p>
+              </div>
+              <div class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                <div id="upload-demo-placeholder" data-i18n="uploadDemoPreviewEmpty" class="flex aspect-video items-center justify-center px-6 text-center text-sm font-bold text-slate-400"></div>
+                <img id="upload-demo-preview" alt="Converted JPG preview" class="hidden aspect-video h-full w-full object-contain bg-slate-100" />
+              </div>
+            </div>
           </div>
           <div class="mt-6 grid grid-cols-3 gap-4" id="demo-stats"></div>
         </div>
@@ -326,8 +336,13 @@
           flowNote: 'Some websites block extension access to image files. When that happens, View HEIC leaves the page unchanged.',
           demoTitle: 'Live HEIC Demo',
           demoLead: 'The files below are real HEIC samples. After installing the extension, they are converted and displayed automatically.',
-          uploadPlaygroundCta: 'Test HEIC Upload',
-          uploadPlaygroundLead: 'Choose your own HEIC file and verify that upload inputs receive JPG.',
+          uploadDemoTitle: 'Manual Upload Test',
+          uploadDemoLead: 'Choose a HEIC or HEIF file from your device. View HEIC should replace it with a JPG, then this page will preview the converted image below.',
+          uploadDemoButton: 'Choose HEIC File',
+          uploadDemoEmpty: 'No file selected yet.',
+          uploadDemoPreviewEmpty: 'Converted JPG preview appears here.',
+          uploadDemoReady: 'Converted JPG is ready.',
+          uploadDemoNeedsExtension: 'This input still received HEIC. Install or enable View HEIC, then try again.',
           detecting: 'Checking extension status...',
           detected: 'View HEIC is running. The images below are being converted automatically.',
           notDetectedPrefix: 'View HEIC is not detected. ',
@@ -432,8 +447,13 @@
           flowNote: '有些网站会阻止扩展读取图片文件。遇到这种情况时，View HEIC 会保持页面不变。',
           demoTitle: '实时 HEIC 演示',
           demoLead: '下方是真实 HEIC 测试文件。安装扩展后，它们会自动转换并正常显示。',
-          uploadPlaygroundCta: '测试 HEIC 上传',
-          uploadPlaygroundLead: '手动选择你的 HEIC 文件，验证上传输入框最终收到 JPG。',
+          uploadDemoTitle: '手动上传测试',
+          uploadDemoLead: '从你的设备选择 HEIC 或 HEIF 文件。View HEIC 应该先把它替换成 JPG，然后本页会在下方预览转换后的图片。',
+          uploadDemoButton: '选择 HEIC 文件',
+          uploadDemoEmpty: '尚未选择文件。',
+          uploadDemoPreviewEmpty: '转换后的 JPG 会显示在这里。',
+          uploadDemoReady: '转换后的 JPG 已就绪。',
+          uploadDemoNeedsExtension: '这个输入框仍然收到了 HEIC。请安装或启用 View HEIC 后重试。',
           detecting: '正在检测扩展状态...',
           detected: 'View HEIC 扩展运行正常，下方图片正在自动转换显示。',
           notDetectedPrefix: '未检测到 View HEIC 扩展正在运行。请先 ',
@@ -495,6 +515,7 @@
 
       let dynamicCount = 0
       let currentLang = getInitialLang()
+      let uploadDemoPreviewUrl = ''
 
       function getInitialLang() {
         const queryLang = new URLSearchParams(window.location.search).get('lang')
@@ -711,11 +732,51 @@
         setTimeout(updateStats, 1200)
       }
 
+      function initUploadDemo() {
+        const input = document.getElementById('upload-demo-input')
+        input.addEventListener('change', () => {
+          const t = messages[currentLang]
+          const file = input.files?.[0]
+          const preview = document.getElementById('upload-demo-preview')
+          const placeholder = document.getElementById('upload-demo-placeholder')
+          const status = document.getElementById('upload-demo-status')
+          const meta = document.getElementById('upload-demo-meta')
+
+          if (uploadDemoPreviewUrl) URL.revokeObjectURL(uploadDemoPreviewUrl)
+          uploadDemoPreviewUrl = ''
+          preview.classList.add('hidden')
+          placeholder.classList.remove('hidden')
+          meta.textContent = ''
+
+          if (!file) {
+            status.textContent = t.uploadDemoEmpty
+            status.className = 'mt-4 text-sm font-bold text-slate-500'
+            return
+          }
+
+          const isJpeg = file.type === 'image/jpeg' || /\.jpe?g$/i.test(file.name)
+          if (!isJpeg) {
+            status.textContent = t.uploadDemoNeedsExtension
+            status.className = 'mt-4 text-sm font-bold text-amber-700'
+            return
+          }
+
+          uploadDemoPreviewUrl = URL.createObjectURL(file)
+          preview.src = uploadDemoPreviewUrl
+          preview.classList.remove('hidden')
+          placeholder.classList.add('hidden')
+          status.textContent = t.uploadDemoReady
+          status.className = 'mt-4 text-sm font-bold text-emerald-700'
+          meta.textContent = `${file.name} · ${file.type || 'image/jpeg'} · ${Math.round(file.size / 1024)} KB`
+        })
+      }
+
       document.addEventListener('DOMContentLoaded', () => {
         renderLanguage(currentLang)
         document.querySelectorAll('.lang-btn').forEach((button) => {
           button.addEventListener('click', () => renderLanguage(button.dataset.langOption, true))
         })
+        initUploadDemo()
         detectExtension()
         setInterval(updateStats, 2500)
       })
