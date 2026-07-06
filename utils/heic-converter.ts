@@ -46,6 +46,59 @@ function getSupportedCodecBrands(brands: string[]): string[] {
   return brands.filter((brand) => ["heic", "heix", "heim", "heis", "hevc", "hevx"].includes(brand))
 }
 
+export async function convertHeifBufferToBlob(
+  buffer: ArrayBuffer,
+  src: string,
+  options: ConversionOptions = {}
+): Promise<Blob> {
+  const { quality = CONFIG.CONVERSION_QUALITY, format = "jpeg" } = options
+  const blob = new Blob([buffer])
+  const convertStart = performance.now()
+
+  try {
+    const result = await heicTo({ blob, type: `image/${format}`, quality })
+    logStageTiming(src, `convert-${format}`, convertStart)
+    return result
+  } catch (error) {
+    const fileType = getHeifFileType(buffer)
+    if (fileType.isHeif && getSupportedCodecBrands(fileType.brands).length === 0) {
+      const unsupportedError = new Error(`${ERROR_MESSAGES.UNSUPPORTED_CODEC}: ${fileType.brands.join(", ")}`)
+      ;(unsupportedError as any).fileType = fileType
+      throw unsupportedError
+    }
+
+    ;(error as any).fileType = fileType
+    throw error
+  }
+}
+
+export async function convertHeifFileToJpegFile(file: File): Promise<File> {
+  if (file.size > CONFIG.MAX_FILE_SIZE) {
+    throw new Error(ERROR_MESSAGES.FILE_TOO_LARGE)
+  }
+
+  const buffer = await file.arrayBuffer()
+  if (!isHeifBuffer(buffer) && !isHeifMimeType(file.type)) {
+    throw new Error(ERROR_MESSAGES.INVALID_FORMAT)
+  }
+
+  const blob = await convertHeifBufferToBlob(buffer, file.name, { format: "jpeg" })
+
+  return new File([blob], getJpegFileName(file.name), {
+    type: "image/jpeg",
+    lastModified: file.lastModified,
+  })
+}
+
+function getJpegFileName(fileName: string): string {
+  const withoutHeifExtension = fileName.replace(/\.(heic|heif|heics|heifs)$/i, "")
+  if (withoutHeifExtension !== fileName) {
+    return `${withoutHeifExtension || "converted"}.jpg`
+  }
+
+  return `${fileName.replace(/\.[^/.]+$/, "") || "converted"}.jpg`
+}
+
 // ─── Converter ──────────────────────────────────────────────────────────────
 
 /**
@@ -174,24 +227,8 @@ export class HEICConverter {
     src: string,
     options: ConversionOptions = {}
   ): Promise<string> {
-    const { quality = CONFIG.CONVERSION_QUALITY, format = "jpeg" } = options
-    const blob = new Blob([buffer])
-    const convertStart = performance.now()
-    try {
-      const result = await heicTo({ blob, type: `image/${format}`, quality })
-      logStageTiming(src, `convert-${format}`, convertStart)
-      return URL.createObjectURL(result)
-    } catch (error) {
-      const fileType = getHeifFileType(buffer)
-      if (fileType.isHeif && getSupportedCodecBrands(fileType.brands).length === 0) {
-        const unsupportedError = new Error(`${ERROR_MESSAGES.UNSUPPORTED_CODEC}: ${fileType.brands.join(", ")}`)
-        ;(unsupportedError as any).fileType = fileType
-        throw unsupportedError
-      }
-
-      ;(error as any).fileType = fileType
-      throw error
-    }
+    const blob = await convertHeifBufferToBlob(buffer, src, options)
+    return URL.createObjectURL(blob)
   }
 
   // ── Animated (sequence) conversion ──────────────────────────────────────

@@ -6,11 +6,12 @@
 
 Read this in [Chinese](README.zh-CN.md).
 
-View HEIC helps Chrome display iPhone HEIC/HEIF photos on web pages. It detects likely HEIC/HEIF images, converts them locally, and replaces the original image with a browser-friendly JPEG preview.
+View HEIC helps Chrome display and upload iPhone HEIC/HEIF photos on web pages. It detects likely HEIC/HEIF images, converts them locally, and replaces the original image or upload file with a browser-friendly JPEG.
 
 ## Features
 
 - Automatically detects existing and dynamically inserted HEIC/HEIF images by extension, MIME type, and file signature.
+- Converts HEIC/HEIF files selected in upload inputs to JPEG before the page receives them.
 - Converts images locally in the browser with `heic-to` and libheif.
 - Uses JPEG previews by default for faster rendering and smaller output.
 - Handles source changes, retries, size limits, unsupported variants, and common error states.
@@ -38,6 +39,7 @@ Then open `chrome://extensions/`, enable Developer mode, choose "Load unpacked",
 pnpm compile
 pnpm verify:heif-detection
 pnpm verify:rating-prompt
+pnpm verify:upload-conversion
 pnpm verify:performance
 pnpm verify:src-change
 pnpm build

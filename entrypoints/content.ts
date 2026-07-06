@@ -1,7 +1,7 @@
 import { debounce } from "lodash-es"
 import { CONFIG, SELECTORS } from "../utils/constants"
 import { hasHeifExtension, isHeifMimeType } from "../utils/heif-format"
-import { HEICConverter } from "../utils/heic-converter"
+import { HEICConverter, convertHeifFileToJpegFile } from "../utils/heic-converter"
 import type { AnalyticsEventName, AnalyticsParams } from "../utils/analytics"
 import type { ConversionError } from "../utils/types"
 
@@ -11,11 +11,14 @@ const ISSUE_URL = "https://github.com/vingeraycn/view-heic-browser-extension/iss
 const RATING_PROMPT_STORAGE_KEY = "viewHeicRatingPrompt"
 const MIN_SUCCESSFUL_IMAGES_FOR_PROMPT = 11
 const RATING_PROMPT_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000
+const UPLOAD_REQUEST_EVENT = "view-heic-upload-request"
+const UPLOAD_REPLAY_ATTRIBUTE = "data-view-heic-upload-replayed"
 const mimeOnlyProbeCache = new Set<string>()
 
 type ConversionTrigger = "initial" | "mutation"
 type ConversionErrorType = ConversionError["type"] | "mixed"
 type ConversionResults = Awaited<ReturnType<HEICConverter["convertAllImages"]>>
+type UploadToastType = "loading" | "success" | "error"
 
 interface RatingPromptState {
   successCount?: number
@@ -24,23 +27,22 @@ interface RatingPromptState {
   reviewClicked?: boolean
 }
 
+let uploadToastContainer: HTMLElement | undefined
+
 export default defineContentScript({
   matches: ["<all_urls>"],
-  runAt: "document_end",
+  runAt: "document_start",
   async main() {
     console.log("🖼️ View HEIC Extension Loaded")
 
-    // 注入样式
-    injectStyles()
-
     const converter = new HEICConverter()
-
-    // 初始处理页面中的HEIC图片
-    await processHEICImages(converter, "initial")
-
-    // 监听动态加载的图片
-    observeHEICImages(converter)
+    observeHEICUploads()
     observeFailedImageLoads(converter)
+
+    await domReady()
+    injectStyles()
+    await processHEICImages(converter, "initial")
+    observeHEICImages(converter)
 
     // 页面卸载时清理资源
     window.addEventListener("beforeunload", () => {
@@ -48,6 +50,16 @@ export default defineContentScript({
     })
   },
 })
+
+function domReady(): Promise<void> {
+  if (document.readyState !== "loading") {
+    return Promise.resolve()
+  }
+
+  return new Promise((resolve) => {
+    document.addEventListener("DOMContentLoaded", () => resolve(), { once: true })
+  })
+}
 
 /**
  * 注入样式到页面
@@ -249,6 +261,257 @@ function isHEICImageCandidate(img: HTMLImageElement): boolean {
 
 function findHEICImages(root: ParentNode): HTMLImageElement[] {
   return Array.from(root.querySelectorAll<HTMLImageElement>(SELECTORS.IMAGE_CANDIDATES)).filter(isHEICImageCandidate)
+}
+
+function observeHEICUploads(): void {
+  window.addEventListener(UPLOAD_REQUEST_EVENT, handleUploadChange, true)
+}
+
+async function handleUploadChange(event: Event): Promise<void> {
+  if (!(event.target instanceof HTMLInputElement) || event.target.type !== "file") return
+
+  const input = event.target
+  const files = Array.from(input.files ?? [])
+  const heifCount = files.filter(isHEIFUploadCandidate).length
+  if (heifCount === 0) return
+
+  event.preventDefault()
+  event.stopImmediatePropagation()
+
+  const loadingToast = showUploadToast("loading", getUploadLoadingMessage(heifCount))
+
+  try {
+    const convertedFiles: File[] = []
+
+    for (const file of files) {
+      convertedFiles.push(isHEIFUploadCandidate(file) ? await convertHeifFileToJpegFile(file) : file)
+    }
+
+    const dataTransfer = new DataTransfer()
+    convertedFiles.forEach((file) => dataTransfer.items.add(file))
+    input.files = dataTransfer.files
+
+    input.setAttribute(UPLOAD_REPLAY_ATTRIBUTE, "true")
+    input.dispatchEvent(new Event("input", { bubbles: true }))
+    input.dispatchEvent(new Event("change", { bubbles: true }))
+
+    dismissUploadToast(loadingToast)
+    showUploadToast("success", getUploadSuccessMessage(heifCount), { durationMs: 3000 })
+  } catch (error) {
+    dismissUploadToast(loadingToast)
+    input.removeAttribute(UPLOAD_REPLAY_ATTRIBUTE)
+    input.value = ""
+    console.warn("View HEIC upload conversion failed:", error)
+    showUploadToast("error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
+  }
+}
+
+function isHEIFUploadCandidate(file: File): boolean {
+  return hasHeifExtension(file.name) || isHeifMimeType(file.type)
+}
+
+function getUploadLoadingMessage(count: number): string {
+  return count > 1 ? `View HEIC 正在将 ${count} 张 HEIC 转为 JPG...` : "View HEIC 正在将 HEIC 转为 JPG..."
+}
+
+function getUploadSuccessMessage(count: number): string {
+  return count > 1 ? `View HEIC 已将 ${count} 张图片转为 JPG 格式` : "View HEIC 已将此图转为 JPG 格式"
+}
+
+function getUploadErrorMessage(count: number): string {
+  return count > 1 ? `View HEIC 未能转换 ${count} 张 HEIC 图片` : "View HEIC 未能转换此 HEIC 图片"
+}
+
+function showUploadToast(
+  type: UploadToastType,
+  message: string,
+  options: { durationMs?: number } = {}
+): HTMLElement {
+  const container = getUploadToastContainer()
+  const toast = document.createElement("div")
+  toast.className = `view-heic-upload-toast view-heic-upload-toast--${type}`
+  toast.setAttribute("role", type === "error" ? "alert" : "status")
+  toast.setAttribute("aria-live", type === "error" ? "assertive" : "polite")
+
+  const icon = document.createElement("span")
+  icon.className = "view-heic-upload-toast__icon"
+  icon.setAttribute("aria-hidden", "true")
+  icon.textContent = type === "success" ? "✓" : type === "error" ? "!" : ""
+
+  const text = document.createElement("span")
+  text.className = "view-heic-upload-toast__text"
+  text.textContent = message
+
+  toast.append(icon, text)
+  container.appendChild(toast)
+
+  if (options.durationMs) {
+    setTimeout(() => dismissUploadToast(toast), options.durationMs)
+  }
+
+  return toast
+}
+
+function dismissUploadToast(toast: HTMLElement): void {
+  if (!toast.isConnected || toast.classList.contains("view-heic-upload-toast--leaving")) return
+  toast.classList.add("view-heic-upload-toast--leaving")
+  toast.addEventListener("animationend", () => toast.remove(), { once: true })
+  setTimeout(() => toast.remove(), 220)
+}
+
+function getUploadToastContainer(): HTMLElement {
+  if (uploadToastContainer?.isConnected) return uploadToastContainer
+
+  const host = document.createElement("div")
+  host.id = "view-heic-upload-toast-root"
+
+  const shadow = host.attachShadow({ mode: "open" })
+  const style = document.createElement("style")
+  style.textContent = `
+    :host {
+      all: initial;
+    }
+
+    .view-heic-upload-toast-list {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 2147483647;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: min(380px, calc(100vw - 32px));
+      pointer-events: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .view-heic-upload-toast {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-sizing: border-box;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid rgba(15, 23, 42, 0.1);
+      border-radius: 8px;
+      background: #ffffff;
+      color: #0f172a;
+      box-shadow: 0 14px 35px rgba(15, 23, 42, 0.16);
+      font-size: 14px;
+      line-height: 1.4;
+      pointer-events: auto;
+      animation: view-heic-upload-toast-enter 180ms cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+
+    .view-heic-upload-toast--leaving {
+      animation: view-heic-upload-toast-exit 140ms cubic-bezier(0.4, 0, 1, 1) forwards;
+    }
+
+    .view-heic-upload-toast__icon {
+      display: grid;
+      flex: 0 0 20px;
+      width: 20px;
+      height: 20px;
+      place-items: center;
+      border-radius: 999px;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .view-heic-upload-toast__text {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-weight: 500;
+    }
+
+    .view-heic-upload-toast--success .view-heic-upload-toast__icon {
+      background: #16a34a;
+    }
+
+    .view-heic-upload-toast--error .view-heic-upload-toast__icon {
+      background: #dc2626;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+    }
+
+    .view-heic-upload-toast--loading .view-heic-upload-toast__icon {
+      box-sizing: border-box;
+      border: 2px solid #d1d5db;
+      border-top-color: #2563eb;
+      animation: view-heic-upload-toast-spin 800ms linear infinite;
+    }
+
+    @keyframes view-heic-upload-toast-enter {
+      from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.96);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes view-heic-upload-toast-exit {
+      from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      to {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.98);
+      }
+    }
+
+    @keyframes view-heic-upload-toast-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .view-heic-upload-toast {
+        border-color: rgba(148, 163, 184, 0.22);
+        background: #18181b;
+        color: #f8fafc;
+        box-shadow: 0 14px 35px rgba(0, 0, 0, 0.42);
+      }
+
+      .view-heic-upload-toast--loading .view-heic-upload-toast__icon {
+        border-color: #3f3f46;
+        border-top-color: #60a5fa;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .view-heic-upload-toast-list {
+        top: 12px;
+        right: 12px;
+        left: 12px;
+        width: auto;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .view-heic-upload-toast,
+      .view-heic-upload-toast--leaving,
+      .view-heic-upload-toast--loading .view-heic-upload-toast__icon {
+        animation: none;
+      }
+    }
+  `
+
+  const container = document.createElement("div")
+  container.className = "view-heic-upload-toast-list"
+  shadow.append(style, container)
+  document.documentElement.appendChild(host)
+  uploadToastContainer = container
+
+  return container
 }
 
 async function maybeShowRatingPrompt(successCount: number, failureCount: number): Promise<void> {
