@@ -74,6 +74,17 @@ assert(
 )
 
 assert(
+  content.includes("function isChineseLocale()") &&
+    content.includes("正在转换为 JPG...") &&
+    content.includes("已转换为 JPG") &&
+    content.includes("未能转换此 HEIC 图片") &&
+    content.includes("Converting to JPG...") &&
+    content.includes("Converted to JPG") &&
+    content.includes("Couldn't convert this HEIC image"),
+  "upload toast copy is localized for Chinese and English states"
+)
+
+assert(
   testPage.includes("HEIC 上传自动转换 Playground") &&
     testPage.includes("upload-single") &&
     testPage.includes("upload-multiple") &&

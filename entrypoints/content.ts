@@ -374,15 +374,31 @@ function isHEIFUploadCandidate(file: File): boolean {
 }
 
 function getUploadLoadingMessage(count: number): string {
-  return count > 1 ? `正在将 ${count} 张图片转为 JPG...` : "正在转换为 JPG..."
+  if (isChineseLocale()) {
+    return count > 1 ? `正在将 ${count} 张图片转换为 JPG...` : "正在转换为 JPG..."
+  }
+
+  return count > 1 ? `Converting ${count} images to JPG...` : "Converting to JPG..."
 }
 
 function getUploadSuccessMessage(count: number): string {
-  return count > 1 ? `已将 ${count} 张图片转成 JPG` : "已转成 JPG"
+  if (isChineseLocale()) {
+    return count > 1 ? `已将 ${count} 张图片转换为 JPG` : "已转换为 JPG"
+  }
+
+  return count > 1 ? `Converted ${count} images to JPG` : "Converted to JPG"
 }
 
 function getUploadErrorMessage(count: number): string {
-  return count > 1 ? `View HEIC 未能转换 ${count} 张 HEIC 图片` : "View HEIC 未能转换此 HEIC 图片"
+  if (isChineseLocale()) {
+    return count > 1 ? `未能转换 ${count} 张 HEIC 图片` : "未能转换此 HEIC 图片"
+  }
+
+  return count > 1 ? `Couldn't convert ${count} HEIC images` : "Couldn't convert this HEIC image"
+}
+
+function isChineseLocale(): boolean {
+  return navigator.language.toLowerCase().startsWith("zh")
 }
 
 function showUploadToast(
