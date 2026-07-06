@@ -17,6 +17,24 @@
         },
       }
     </script>
+    <script>
+      window.__viewHeicEarlyUploadResults = []
+      window.addEventListener(
+        "change",
+        (event) => {
+          if (!(event.target instanceof HTMLInputElement) || event.target.type !== "file") return
+          window.__viewHeicEarlyUploadResults.push({
+            inputId: event.target.id,
+            files: Array.from(event.target.files || []).map((file) => ({
+              name: file.name,
+              type: file.type,
+              size: file.size,
+            })),
+          })
+        },
+        true
+      )
+    </script>
   </head>
   <body class="bg-gray-50 font-sans">
     <!-- 头部状态区域 -->
@@ -208,6 +226,66 @@
         </div>
       </div>
 
+      <!-- HEIC上传自动转换 Playground -->
+      <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div class="mb-4 flex flex-col gap-3 border-b border-blue-200 pb-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h3 class="text-xl font-semibold text-gray-800">📤 HEIC 上传自动转换 Playground</h3>
+            <p class="mt-2 text-gray-600">
+              手动选择 HEIC/HEIF 文件，扩展应先转成 JPG，再让页面上传逻辑收到新的 FileList。
+            </p>
+          </div>
+          <button
+            type="button"
+            class="self-start rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            onclick="resetUploadPlayground()"
+          >
+            清空结果
+          </button>
+        </div>
+
+        <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <div class="font-semibold">推荐测试文件</div>
+          <div class="mt-1 font-mono text-xs text-amber-900">~/Materials/IMG_E0073.heic</div>
+          <div class="mt-2">成功时应看到 View HEIC 的转换 toast，且下方文件名应变成 <span class="font-mono">.jpg</span>、MIME 应为 <span class="font-mono">image/jpeg</span>。</div>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-4">
+          <label class="block p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <span class="block font-semibold text-gray-800 mb-2">普通单文件 input</span>
+            <input id="upload-single" type="file" accept="image/*,.heic,.heif,.heics,.heifs" class="block w-full text-sm text-gray-700" />
+          </label>
+
+          <label class="block p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <span class="block font-semibold text-gray-800 mb-2">多文件混选 input</span>
+            <input id="upload-multiple" type="file" multiple accept="image/*,.heic,.heif,.heics,.heifs" class="block w-full text-sm text-gray-700" />
+          </label>
+
+          <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <p class="font-semibold text-gray-800 mb-2">隐藏 input + label</p>
+            <input id="upload-hidden" type="file" accept="image/*,.heic,.heif,.heics,.heifs" class="sr-only" />
+            <label for="upload-hidden" class="inline-flex cursor-pointer items-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600">
+              选择图片
+            </label>
+          </div>
+        </div>
+
+        <div id="upload-status" class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+          尚未选择文件
+        </div>
+
+        <div class="mt-4 grid gap-4 lg:grid-cols-2">
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <h4 class="font-semibold text-slate-800 mb-2">页面最早 capture 监听结果</h4>
+            <pre id="upload-early-log" class="min-h-24 whitespace-pre-wrap text-sm text-slate-700">尚未选择文件</pre>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <h4 class="font-semibold text-slate-800 mb-2">最终 input.files</h4>
+            <pre id="upload-log" class="min-h-24 whitespace-pre-wrap text-sm text-slate-700">尚未选择文件</pre>
+          </div>
+        </div>
+      </div>
+
       <!-- 转换统计 -->
       <div class="bg-white rounded-lg shadow-sm p-6">
         <h3 class="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-blue-200">📊 转换统计</h3>
@@ -356,10 +434,92 @@
         }, 1000)
       }
 
+      function bindUploadLog() {
+        const uploadLog = document.getElementById("upload-log")
+        const uploadEarlyLog = document.getElementById("upload-early-log")
+        const uploadStatus = document.getElementById("upload-status")
+        const uploadInputs = [
+          document.getElementById("upload-single"),
+          document.getElementById("upload-multiple"),
+          document.getElementById("upload-hidden"),
+        ]
+
+        uploadInputs.forEach((input) => {
+          input.addEventListener("change", () => {
+            const files = Array.from(input.files || [])
+            const earlyResults = window.__viewHeicEarlyUploadResults || []
+            const latestEarlyResult = earlyResults[earlyResults.length - 1]
+            if (files.length === 0) {
+              uploadLog.textContent = `${input.id}: 未收到文件`
+              uploadEarlyLog.textContent = "无记录"
+              setUploadStatus("warn", "未收到文件，请重新选择 HEIC/HEIF 文件。")
+              return
+            }
+
+            const earlyFiles = latestEarlyResult?.files || []
+            uploadLog.textContent = formatUploadFiles(input.id, files)
+            uploadEarlyLog.textContent = latestEarlyResult ? formatUploadRecords("early", earlyFiles) : "无记录"
+
+            const finalHasHeif = files.some(isHeifUploadRecord)
+            const earlyHasHeif = earlyFiles.some(isHeifUploadRecord)
+            if (!finalHasHeif && !earlyHasHeif) {
+              setUploadStatus("success", "通过：页面最早监听和最终 input.files 都只看到了转换后的 JPG。")
+            } else if (finalHasHeif) {
+              setUploadStatus("error", "失败：最终 input.files 仍包含 HEIC/HEIF，上传替换没有完成。")
+            } else {
+              setUploadStatus("warn", "部分通过：最终文件已是 JPG，但页面最早监听仍看到了 HEIC/HEIF。")
+            }
+          })
+        })
+      }
+
+      function formatUploadFiles(inputId, files) {
+        return files
+          .map((file, index) => {
+            const size = `${(file.size / 1024).toFixed(1)} KB`
+            return `${inputId} #${index + 1}: ${file.name} | ${file.type || "unknown"} | ${size}`
+          })
+          .join("\n")
+      }
+
+      function formatUploadRecords(prefix, files) {
+        return files
+          .map((file, index) => {
+            const size = file.size ? ` | ${(file.size / 1024).toFixed(1)} KB` : ""
+            return `${prefix} #${index + 1}: ${file.name} | ${file.type || "unknown"}${size}`
+          })
+          .join("\n")
+      }
+
+      function isHeifUploadRecord(file) {
+        return /\.(heic|heif|heics|heifs)$/i.test(file.name) || /^image\/hei[cf]/i.test(file.type || "")
+      }
+
+      function setUploadStatus(type, text) {
+        const uploadStatus = document.getElementById("upload-status")
+        const styles = {
+          success: "mt-4 rounded-lg border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-800",
+          warn: "mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-800",
+          error: "mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800",
+        }
+        uploadStatus.className = styles[type]
+        uploadStatus.textContent = text
+      }
+
+      function resetUploadPlayground() {
+        window.__viewHeicEarlyUploadResults = []
+        document.getElementById("upload-log").textContent = "尚未选择文件"
+        document.getElementById("upload-early-log").textContent = "尚未选择文件"
+        const uploadStatus = document.getElementById("upload-status")
+        uploadStatus.className = "mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"
+        uploadStatus.textContent = "尚未选择文件"
+      }
+
       // 页面加载完成后执行
       document.addEventListener("DOMContentLoaded", () => {
         checkExtensionStatus()
         updateStats()
+        bindUploadLog()
 
         // 定期更新统计信息
         setInterval(updateStats, 3000)
