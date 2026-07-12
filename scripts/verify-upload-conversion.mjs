@@ -117,8 +117,8 @@ assert(
     content.includes("UPLOAD_TOAST_LAYOUT_SPRING") &&
     content.includes("animateUploadToastLayout") &&
     content.includes("function updateUploadToast(") &&
-    content.includes("VIEW_HEIC_TOAST_LOGO_DATA_URL") &&
-    content.includes("data:image/png;base64,") &&
+    content.includes('import viewHeicLogoDataUrl from "../public/icon/32.png?inline"') &&
+    content.includes("logo.src = viewHeicLogoDataUrl") &&
     content.includes("view-heic-upload-toast__logo") &&
     content.includes("view-heic-upload-toast--loading") &&
     content.includes("border-radius: 20px") &&

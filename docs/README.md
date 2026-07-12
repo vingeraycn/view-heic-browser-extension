@@ -7,8 +7,8 @@
 ```
 docs/
 ├── assets/
-│   └── logo.svg        # 🎨 官网与市场素材共享 Logo
-├── store-assets/       # 🛍️ 应用市场截图素材（1280×800 PNG + SVG 源文件）
+│   └── logo.svg        # 🎨 由品牌源图生成的官网 Logo
+├── store-assets/       # 🛍️ 应用市场截图产物（1280×800 PNG）
 ├── index.html          # 🏠 官网首页（GitHub Pages 主页）
 ├── test-improved.html  # 🧪 开发者详细测试页面
 ├── README.md          # 📋 本说明文件
@@ -50,6 +50,8 @@ SEO meta 标签（description、OpenGraph、Twitter Card）和 `hreflang` 均已
 ```bash
 pnpm assets:market
 ```
+
+品牌与市场素材的唯一源文件位于 `assets/brand/` 和 `assets/market/`。生成脚本会据此更新官网 Logo、扩展图标、商店宣传图和小型宣传封面，避免产物与源文件出现两套视觉版本。
 
 生成内容：
 
