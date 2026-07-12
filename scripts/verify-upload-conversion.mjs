@@ -63,6 +63,28 @@ assert(
 )
 
 assert(
+  interceptor.includes('window.addEventListener("paste", interceptHeifPaste, true)') &&
+    interceptor.includes("event.clipboardData") &&
+    interceptor.includes("readClipboardStrings(clipboardData)") &&
+    interceptor.includes("event.stopImmediatePropagation()") &&
+    content.includes("PASTE_REQUEST_EVENT") &&
+    content.includes("handleUploadPaste") &&
+    content.includes("convertUploadFiles(detail.files)"),
+  "pasted HEIF files are intercepted early and converted through the shared upload pipeline"
+)
+
+assert(
+  interceptor.includes("PASTE_REPLAY_EVENT") &&
+    interceptor.includes("replayingPaste") &&
+    interceptor.includes('new ClipboardEvent("paste"') &&
+    interceptor.includes("detail.strings.forEach") &&
+    interceptor.includes("detail.files.forEach") &&
+    content.includes("replayPasteEvent(target, detail, result.files)") &&
+    content.includes("replayPasteEvent(target, detail, detail.files)"),
+  "paste replay preserves clipboard strings and files, avoids recursion, and falls back to originals"
+)
+
+assert(
   /export\s+async\s+function\s+convertHeifFileToJpegFile\s*\(/.test(converter) &&
     converter.includes('type: "image/jpeg"') &&
     converter.includes("getJpegFileName(file.name)"),
@@ -95,8 +117,8 @@ assert(
     content.includes("UPLOAD_TOAST_LAYOUT_SPRING") &&
     content.includes("animateUploadToastLayout") &&
     content.includes("function updateUploadToast(") &&
-    content.includes("VIEW_HEIC_TOAST_LOGO_DATA_URL") &&
-    content.includes("data:image/png;base64,") &&
+    content.includes('import viewHeicLogoDataUrl from "../public/icon/32.png?inline"') &&
+    content.includes("logo.src = viewHeicLogoDataUrl") &&
     content.includes("view-heic-upload-toast__logo") &&
     content.includes("view-heic-upload-toast--loading") &&
     content.includes("border-radius: 20px") &&
