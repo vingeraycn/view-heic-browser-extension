@@ -3,7 +3,12 @@ import { animate } from "motion"
 import { CONFIG, SELECTORS } from "../utils/constants"
 import { hasHeifExtension, isHeifMimeType } from "../utils/heif-format"
 import { HEICConverter, convertHeifFileToJpegFile } from "../utils/heic-converter"
-import { UPLOAD_REPLAY_ATTRIBUTE, UPLOAD_REQUEST_EVENT } from "../utils/upload-constants"
+import {
+  PASTE_REPLAY_EVENT,
+  PASTE_REQUEST_EVENT,
+  UPLOAD_REPLAY_ATTRIBUTE,
+  UPLOAD_REQUEST_EVENT,
+} from "../utils/upload-constants"
 import type { AnalyticsEventName, AnalyticsParams } from "../utils/analytics"
 import type { ConversionError } from "../utils/types"
 
@@ -33,6 +38,16 @@ interface RatingPromptState {
   failureCount?: number
   lastPromptedAt?: number
   reviewClicked?: boolean
+}
+
+interface ClipboardStringItem {
+  type: string
+  value: string
+}
+
+interface PasteConversionDetail {
+  files: File[]
+  strings: ClipboardStringItem[]
 }
 
 let uploadToastContainer: HTMLElement | undefined
@@ -290,6 +305,7 @@ function observeHEICUploads(): void {
   window.addEventListener("change", rememberFileInputSelection, true)
   window.addEventListener(UPLOAD_REQUEST_EVENT, handleUploadChange, true)
   window.addEventListener("drop", handleUploadDrop, true)
+  window.addEventListener(PASTE_REQUEST_EVENT, handleUploadPaste, true)
 }
 
 function rememberFileInputSelection(event: Event): void {
@@ -379,6 +395,34 @@ async function handleUploadDrop(event: DragEvent): Promise<void> {
   }
 }
 
+async function handleUploadPaste(event: Event): Promise<void> {
+  if (!(event instanceof CustomEvent)) return
+
+  const detail = event.detail as PasteConversionDetail | undefined
+  if (!detail || !Array.isArray(detail.files) || !Array.isArray(detail.strings)) return
+
+  const heifCount = detail.files.filter(isHEIFUploadCandidate).length
+  if (heifCount === 0) return
+
+  const target = event.target
+  if (!(target instanceof EventTarget)) return
+
+  event.preventDefault()
+  event.stopImmediatePropagation()
+
+  const loadingToast = showUploadToast("loading", getUploadLoadingMessage(heifCount))
+
+  try {
+    const result = await convertUploadFiles(detail.files)
+    replayPasteEvent(target, detail, result.files)
+    updateUploadToastForResult(loadingToast, result)
+  } catch (error) {
+    console.warn("View HEIC paste conversion failed:", error)
+    replayPasteEvent(target, detail, detail.files)
+    updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
+  }
+}
+
 async function convertUploadFiles(files: File[]): Promise<UploadConversionResult> {
   const convertedFiles: File[] = []
   let convertedCount = 0
@@ -431,6 +475,16 @@ function replayDropEvent(target: EventTarget, event: DragEvent, files: File[]): 
       shiftKey: event.shiftKey,
       altKey: event.altKey,
       metaKey: event.metaKey,
+    })
+  )
+}
+
+function replayPasteEvent(target: EventTarget, detail: PasteConversionDetail, files: File[]): void {
+  target.dispatchEvent(
+    new CustomEvent(PASTE_REPLAY_EVENT, {
+      bubbles: true,
+      composed: true,
+      detail: { ...detail, files },
     })
   )
 }
