@@ -30,10 +30,10 @@ const checks = [
   {
     name: "MIME-only fallback probes are same-origin and cached",
     pass:
-      /mimeOnlyProbeCache\s*=\s*new Set<string>\(\)/.test(content) &&
+      /mimeOnlyProbeCache\s*=\s*new Map<string,\s*"heif"\s*\|\s*"not-heif">\(\)/.test(content) &&
       /isSameOriginUrl/.test(content) &&
-      /mimeOnlyProbeCache\.has\(src\)/.test(content) &&
-      /mimeOnlyProbeCache\.add\(src\)/.test(content),
+      /mimeOnlyProbeCache\.get\(src\)/.test(content) &&
+      /mimeOnlyProbeCache\.set\(src,\s*isHeif\s*\?\s*"heif"\s*:\s*"not-heif"\)/.test(content),
   },
   {
     name: "src mutation observer resets every changed HEIC image in the batch",

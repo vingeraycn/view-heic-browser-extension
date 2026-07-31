@@ -3,6 +3,7 @@ export interface ConversionOptions {
   format?: "png" | "jpeg"
   maxRetries?: number
   ignoreInvalidFormat?: boolean
+  signal?: AbortSignal
 }
 
 export interface ConversionResult {

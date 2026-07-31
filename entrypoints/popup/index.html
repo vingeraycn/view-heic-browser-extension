@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>View HEIC</title>
+  </head>
+  <body>
+    <main class="popup-shell">
+      <header class="brand-header">
+        <div class="brand">
+          <img class="brand-logo" src="/icon/48.png" alt="" width="36" height="36" />
+          <span class="brand-name">View HEIC</span>
+        </div>
+        <button
+          class="icon-button"
+          id="help-button"
+          type="button"
+          aria-label="Help and troubleshooting"
+        >
+          <i class="ph ph-question" aria-hidden="true"></i>
+        </button>
+      </header>
+
+      <section
+        class="primary-status"
+        id="primary-status"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <i class="ph ph-circle-notch status-icon" id="status-icon" aria-hidden="true"></i>
+        <h1 id="status-headline">Checking this page</h1>
+      </section>
+
+      <section class="action-list" aria-label="View HEIC controls">
+        <button class="action-row page-row" id="page-row" type="button" disabled>
+          <span class="row-label" id="page-label">This page</span>
+          <span class="row-value-wrap">
+            <span class="row-value" id="page-value">Checking</span>
+            <i class="ph ph-caret-right row-chevron" id="page-chevron" aria-hidden="true"></i>
+          </span>
+        </button>
+
+        <button
+          class="action-row site-row"
+          id="site-toggle"
+          type="button"
+          role="switch"
+          aria-checked="true"
+          disabled
+        >
+          <span class="row-label" id="site-toggle-label">View HEIC on this site</span>
+          <span class="switch-control" aria-hidden="true">
+            <span class="switch-thumb"></span>
+          </span>
+        </button>
+
+        <button class="action-row converter-row" id="converter-button" type="button">
+          <span class="converter-label">
+            <i class="ph ph-image-square row-icon" aria-hidden="true"></i>
+            <span id="converter-label">Convert a file</span>
+          </span>
+          <i class="ph ph-caret-right row-chevron is-visible" aria-hidden="true"></i>
+        </button>
+      </section>
+
+      <p class="privacy-note">
+        <i class="ph ph-shield-check" aria-hidden="true"></i>
+        <span id="privacy-label">Converted on this device</span>
+      </p>
+
+      <p class="visually-hidden" id="action-feedback" aria-live="assertive"></p>
+    </main>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

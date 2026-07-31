@@ -69,7 +69,7 @@ assert(
     interceptor.includes("event.stopImmediatePropagation()") &&
     content.includes("PASTE_REQUEST_EVENT") &&
     content.includes("handleUploadPaste") &&
-    content.includes("convertUploadFiles(detail.files)"),
+    content.includes("convertUploadFiles(detail.files, operationGeneration)"),
   "pasted HEIF files are intercepted early and converted through the shared upload pipeline"
 )
 
@@ -109,6 +109,15 @@ assert(
     content.includes("dismissUploadToast(loadingToast)") &&
     content.includes("replayInputFiles(input, files)"),
   "stale async upload conversion results do not overwrite a newer file selection"
+)
+
+assert(
+  content.includes("let siteOperationGeneration = 0") &&
+    content.includes("const operationGeneration = siteOperationGeneration") &&
+    content.includes("operationGeneration !== siteOperationGeneration") &&
+    content.includes("convertUploadFiles(files, operationGeneration)") &&
+    content.includes("convertUploadFiles(detail.files, operationGeneration)"),
+  "site disable or disable-then-enable invalidates in-flight upload results and replays originals"
 )
 
 assert(

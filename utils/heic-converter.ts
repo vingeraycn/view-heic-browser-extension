@@ -176,11 +176,11 @@ export class HEICConverter {
    * If the server returns a correct HEIC MIME type but the URL has no .heic
    * extension, we still accept the blob.
    */
-  private async fetchImageData(src: string): Promise<ArrayBuffer> {
+  private async fetchImageData(src: string, signal?: AbortSignal): Promise<ArrayBuffer> {
     const fetchStart = performance.now()
     let response: Response
     try {
-      response = await fetch(src)
+      response = await fetch(src, { signal })
     } catch (error: any) {
       if (error.name === "TypeError") {
         // TypeError from fetch can mean CORS blocked or a generic network failure
@@ -272,6 +272,10 @@ export class HEICConverter {
 
       const rawFrames: DecodedFrameData[] = []
       for (const frame of frames) {
+        if (options.signal?.aborted) {
+          frames.dispose?.()
+          return null
+        }
         rawFrames.push(await frame.decode())
       }
       frames.dispose?.()
@@ -310,7 +314,7 @@ export class HEICConverter {
 
       drawFrame()
 
-      if (!this.isCurrentGeneration(img, generation)) {
+      if (options.signal?.aborted || !this.isCurrentGeneration(img, generation)) {
         return null
       }
 
@@ -352,7 +356,9 @@ export class HEICConverter {
     try {
       return await task
     } finally {
-      this.processingQueue.delete(img)
+      if (this.processingQueue.get(img) === task) {
+        this.processingQueue.delete(img)
+      }
     }
   }
 
@@ -361,8 +367,12 @@ export class HEICConverter {
     options: ConversionOptions = {}
   ): Promise<ConversionResult> {
     const originalSrc = img.src
-    const { maxRetries = CONFIG.RETRY_ATTEMPTS } = options
+    const { maxRetries = CONFIG.RETRY_ATTEMPTS, signal } = options
     const generation = this.nextGeneration(img)
+
+    if (signal?.aborted) {
+      return { success: false }
+    }
 
     // Persist original src so failure paths can restore the page state silently.
     if (!img.hasAttribute(DATA_ATTRIBUTES.ORIGINAL_SRC)) {
@@ -371,7 +381,7 @@ export class HEICConverter {
 
     // Reuse an already-converted blob URL for this src
     if (this.urlCache.has(originalSrc)) {
-      if (!this.isCurrentGeneration(img, generation) || img.src !== originalSrc) {
+      if (signal?.aborted || !this.isCurrentGeneration(img, generation) || img.src !== originalSrc) {
         return { success: false }
       }
       img.src = this.urlCache.get(originalSrc)!
@@ -384,12 +394,25 @@ export class HEICConverter {
 
     let lastError: any
     for (let attempt = 0; attempt < maxRetries; attempt++) {
+      if (signal?.aborted) {
+        img.classList.remove("heic-processing")
+        return { success: false }
+      }
+
       try {
-        const buffer = await this.fetchImageData(originalSrc)
+        const buffer = await this.fetchImageData(originalSrc, signal)
+        if (signal?.aborted) {
+          img.classList.remove("heic-processing")
+          return { success: false }
+        }
 
         // ── Animated path ──────────────────────────────────────────────
         if (isHeifSequenceBuffer(buffer)) {
           const canvasResult = await this.convertAnimatedToCanvas(img, buffer, generation, options)
+          if (signal?.aborted) {
+            img.classList.remove("heic-processing")
+            return { success: false }
+          }
           if (canvasResult !== null) {
             if (!this.isCurrentGeneration(img, generation)) {
               return { success: false }
@@ -404,8 +427,13 @@ export class HEICConverter {
         // ── Single-frame path ──────────────────────────────────────────
         const objectURL = await this.convertSingleFrame(buffer, originalSrc, options)
 
-        if (!this.isCurrentGeneration(img, generation) || img.src !== originalSrc) {
+        if (
+          signal?.aborted ||
+          !this.isCurrentGeneration(img, generation) ||
+          img.src !== originalSrc
+        ) {
           URL.revokeObjectURL(objectURL)
+          img.classList.remove("heic-processing")
           return { success: false }
         }
 
@@ -422,6 +450,11 @@ export class HEICConverter {
 
         return { success: true }
       } catch (error: any) {
+        if (signal?.aborted) {
+          img.classList.remove("heic-processing")
+          return { success: false }
+        }
+
         lastError = error
         console.warn(`HEIC转换尝试 ${attempt + 1}/${maxRetries} 失败:`, error.message)
 
@@ -459,6 +492,7 @@ export class HEICConverter {
     const imageArray = Array.from(images)
 
     for (let i = 0; i < imageArray.length; i += CONFIG.MAX_CONCURRENT) {
+      if (options.signal?.aborted) break
       const batch = imageArray.slice(i, i + CONFIG.MAX_CONCURRENT)
       const settled = await Promise.allSettled(batch.map((img) => this.convertImage(img, options)))
 
@@ -481,12 +515,23 @@ export class HEICConverter {
   }
 
   /**
+   * Stops in-flight work without revoking images that have already been shown.
+   */
+  cancelPendingConversions(): void {
+    this.processingQueue.forEach((_task, img) => {
+      this.nextGeneration(img)
+      img.classList.remove("heic-processing")
+    })
+    this.processingQueue.clear()
+  }
+
+  /**
    * Releases all blob URLs and stops animation timers.
    */
   cleanup(): void {
+    this.cancelPendingConversions()
     this.urlCache.forEach((url) => URL.revokeObjectURL(url))
     this.urlCache.clear()
-    this.processingQueue.clear()
     this.animationTimers.forEach((id) => clearInterval(id))
     this.animationTimers.clear()
   }

@@ -1,5 +1,10 @@
 import { hasHeifExtension, isHeifMimeType } from "../utils/heif-format"
 import {
+  INTERCEPTOR_DISABLE_EVENT,
+  INTERCEPTOR_ENABLE_EVENT,
+  INTERCEPTOR_READY_EVENT,
+} from "../utils/site-preferences"
+import {
   PASTE_REPLAY_EVENT,
   PASTE_REQUEST_EVENT,
   UPLOAD_REPLAY_ATTRIBUTE,
@@ -21,15 +26,26 @@ interface PasteReplayDetail extends PasteRequestDetail {
 }
 
 let replayingPaste = false
+let interceptionEnabled = false
 
 export default defineContentScript({
   matches: ["<all_urls>"],
   runAt: "document_start",
   world: "MAIN",
   main() {
+    const enableInterception = (): void => {
+      interceptionEnabled = true
+    }
+    const disableInterception = (): void => {
+      interceptionEnabled = false
+    }
+
+    window.addEventListener(INTERCEPTOR_ENABLE_EVENT, enableInterception)
+    window.addEventListener(INTERCEPTOR_DISABLE_EVENT, disableInterception)
     window.addEventListener("change", interceptHeifUpload, true)
     window.addEventListener("paste", interceptHeifPaste, true)
     window.addEventListener(PASTE_REPLAY_EVENT, replayHeifPaste, true)
+    window.dispatchEvent(new Event(INTERCEPTOR_READY_EVENT))
   },
 })
 
@@ -41,6 +57,7 @@ function interceptHeifUpload(event: Event): void {
     input.removeAttribute(UPLOAD_REPLAY_ATTRIBUTE)
     return
   }
+  if (!interceptionEnabled) return
 
   const files = Array.from(input.files ?? [])
   if (!files.some(isHeifFile)) return
@@ -55,7 +72,7 @@ function isHeifFile(file: File): boolean {
 }
 
 function interceptHeifPaste(event: ClipboardEvent): void {
-  if (replayingPaste) return
+  if (!interceptionEnabled || replayingPaste) return
 
   const clipboardData = event.clipboardData
   const files = Array.from(clipboardData?.files ?? [])

@@ -1,0 +1,70 @@
+/* Phosphor Icons 2.1.2, regular weight — https://phosphoricons.com */
+@font-face {
+  font-family: "Phosphor";
+  src: url("@phosphor-icons/web/regular/Phosphor.woff2") format("woff2");
+  font-style: normal;
+  font-weight: normal;
+  font-display: block;
+}
+
+.ph {
+  display: inline-block;
+  font-family: "Phosphor" !important;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: normal;
+  line-height: 1;
+  text-rendering: auto;
+  text-transform: none;
+  speak: never;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ph-caret-right::before {
+  content: "\e13a";
+}
+
+.ph-arrow-clockwise::before {
+  content: "\e036";
+}
+
+.ph-check-circle::before {
+  content: "\e184";
+}
+
+.ph-circle-dashed::before {
+  content: "\e602";
+}
+
+.ph-circle-notch::before {
+  content: "\eb44";
+}
+
+.ph-download-simple::before {
+  content: "\e20c";
+}
+
+.ph-folder-open::before {
+  content: "\e256";
+}
+
+.ph-image-square::before {
+  content: "\e2cc";
+}
+
+.ph-pause-circle::before {
+  content: "\e3a0";
+}
+
+.ph-question::before {
+  content: "\e3e8";
+}
+
+.ph-shield-check::before {
+  content: "\e40c";
+}
+
+.ph-warning-circle::before {
+  content: "\e4e2";
+}
