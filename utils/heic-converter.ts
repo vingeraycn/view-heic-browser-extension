@@ -59,7 +59,7 @@ export async function convertHeifBufferToBlob(
     const result = await heicTo({ blob, type: `image/${format}`, quality })
     logStageTiming(src, `convert-${format}`, convertStart)
     return result
-  } catch (error) {
+  } catch (reason) {
     const fileType = getHeifFileType(buffer)
     if (fileType.isHeif && getSupportedCodecBrands(fileType.brands).length === 0) {
       const unsupportedError = new Error(`${ERROR_MESSAGES.UNSUPPORTED_CODEC}: ${fileType.brands.join(", ")}`)
@@ -67,9 +67,16 @@ export async function convertHeifBufferToBlob(
       throw unsupportedError
     }
 
+    const error = normalizeConversionError(reason)
     ;(error as any).fileType = fileType
     throw error
   }
+}
+
+function normalizeConversionError(reason: unknown): Error {
+  if (reason instanceof Error) return reason
+  if (typeof reason === "string" && reason) return new Error(reason)
+  return new Error(ERROR_MESSAGES.CONVERSION_FAILED)
 }
 
 export async function convertHeifFileToJpegFile(file: File): Promise<File> {

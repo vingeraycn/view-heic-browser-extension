@@ -1,6 +1,9 @@
 // 配置常量
 export const CONFIG = {
   MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
+  MAX_IMAGE_DIMENSION: 16_384,
+  // Keeps current 48 MP phone photos valid while bounding RGBA/canvas memory.
+  MAX_IMAGE_PIXELS: 50 * 1024 * 1024,
   MAX_CONCURRENT: 3,
   DEBOUNCE_DELAY: 300,
   CONVERSION_QUALITY: 0.9,

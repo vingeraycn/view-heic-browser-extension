@@ -11,7 +11,7 @@ import {
   type PageState,
 } from "../utils/extension-messages"
 import { hasHeifExtension, isHeifMimeType } from "../utils/heif-format"
-import { HEICConverter, convertHeifFileToJpegFile } from "../utils/heic-converter"
+import { HEICConverter } from "../utils/heic-converter"
 import { ISSUE_URL, STORE_REVIEW_URL } from "../utils/links"
 import { PageConversionLedger } from "../utils/page-conversion-ledger"
 import { SerialTaskQueue } from "../utils/serial-task-queue"
@@ -25,11 +25,15 @@ import {
   setSiteEnabled,
 } from "../utils/site-preferences"
 import {
+  DROP_REPLAY_EVENT,
+  DROP_REQUEST_EVENT,
   PASTE_REPLAY_EVENT,
   PASTE_REQUEST_EVENT,
   UPLOAD_REPLAY_ATTRIBUTE,
   UPLOAD_REQUEST_EVENT,
 } from "../utils/upload-constants"
+import type { UploadDropReplaySource } from "../utils/upload-drop-replay"
+import { convertHeifUploadFileToJpegFile } from "../utils/upload-heif-converter"
 import type { AnalyticsEventName, AnalyticsParams } from "../utils/analytics"
 import type { ConversionError } from "../utils/types"
 
@@ -76,7 +80,15 @@ interface PasteConversionDetail {
   strings: ClipboardStringItem[]
 }
 
+interface DropConversionDetail {
+  requestId: string
+  files: File[]
+  source: UploadDropReplaySource
+}
+
 let uploadToastContainer: HTMLElement | undefined
+let activeUploadToast: HTMLElement | undefined
+const uploadToastDismissTimers = new WeakMap<HTMLElement, number>()
 const uploadGenerations = new WeakMap<HTMLInputElement, number>()
 const pageConversionLedger = new PageConversionLedger<HTMLImageElement>()
 const pageWorkQueue = new SerialTaskQueue()
@@ -543,13 +555,13 @@ function findHEICImages(root: ParentNode): HTMLImageElement[] {
 function observeHEICUploads(): () => void {
   window.addEventListener("change", rememberFileInputSelection, true)
   window.addEventListener(UPLOAD_REQUEST_EVENT, handleUploadChange, true)
-  window.addEventListener("drop", handleUploadDrop, true)
+  window.addEventListener(DROP_REQUEST_EVENT, handleUploadDrop, true)
   window.addEventListener(PASTE_REQUEST_EVENT, handleUploadPaste, true)
 
   return () => {
     window.removeEventListener("change", rememberFileInputSelection, true)
     window.removeEventListener(UPLOAD_REQUEST_EVENT, handleUploadChange, true)
-    window.removeEventListener("drop", handleUploadDrop, true)
+    window.removeEventListener(DROP_REQUEST_EVENT, handleUploadDrop, true)
     window.removeEventListener(PASTE_REQUEST_EVENT, handleUploadPaste, true)
   }
 }
@@ -590,13 +602,16 @@ async function handleUploadChange(event: Event): Promise<void> {
       return
     }
     if (!contentScriptEnabled || operationGeneration !== siteOperationGeneration) {
-      replayInputFiles(input, files)
+      replayInputFilesSafely(input, files)
       dismissUploadToast(loadingToast)
       return
     }
 
-    replayInputFiles(input, result.files)
-    updateUploadToastForResult(loadingToast, result)
+    if (replayInputFilesSafely(input, result.files)) {
+      updateUploadToastForResult(loadingToast, result)
+    } else {
+      updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
+    }
   } catch (error) {
     if (!isCurrentUploadGeneration(input, generation)) {
       dismissUploadToast(loadingToast)
@@ -604,14 +619,18 @@ async function handleUploadChange(event: Event): Promise<void> {
     }
 
     console.warn("View HEIC upload conversion failed:", error)
-    replayInputFiles(input, files)
+    replayInputFilesSafely(input, files)
     updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
   }
 }
 
-async function handleUploadDrop(event: DragEvent): Promise<void> {
+async function handleUploadDrop(event: Event): Promise<void> {
+  if (!(event instanceof CustomEvent)) return
+
+  const detail = event.detail as DropConversionDetail | undefined
+  if (!isDropConversionDetail(detail)) return
   if (!contentScriptEnabled) return
-  const files = Array.from(event.dataTransfer?.files ?? [])
+  const files = detail.files
   const heifCount = files.filter(isHEIFUploadCandidate).length
   if (heifCount === 0) return
 
@@ -622,6 +641,7 @@ async function handleUploadDrop(event: DragEvent): Promise<void> {
   event.stopImmediatePropagation()
 
   const input = getFileInputDropTarget(event)
+  if (input) acknowledgeInputDrop(detail)
   const generation = input ? nextUploadGeneration(input) : undefined
   const operationGeneration = siteOperationGeneration
   const loadingToast = showUploadToast("loading", getUploadLoadingMessage(heifCount))
@@ -634,9 +654,9 @@ async function handleUploadDrop(event: DragEvent): Promise<void> {
           dismissUploadToast(loadingToast)
           return
         }
-        replayInputFiles(input, files)
+        replayInputFilesSafely(input, files)
       } else {
-        replayDropEvent(target, event, files)
+        replayDropEventSafely(detail, files)
       }
       dismissUploadToast(loadingToast)
       return
@@ -648,9 +668,15 @@ async function handleUploadDrop(event: DragEvent): Promise<void> {
         return
       }
 
-      replayInputFiles(input, result.files)
+      if (!replayInputFilesSafely(input, result.files)) {
+        updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
+        return
+      }
     } else {
-      replayDropEvent(target, event, result.files)
+      if (!replayDropEventSafely(detail, result.files)) {
+        updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
+        return
+      }
     }
 
     updateUploadToastForResult(loadingToast, result)
@@ -662,10 +688,43 @@ async function handleUploadDrop(event: DragEvent): Promise<void> {
 
     console.warn("View HEIC drag upload conversion failed:", error)
     if (input) {
-      replayInputFiles(input, files)
+      replayInputFilesSafely(input, files)
+    } else {
+      replayDropEventSafely(detail, files)
     }
     updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
   }
+}
+
+function acknowledgeInputDrop(detail: DropConversionDetail): void {
+  window.dispatchEvent(
+    new CustomEvent(DROP_REPLAY_EVENT, {
+      cancelable: true,
+      detail: { requestId: detail.requestId, handledByInput: true },
+    })
+  )
+}
+
+function isDropConversionDetail(detail: DropConversionDetail | undefined): detail is DropConversionDetail {
+  if (
+    !detail ||
+    typeof detail.requestId !== "string" ||
+    !Array.isArray(detail.files) ||
+    !detail.source
+  ) {
+    return false
+  }
+  const { source } = detail
+  return (
+    Number.isFinite(source.clientX) &&
+    Number.isFinite(source.clientY) &&
+    Number.isFinite(source.screenX) &&
+    Number.isFinite(source.screenY) &&
+    typeof source.ctrlKey === "boolean" &&
+    typeof source.shiftKey === "boolean" &&
+    typeof source.altKey === "boolean" &&
+    typeof source.metaKey === "boolean"
+  )
 }
 
 async function handleUploadPaste(event: Event): Promise<void> {
@@ -694,15 +753,18 @@ async function handleUploadPaste(event: Event): Promise<void> {
   try {
     const result = await convertUploadFiles(detail.files, operationGeneration)
     if (!contentScriptEnabled || operationGeneration !== siteOperationGeneration) {
-      replayPasteEvent(target, detail, detail.files)
+      replayPasteEventSafely(target, detail, detail.files)
       dismissUploadToast(loadingToast)
       return
     }
-    replayPasteEvent(target, detail, result.files)
-    updateUploadToastForResult(loadingToast, result)
+    if (replayPasteEventSafely(target, detail, result.files)) {
+      updateUploadToastForResult(loadingToast, result)
+    } else {
+      updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
+    }
   } catch (error) {
     console.warn("View HEIC paste conversion failed:", error)
-    replayPasteEvent(target, detail, detail.files)
+    replayPasteEventSafely(target, detail, detail.files)
     updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
   }
 }
@@ -728,7 +790,7 @@ async function convertUploadFiles(
     }
 
     try {
-      convertedFiles.push(await convertHeifFileToJpegFile(file))
+      convertedFiles.push(await convertHeifUploadFileToJpegFile(file))
       convertedCount += 1
     } catch (error) {
       failedCount += 1
@@ -750,26 +812,37 @@ function replayInputFiles(input: HTMLInputElement, files: File[]): void {
   input.dispatchEvent(new Event("change", { bubbles: true }))
 }
 
-function replayDropEvent(target: EventTarget, event: DragEvent, files: File[]): void {
-  const dataTransfer = new DataTransfer()
-  files.forEach((file) => dataTransfer.items.add(file))
+function replayInputFilesSafely(input: HTMLInputElement, files: File[]): boolean {
+  try {
+    replayInputFiles(input, files)
+    return true
+  } catch (error) {
+    console.warn("View HEIC upload replay failed:", error)
+    return false
+  }
+}
 
-  target.dispatchEvent(
-    new DragEvent("drop", {
-      bubbles: true,
-      cancelable: true,
-      composed: true,
-      dataTransfer,
-      clientX: event.clientX,
-      clientY: event.clientY,
-      screenX: event.screenX,
-      screenY: event.screenY,
-      ctrlKey: event.ctrlKey,
-      shiftKey: event.shiftKey,
-      altKey: event.altKey,
-      metaKey: event.metaKey,
-    })
-  )
+function replayDropEvent(detail: DropConversionDetail, files: File[]): boolean {
+  const replayEvent = new CustomEvent(DROP_REPLAY_EVENT, {
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+    detail: { requestId: detail.requestId, files },
+  })
+  window.dispatchEvent(replayEvent)
+  return replayEvent.defaultPrevented
+}
+
+function replayDropEventSafely(
+  detail: DropConversionDetail,
+  files: File[]
+): boolean {
+  try {
+    return replayDropEvent(detail, files)
+  } catch (error) {
+    console.warn("View HEIC drag replay failed:", error)
+    return false
+  }
 }
 
 function replayPasteEvent(target: EventTarget, detail: PasteConversionDetail, files: File[]): void {
@@ -782,7 +855,21 @@ function replayPasteEvent(target: EventTarget, detail: PasteConversionDetail, fi
   )
 }
 
-function getFileInputDropTarget(event: DragEvent): HTMLInputElement | undefined {
+function replayPasteEventSafely(
+  target: EventTarget,
+  detail: PasteConversionDetail,
+  files: File[]
+): boolean {
+  try {
+    replayPasteEvent(target, detail, files)
+    return true
+  } catch (error) {
+    console.warn("View HEIC paste replay failed:", error)
+    return false
+  }
+}
+
+function getFileInputDropTarget(event: Event): HTMLInputElement | undefined {
   return event
     .composedPath()
     .find((target): target is HTMLInputElement => target instanceof HTMLInputElement && target.type === "file")
@@ -845,6 +932,16 @@ function showUploadToast(
   options: { durationMs?: number } = {}
 ): HTMLElement {
   const container = getUploadToastContainer()
+  if (type === "loading") {
+    if (activeUploadToast?.isConnected) {
+      removeUploadToastImmediately(activeUploadToast)
+    }
+    for (const existingToast of container.querySelectorAll<HTMLElement>(
+      ".view-heic-upload-toast"
+    )) {
+      removeUploadToastImmediately(existingToast)
+    }
+  }
   const previousRects = measureUploadToastRects(container)
   const toast = document.createElement("div")
   toast.className = `view-heic-upload-toast view-heic-upload-toast--${type}`
@@ -872,8 +969,12 @@ function showUploadToast(
   animateUploadToastLayout(container, previousRects)
   animateUploadToastEnter(toast)
 
+  if (type === "loading") {
+    activeUploadToast = toast
+  }
+
   if (options.durationMs) {
-    setTimeout(() => dismissUploadToast(toast), options.durationMs)
+    scheduleUploadToastDismiss(toast, options.durationMs)
   }
 
   return toast
@@ -886,6 +987,12 @@ function updateUploadToast(
   options: { durationMs?: number } = {}
 ): void {
   if (!toast.isConnected || toast.classList.contains("view-heic-upload-toast--leaving")) return
+  if (activeUploadToast && activeUploadToast !== toast) {
+    removeUploadToastImmediately(toast)
+    return
+  }
+
+  clearUploadToastDismissTimer(toast)
 
   toast.className = `view-heic-upload-toast view-heic-upload-toast--${type}`
   toast.setAttribute("role", type === "error" ? "alert" : "status")
@@ -901,12 +1008,16 @@ function updateUploadToast(
   }
 
   if (options.durationMs) {
-    setTimeout(() => dismissUploadToast(toast), options.durationMs)
+    scheduleUploadToastDismiss(toast, options.durationMs)
   }
 }
 
 function dismissUploadToast(toast: HTMLElement): void {
   if (!toast.isConnected || toast.classList.contains("view-heic-upload-toast--leaving")) return
+  clearUploadToastDismissTimer(toast)
+  if (activeUploadToast === toast) {
+    activeUploadToast = undefined
+  }
   const container = toast.parentElement
   toast.classList.add("view-heic-upload-toast--leaving")
 
@@ -928,6 +1039,32 @@ function dismissUploadToast(toast: HTMLElement): void {
     { duration: 0.24, ease: "easeIn" }
   )
   controls.finished.then(removeToast, removeToast)
+}
+
+function scheduleUploadToastDismiss(toast: HTMLElement, durationMs: number): void {
+  clearUploadToastDismissTimer(toast)
+  uploadToastDismissTimers.set(
+    toast,
+    window.setTimeout(() => {
+      uploadToastDismissTimers.delete(toast)
+      dismissUploadToast(toast)
+    }, durationMs)
+  )
+}
+
+function clearUploadToastDismissTimer(toast: HTMLElement): void {
+  const timer = uploadToastDismissTimers.get(toast)
+  if (timer === undefined) return
+  window.clearTimeout(timer)
+  uploadToastDismissTimers.delete(toast)
+}
+
+function removeUploadToastImmediately(toast: HTMLElement): void {
+  clearUploadToastDismissTimer(toast)
+  if (activeUploadToast === toast) {
+    activeUploadToast = undefined
+  }
+  toast.remove()
 }
 
 function animateUploadToastEnter(toast: HTMLElement): void {

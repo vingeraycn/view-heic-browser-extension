@@ -1,4 +1,5 @@
 import { defineConfig } from "wxt"
+import { fileURLToPath } from "node:url"
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
@@ -10,6 +11,18 @@ export default defineConfig({
       import.meta.env.WXT_ENABLE_EXTENSION_ANALYTICS === "true"
         ? ["https://www.google-analytics.com/*"]
         : [],
+  }),
+  vite: () => ({
+    resolve: {
+      alias: {
+        "@heic-to-csp-lib": fileURLToPath(
+          new URL(
+            "./node_modules/heic-to/src/lib/libheif-without-unsafe-eval.js",
+            import.meta.url
+          )
+        ),
+      },
+    },
   }),
   webExt: {
     disabled: true,
