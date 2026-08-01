@@ -1,6 +1,6 @@
 import { sendAnalyticsEvent, type AnalyticsEventName, type AnalyticsParams } from "../utils/analytics"
+import { WELCOME_URL } from "../utils/links"
 
-const OFFICIAL_SITE_URL = "https://vingeraycn.github.io/view-heic-browser-extension/?welcome=1#how-it-works"
 const ANALYTICS_EVENT_NAMES = new Set<AnalyticsEventName>([
   "heic_detected",
   "conversion_success",
@@ -17,7 +17,7 @@ export default defineBackground(() => {
   browser.runtime.onInstalled.addListener((details) => {
     if (details.reason === "install") {
       console.log("🎉 View HEIC Extension 安装成功！")
-      browser.tabs.create({ url: OFFICIAL_SITE_URL })
+      browser.tabs.create({ url: WELCOME_URL })
     } else if (details.reason === "update") {
       console.log("🔄 View HEIC Extension 已更新到新版本")
     }

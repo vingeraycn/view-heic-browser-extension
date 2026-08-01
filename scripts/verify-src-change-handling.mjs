@@ -30,10 +30,10 @@ const checks = [
   {
     name: "MIME-only fallback probes are same-origin and cached",
     pass:
-      /mimeOnlyProbeCache\s*=\s*new Set<string>\(\)/.test(content) &&
+      /mimeOnlyProbeCache\s*=\s*new Map<string,\s*"heif"\s*\|\s*"not-heif">\(\)/.test(content) &&
       /isSameOriginUrl/.test(content) &&
-      /mimeOnlyProbeCache\.has\(src\)/.test(content) &&
-      /mimeOnlyProbeCache\.add\(src\)/.test(content),
+      /mimeOnlyProbeCache\.get\(src\)/.test(content) &&
+      /mimeOnlyProbeCache\.set\(src,\s*isHeif\s*\?\s*"heif"\s*:\s*"not-heif"\)/.test(content),
   },
   {
     name: "src mutation observer resets every changed HEIC image in the batch",
@@ -56,9 +56,11 @@ const checks = [
       !/img\.onclick\s*=\s*null/.test(resetBody),
   },
   {
-    name: "conversion failures silently restore the original image",
+    name: "conversion failures preserve the original source without restarting conversion",
     pass:
-      /img\.src\s*=\s*originalSrc/.test(errorBody) &&
+      !/img\.src\s*=/.test(errorBody) &&
+      /mutation\.oldValue === img\.getAttribute\("src"\)/.test(content) &&
+      /attributeOldValue:\s*true/.test(content) &&
       /console\.debug/.test(errorBody) &&
       !/classList\.add\("heic-error"\)/.test(errorBody) &&
       !/img\.title\s*=/.test(errorBody) &&

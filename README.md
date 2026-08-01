@@ -1,6 +1,6 @@
 # View HEIC Browser Extension
 
-[![Version](https://img.shields.io/badge/version-1.0.15-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?logo=google-chrome&logoColor=white)](https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge)
 
@@ -79,11 +79,12 @@ View HEIC uses the `storage` permission to save local state for the review promp
 
 ## Latest Release
 
-### v1.0.15
+### v1.3.0
 
-- Added anonymous conversion and review funnel analytics for release diagnostics.
-- Kept image conversion local and excluded image contents, image URLs, page URLs, file names, browsing history, and converted images from analytics.
-- Hardened analytics event validation and non-blocking review prompt interactions.
+- Added a polished popup with live page status, per-site controls, help, and a local file converter.
+- Improved HEIC / HEIF uploads on Gemini while preserving the existing ChatGPT workflow.
+- Made conversion failures settle cleanly without repeated loading or retry loops.
+- Opened first-install onboarding in English and kept help links aligned with the popup language.
 
 ### v1.0.12
 

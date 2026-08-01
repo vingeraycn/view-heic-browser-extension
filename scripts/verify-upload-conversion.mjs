@@ -5,7 +5,21 @@ import fs from "fs"
 const content = fs.readFileSync("entrypoints/content.ts", "utf8")
 const interceptor = fs.readFileSync("entrypoints/upload-interceptor.content.ts", "utf8")
 const converter = fs.readFileSync("utils/heic-converter.ts", "utf8")
+const uploadConverter = fs.readFileSync("utils/upload-heif-converter.ts", "utf8")
+const directConverter = fs.readFileSync("utils/direct-heif-converter.ts", "utf8")
+const geminiDecoder = fs.readFileSync("entrypoints/gemini-decoder.content.ts", "utf8")
+const dropReplay = fs.readFileSync("utils/upload-drop-replay.ts", "utf8")
 const testPage = fs.readFileSync("docs/test-improved.html", "utf8")
+const builtManifestPath = ".output/chrome-mv3/manifest.json"
+const builtContentScripts = JSON.parse(
+  fs.readFileSync(builtManifestPath, "utf8")
+).content_scripts ?? []
+
+function findBuiltContentScript(fileName) {
+  return builtContentScripts?.find((script) =>
+    script.js?.some((file) => file.endsWith(`content-scripts/${fileName}`))
+  )
+}
 
 function assert(condition, message) {
   if (!condition) {
@@ -52,14 +66,30 @@ assert(
 )
 
 assert(
-  content.includes('window.addEventListener("drop", handleUploadDrop, true)') &&
-    content.includes("event.stopImmediatePropagation()") &&
+  interceptor.includes('window.addEventListener("drop", interceptHeifDrop, true)') &&
+    interceptor.includes("DROP_REQUEST_EVENT") &&
+    interceptor.includes("DROP_REPLAY_EVENT") &&
+    interceptor.includes("event.stopImmediatePropagation()") &&
+    interceptor.includes("pendingDropSessions") &&
+    interceptor.includes("documentUrl: location.href") &&
+    interceptor.includes("session.documentUrl !== location.href") &&
+    interceptor.includes("handledByInput") &&
+    content.includes("DROP_REQUEST_EVENT") &&
     content.includes("getFileInputDropTarget(event)") &&
-    content.includes("replayInputFiles(input, result.files)") &&
-    content.includes('new DragEvent("drop"') &&
-    content.includes("dataTransfer,") &&
-    content.includes("target.dispatchEvent("),
-  "dragged HEIF files are converted and replayed for native inputs and drop targets"
+    content.includes("replayInputFilesSafely(input, result.files)") &&
+    content.includes("DROP_REPLAY_EVENT") &&
+    interceptor.includes("replayUploadDrop({") &&
+    interceptor.includes('? "full-lifecycle" : "drop-only"') &&
+    dropReplay.includes('type DropReplayEventType = "dragenter" | "dragover" | "dragleave" | "drop"') &&
+    dropReplay.includes("environment.getTargetAtPoint(source.clientX, source.clientY)") &&
+    dropReplay.includes('dispatchDropPhase("dragenter"') &&
+    dropReplay.includes('dispatchDropPhase("dragover"') &&
+    dropReplay.includes("if (!accepted) return false") &&
+    dropReplay.includes("if (!completed)") &&
+    dropReplay.includes("leaveConnectedTarget(currentTarget") &&
+    !dropReplay.includes("fallbackTarget: document") &&
+    dropReplay.includes('dispatchDropPhase("drop"'),
+  "dragged HEIF files are intercepted and replayed in the page world, with Gemini lifecycle rebuilding"
 )
 
 assert(
@@ -69,7 +99,7 @@ assert(
     interceptor.includes("event.stopImmediatePropagation()") &&
     content.includes("PASTE_REQUEST_EVENT") &&
     content.includes("handleUploadPaste") &&
-    content.includes("convertUploadFiles(detail.files)"),
+    content.includes("convertUploadFiles(detail.files, operationGeneration)"),
   "pasted HEIF files are intercepted early and converted through the shared upload pipeline"
 )
 
@@ -79,8 +109,8 @@ assert(
     interceptor.includes('new ClipboardEvent("paste"') &&
     interceptor.includes("detail.strings.forEach") &&
     interceptor.includes("detail.files.forEach") &&
-    content.includes("replayPasteEvent(target, detail, result.files)") &&
-    content.includes("replayPasteEvent(target, detail, detail.files)"),
+    content.includes("replayPasteEventSafely(target, detail, result.files)") &&
+    content.includes("replayPasteEventSafely(target, detail, detail.files)"),
   "paste replay preserves clipboard strings and files, avoids recursion, and falls back to originals"
 )
 
@@ -107,8 +137,17 @@ assert(
     content.includes("function nextUploadGeneration(") &&
     content.includes("function isCurrentUploadGeneration(") &&
     content.includes("dismissUploadToast(loadingToast)") &&
-    content.includes("replayInputFiles(input, files)"),
+    content.includes("replayInputFilesSafely(input, files)"),
   "stale async upload conversion results do not overwrite a newer file selection"
+)
+
+assert(
+  content.includes("let siteOperationGeneration = 0") &&
+    content.includes("const operationGeneration = siteOperationGeneration") &&
+    content.includes("operationGeneration !== siteOperationGeneration") &&
+    content.includes("convertUploadFiles(files, operationGeneration)") &&
+    content.includes("convertUploadFiles(detail.files, operationGeneration)"),
+  "site disable or disable-then-enable invalidates in-flight upload results and replays originals"
 )
 
 assert(
@@ -125,6 +164,44 @@ assert(
     content.includes("@media (prefers-color-scheme: dark)") &&
     content.includes("@media (prefers-reduced-motion: reduce)"),
   "upload toast is isolated, spring-animated, supports loading state, and adapts UI preferences"
+)
+
+assert(
+  uploadConverter.includes("createUploadHeifConverter") &&
+    uploadConverter.includes('location.hostname.toLowerCase() === "gemini.google.com"') &&
+    uploadConverter.includes("getGeminiDecoderService") &&
+    directConverter.includes('import("@heic-to-csp-lib")') &&
+    directConverter.includes("MAX_IMAGE_PIXELS") &&
+    geminiDecoder.includes('matches: ["https://gemini.google.com/*"]') &&
+    geminiDecoder.includes('world: "ISOLATED"') &&
+    geminiDecoder.includes("registerGeminiDecoderService") &&
+    geminiDecoder.includes("new SerialTaskQueue()") &&
+    content.includes("convertHeifUploadFileToJpegFile(file)") &&
+    content.includes('world: "ISOLATED"') &&
+    interceptor.includes('world: "MAIN"') &&
+    findBuiltContentScript("content.js")?.world === "ISOLATED" &&
+    findBuiltContentScript("gemini-decoder.js")?.world === "ISOLATED" &&
+    findBuiltContentScript("upload-interceptor.js")?.world === "MAIN",
+  "Gemini's decoder and its content-script consumer share the isolated world while the MAIN-world interceptor only forwards DOM events"
+)
+
+assert(
+  interceptor.includes("let replayingDrop = false") &&
+    interceptor.includes("if (!interceptionEnabled || replayingDrop) return") &&
+    interceptor.includes("replayingDrop = true") &&
+    interceptor.includes("replayingDrop = false"),
+  "replayed drag events cannot recursively start another HEIF conversion"
+)
+
+assert(
+    content.includes("let activeUploadToast: HTMLElement | undefined") &&
+    content.includes("removeUploadToastImmediately(activeUploadToast)") &&
+    content.includes('".view-heic-upload-toast"') &&
+    content.includes("clearUploadToastDismissTimer(toast)") &&
+    content.includes("replayInputFilesSafely") &&
+    content.includes("replayDropEventSafely") &&
+    content.includes("replayPasteEventSafely"),
+  "loading, success, and error toast states are mutually exclusive and replay failures still settle"
 )
 
 assert(

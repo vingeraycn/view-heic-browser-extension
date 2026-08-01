@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Convert a file · View HEIC</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand">
+        <img src="/icon/48.png" alt="" width="36" height="36" />
+        <span>View HEIC</span>
+      </div>
+      <a class="help-link" id="help-link" target="_blank" rel="noopener noreferrer">
+        <i class="ph ph-question" aria-hidden="true"></i>
+        <span id="help-label">Help</span>
+      </a>
+    </header>
+
+    <main class="converter-shell">
+      <div class="intro">
+        <h1 id="page-title">Convert HEIC to JPEG</h1>
+        <p id="page-subtitle">Choose a file. It stays on this device.</p>
+      </div>
+
+      <section class="converter-card" aria-labelledby="page-title">
+        <input
+          class="file-input"
+          id="file-input"
+          type="file"
+          hidden
+          accept=".heic,.heif,.heics,.heifs,image/heic,image/heif,image/heic-sequence,image/heif-sequence"
+        />
+
+        <button class="drop-zone" id="drop-zone" type="button">
+          <span class="drop-icon">
+            <i class="ph ph-image-square" aria-hidden="true"></i>
+          </span>
+          <span class="drop-title" id="drop-title">Choose a HEIC or HEIF file</span>
+          <span class="drop-hint" id="drop-hint">or drop it here · up to 50 MB</span>
+        </button>
+
+        <div class="result" id="result" tabindex="-1" hidden>
+          <div class="result-heading">
+            <i class="ph ph-circle-notch result-icon" id="result-icon" aria-hidden="true"></i>
+            <div class="result-copy">
+              <h2 id="result-title">Converting…</h2>
+              <p id="result-detail"></p>
+            </div>
+            <button class="text-button" id="choose-another" type="button">Choose another</button>
+          </div>
+
+          <figure class="preview" id="preview" hidden>
+            <img id="preview-image" alt="" />
+          </figure>
+
+          <a class="download-button" id="download-button" href="#" hidden>
+            <i class="ph ph-download-simple" aria-hidden="true"></i>
+            <span id="download-label">Download JPEG</span>
+          </a>
+        </div>
+      </section>
+
+      <p class="privacy-note">
+        <i class="ph ph-shield-check" aria-hidden="true"></i>
+        <span id="privacy-label">Converted on this device</span>
+      </p>
+
+      <p class="visually-hidden" id="live-status" role="status" aria-live="polite"></p>
+    </main>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

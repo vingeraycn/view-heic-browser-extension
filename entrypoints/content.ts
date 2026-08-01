@@ -2,24 +2,49 @@ import { debounce } from "lodash-es"
 import { animate } from "motion"
 import viewHeicLogoDataUrl from "../public/icon/32.png?inline"
 import { CONFIG, SELECTORS } from "../utils/constants"
-import { hasHeifExtension, isHeifMimeType } from "../utils/heif-format"
-import { HEICConverter, convertHeifFileToJpegFile } from "../utils/heic-converter"
 import {
+  PAGE_STATE_CHANGED_MESSAGE,
+  VIEW_HEIC_PROTOCOL_VERSION,
+  createInitialPageState,
+  isPageStateGetMessage,
+  isSiteEnabledSetMessage,
+  type PageState,
+} from "../utils/extension-messages"
+import { hasHeifExtension, isHeifMimeType } from "../utils/heif-format"
+import { HEICConverter } from "../utils/heic-converter"
+import { ISSUE_URL, STORE_REVIEW_URL } from "../utils/links"
+import {
+  PageConversionLedger,
+  type PageConversionCounts,
+  type PageConversionEntry,
+} from "../utils/page-conversion-ledger"
+import { SerialTaskQueue } from "../utils/serial-task-queue"
+import {
+  INTERCEPTOR_DISABLE_EVENT,
+  INTERCEPTOR_ENABLE_EVENT,
+  INTERCEPTOR_READY_EVENT,
+  getSiteEnabled,
+  getSiteEnabledFromChanges,
+  getSiteHost,
+  setSiteEnabled,
+} from "../utils/site-preferences"
+import {
+  DROP_REPLAY_EVENT,
+  DROP_REQUEST_EVENT,
   PASTE_REPLAY_EVENT,
   PASTE_REQUEST_EVENT,
   UPLOAD_REPLAY_ATTRIBUTE,
   UPLOAD_REQUEST_EVENT,
 } from "../utils/upload-constants"
+import type { UploadDropReplaySource } from "../utils/upload-drop-replay"
+import { convertHeifUploadFileToJpegFile } from "../utils/upload-heif-converter"
 import type { AnalyticsEventName, AnalyticsParams } from "../utils/analytics"
 import type { ConversionError } from "../utils/types"
 
-const STORE_REVIEW_URL =
-  "https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge/reviews"
-const ISSUE_URL = "https://github.com/vingeraycn/view-heic-browser-extension/issues/new"
 const RATING_PROMPT_STORAGE_KEY = "viewHeicRatingPrompt"
 const MIN_SUCCESSFUL_IMAGES_FOR_PROMPT = 11
 const RATING_PROMPT_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000
-const mimeOnlyProbeCache = new Set<string>()
+const mimeOnlyProbeCache = new Map<string, "heif" | "not-heif">()
 
 type ConversionTrigger = "initial" | "mutation"
 type ConversionErrorType = ConversionError["type"] | "mixed"
@@ -30,6 +55,16 @@ interface UploadConversionResult {
   files: File[]
   convertedCount: number
   failedCount: number
+}
+
+interface ConversionSummary {
+  successCount: number
+  failureCount: number
+}
+
+interface FailedImageObserver {
+  flush: () => Promise<void>
+  dispose: () => void
 }
 
 interface RatingPromptState {
@@ -49,8 +84,22 @@ interface PasteConversionDetail {
   strings: ClipboardStringItem[]
 }
 
+interface DropConversionDetail {
+  requestId: string
+  files: File[]
+  source: UploadDropReplaySource
+}
+
 let uploadToastContainer: HTMLElement | undefined
+let activeUploadToast: HTMLElement | undefined
+const uploadToastDismissTimers = new WeakMap<HTMLElement, number>()
 const uploadGenerations = new WeakMap<HTMLInputElement, number>()
+const pageConversionLedger = new PageConversionLedger<HTMLImageElement>()
+const pageWorkQueue = new SerialTaskQueue()
+let contentScriptEnabled = false
+let currentPageState: PageState
+let siteOperationGeneration = 0
+let pageConversionController = new AbortController()
 
 const UPLOAD_TOAST_LAYOUT_SPRING = {
   type: "spring",
@@ -69,22 +118,165 @@ const UPLOAD_TOAST_ENTER_SPRING = {
 export default defineContentScript({
   matches: ["<all_urls>"],
   runAt: "document_start",
-  async main() {
+  world: "ISOLATED",
+  async main(ctx) {
     console.log("🖼️ View HEIC Extension Loaded")
 
+    const siteHost = getSiteHost(location.href) ?? location.hostname
     const converter = new HEICConverter()
-    observeHEICUploads()
-    observeFailedImageLoads(converter)
+    pageConversionController.abort()
+    pageConversionLedger.reset()
+    currentPageState = createInitialPageState(siteHost)
+    contentScriptEnabled = false
+    notifyPageInterceptor(false)
+    const handleInterceptorReady = (): void => notifyPageInterceptor(contentScriptEnabled)
+    window.addEventListener(INTERCEPTOR_READY_EVENT, handleInterceptorReady)
 
-    await domReady()
-    injectStyles()
-    await processHEICImages(converter, "initial")
-    observeHEICImages(converter)
+    let disposePageObserver: (() => void) | undefined
+    let disposeStyles: (() => void) | undefined
+    let setupPromise: Promise<void> | undefined
+    let disposed = false
+    let sitePreferenceInitialized = false
+    let preferenceRevision = 0
+    const disposeUploadObserver = observeHEICUploads()
+    const failedImageObserver = observeFailedImageLoads(
+      converter,
+      () => siteOperationGeneration
+    )
 
-    // 页面卸载时清理资源
-    window.addEventListener("beforeunload", () => {
+    const ensurePageObservers = async (): Promise<void> => {
+      setupPromise ??= (async () => {
+        await domReady()
+        if (disposed) return
+        disposeStyles = injectStyles()
+        disposePageObserver = observeHEICImages(converter)
+      })()
+
+      await setupPromise
+    }
+
+    const applySiteEnabled = async (enabled: boolean): Promise<PageState> => {
+      if (disposed) return currentPageState
+      if (sitePreferenceInitialized && contentScriptEnabled === enabled) {
+        return currentPageState
+      }
+
+      sitePreferenceInitialized = true
+      const applyGeneration = ++siteOperationGeneration
+      contentScriptEnabled = enabled
+      pageConversionController.abort()
+      pageConversionLedger.reset()
+      converter.cancelPendingConversions()
+      if (enabled) {
+        pageConversionController = new AbortController()
+      }
+      notifyPageInterceptor(enabled)
+
+      if (!enabled) {
+        updatePageState({
+          siteEnabled: false,
+          phase: "disabled",
+          detected: 0,
+          converted: 0,
+          failed: 0,
+        })
+        return currentPageState
+      }
+
+      updatePageState({ siteEnabled: true, phase: "initializing" })
+      await ensurePageObservers()
+      if (disposed || applyGeneration !== siteOperationGeneration || !contentScriptEnabled) {
+        return currentPageState
+      }
+
+      await processHEICImages(converter, "initial")
+      if (disposed || applyGeneration !== siteOperationGeneration || !contentScriptEnabled) {
+        return currentPageState
+      }
+
+      await failedImageObserver.flush()
+      return currentPageState
+    }
+
+    const handleRuntimeMessage: Parameters<typeof browser.runtime.onMessage.addListener>[0] = (
+      message,
+      _sender,
+      sendResponse
+    ) => {
+      if (isPageStateGetMessage(message)) {
+        sendResponse(currentPageState)
+        return
+      }
+
+      if (!isSiteEnabledSetMessage(message)) return
+      if (message.expectedPageInstanceId !== currentPageState.pageInstanceId) {
+        sendResponse({
+          ok: false,
+          error: "stale-document",
+          state: currentPageState,
+        })
+        return
+      }
+
+      preferenceRevision += 1
+      void setSiteEnabled(siteHost, message.enabled)
+        .then(() => applySiteEnabled(message.enabled))
+        .then((state) => sendResponse({ ok: true, state }))
+        .catch((error) => {
+          console.warn("View HEIC site preference update failed:", error)
+          sendResponse({
+            ok: false,
+            error: "storage-failed",
+            state: currentPageState,
+          })
+        })
+      return true
+    }
+
+    browser.runtime.onMessage.addListener(handleRuntimeMessage)
+
+    const handleStorageChange: Parameters<typeof browser.storage.onChanged.addListener>[0] = (
+      changes,
+      areaName
+    ) => {
+      if (areaName !== "local") return
+      const enabled = getSiteEnabledFromChanges(changes, siteHost)
+      if (enabled === undefined) return
+      preferenceRevision += 1
+      void applySiteEnabled(enabled)
+    }
+
+    browser.storage.onChanged.addListener(handleStorageChange)
+
+    const cleanup = (): void => {
+      if (disposed) return
+      disposed = true
+      contentScriptEnabled = false
+      siteOperationGeneration += 1
+      pageConversionLedger.reset()
+      pageConversionController.abort()
+      notifyPageInterceptor(false)
+      disposeUploadObserver()
+      failedImageObserver.dispose()
+      disposePageObserver?.()
+      disposeStyles?.()
       converter.cleanup()
+      browser.runtime.onMessage.removeListener(handleRuntimeMessage)
+      browser.storage.onChanged.removeListener(handleStorageChange)
+      window.removeEventListener(INTERCEPTOR_READY_EVENT, handleInterceptorReady)
+    }
+
+    window.addEventListener("beforeunload", cleanup, { once: true })
+    ctx.onInvalidated(cleanup)
+
+    const initialPreferenceRevision = preferenceRevision
+    const enabled = await getSiteEnabled(siteHost).catch((error) => {
+      console.warn("View HEIC site preference read failed:", error)
+      return true
     })
+    if (!disposed && initialPreferenceRevision === preferenceRevision) {
+      await applySiteEnabled(enabled)
+    }
   },
 })
 
@@ -98,11 +290,33 @@ function domReady(): Promise<void> {
   })
 }
 
+function updatePageState(next: Partial<Omit<PageState, "protocol" | "extensionVersion" | "pageInstanceId" | "siteHost">>): void {
+  currentPageState = {
+    ...currentPageState,
+    ...next,
+  }
+
+  void browser.runtime
+    .sendMessage({
+      type: PAGE_STATE_CHANGED_MESSAGE,
+      protocol: VIEW_HEIC_PROTOCOL_VERSION,
+      state: currentPageState,
+    })
+    .catch(() => {
+      // The popup is usually closed; state broadcasts are best effort.
+    })
+}
+
+function notifyPageInterceptor(enabled: boolean): void {
+  window.dispatchEvent(new Event(enabled ? INTERCEPTOR_ENABLE_EVENT : INTERCEPTOR_DISABLE_EVENT))
+}
+
 /**
  * 注入样式到页面
  */
-function injectStyles(): void {
+function injectStyles(): () => void {
   const style = document.createElement("style")
+  style.dataset.viewHeicStyles = "true"
   style.textContent = `
     /* HEIC图片处理状态样式 */
     .heic-processing {
@@ -240,26 +454,83 @@ function injectStyles(): void {
     }
   `
   document.head.appendChild(style)
+  return () => style.remove()
 }
 
 /**
  * 处理页面中的所有HEIC图片
  */
 async function processHEICImages(converter: HEICConverter, trigger: ConversionTrigger): Promise<void> {
-  const images = findHEICImages(document)
+  const signal = pageConversionController.signal
+  await pageWorkQueue.run(async () => {
+    if (signal.aborted || !contentScriptEnabled) return
 
-  if (images.length === 0) {
-    return
-  }
+    const images = findHEICImages(document).filter((image) =>
+      !pageConversionLedger.hasFailed({ item: image, version: getImageSrc(image) })
+    )
+    if (images.length === 0) {
+      if (trigger === "initial" || currentPageState.phase === "initializing") {
+        updatePageState({
+          siteEnabled: true,
+          phase: "idle",
+          detected: 0,
+          converted: 0,
+          failed: 0,
+        })
+      }
+      return
+    }
 
-  console.log(`📷 发现 ${images.length} 张HEIC图片，开始转换...`)
-  sendAnalyticsEvent("heic_detected", { image_count: images.length })
+    console.log(`📷 发现 ${images.length} 张HEIC图片，开始转换...`)
+    sendAnalyticsEvent("heic_detected", { image_count: images.length })
+    const entries = images.map((image) => ({ item: image, version: getImageSrc(image) }))
+    const started = pageConversionLedger.begin(entries)
+    updatePageState({
+      siteEnabled: true,
+      phase: "converting",
+      detected: started.detected,
+      converted: started.converted,
+      failed: started.failed,
+    })
 
-  const results = await converter.convertAllImages(images)
-  await recordConversionResults(results, trigger)
+    const results = await converter.convertAllImages(images, { signal })
+    if (signal.aborted || !contentScriptEnabled) return
+
+    const completedEntries: PageConversionEntry<HTMLImageElement>[] = []
+    const completedResults: ConversionResults = []
+    const discardedEntries: PageConversionEntry<HTMLImageElement>[] = []
+    entries.forEach((entry, index) => {
+      const result = results[index]
+      if (result && isCurrentPageConversionResult(converter, entry, result)) {
+        completedEntries.push(entry)
+        completedResults.push(result)
+      } else {
+        discardedEntries.push(entry)
+      }
+    })
+    pageConversionLedger.discard(discardedEntries)
+
+    await recordConversionResults(completedResults, trigger)
+    if (signal.aborted || !contentScriptEnabled) return
+
+    const settled = pageConversionLedger.settle(
+      completedEntries,
+      completedResults.map((result) => result.success)
+    )
+    updatePageState({
+      siteEnabled: true,
+      phase: getSettledPagePhase(settled),
+      detected: settled.detected,
+      converted: settled.converted,
+      failed: settled.failed,
+    })
+  })
 }
 
-async function recordConversionResults(results: ConversionResults, trigger: ConversionTrigger): Promise<void> {
+async function recordConversionResults(
+  results: ConversionResults,
+  trigger: ConversionTrigger
+): Promise<ConversionSummary> {
   // 统计转换结果
   const successCount = results.filter((r) => r.success).length
   const failureCount = results.length - successCount
@@ -286,10 +557,28 @@ async function recordConversionResults(results: ConversionResults, trigger: Conv
   }
 
   await maybeShowRatingPrompt(successCount, failureCount)
+  return { successCount, failureCount }
 }
 
 function getImageSrc(img: HTMLImageElement): string {
   return img.src
+}
+
+function getSettledPagePhase(counts: PageConversionCounts): PageState["phase"] {
+  if (counts.pending > 0) return "converting"
+  if (counts.failed > 0) return "error"
+  if (counts.converted > 0) return "complete"
+  return "idle"
+}
+
+function isCurrentPageConversionResult(
+  converter: HEICConverter,
+  entry: PageConversionEntry<HTMLImageElement>,
+  result: ConversionResults[number]
+): boolean {
+  if (result.cancelled) return false
+  if (result.success) return converter.isCurrentConversionResult(entry.item)
+  return result.error !== undefined
 }
 
 function isHEICImageCandidate(img: HTMLImageElement): boolean {
@@ -300,14 +589,22 @@ function findHEICImages(root: ParentNode): HTMLImageElement[] {
   return Array.from(root.querySelectorAll<HTMLImageElement>(SELECTORS.IMAGE_CANDIDATES)).filter(isHEICImageCandidate)
 }
 
-function observeHEICUploads(): void {
+function observeHEICUploads(): () => void {
   window.addEventListener("change", rememberFileInputSelection, true)
   window.addEventListener(UPLOAD_REQUEST_EVENT, handleUploadChange, true)
-  window.addEventListener("drop", handleUploadDrop, true)
+  window.addEventListener(DROP_REQUEST_EVENT, handleUploadDrop, true)
   window.addEventListener(PASTE_REQUEST_EVENT, handleUploadPaste, true)
+
+  return () => {
+    window.removeEventListener("change", rememberFileInputSelection, true)
+    window.removeEventListener(UPLOAD_REQUEST_EVENT, handleUploadChange, true)
+    window.removeEventListener(DROP_REQUEST_EVENT, handleUploadDrop, true)
+    window.removeEventListener(PASTE_REQUEST_EVENT, handleUploadPaste, true)
+  }
 }
 
 function rememberFileInputSelection(event: Event): void {
+  if (!contentScriptEnabled) return
   if (!(event.target instanceof HTMLInputElement) || event.target.type !== "file") return
   if (event.target.hasAttribute(UPLOAD_REPLAY_ATTRIBUTE)) return
   if (Array.from(event.target.files ?? []).some(isHEIFUploadCandidate)) return
@@ -323,21 +620,35 @@ async function handleUploadChange(event: Event): Promise<void> {
   const heifCount = files.filter(isHEIFUploadCandidate).length
   if (heifCount === 0) return
 
+  if (!contentScriptEnabled) {
+    replayInputFiles(input, files)
+    return
+  }
+
   event.preventDefault()
   event.stopImmediatePropagation()
 
   const generation = nextUploadGeneration(input)
+  const operationGeneration = siteOperationGeneration
   const loadingToast = showUploadToast("loading", getUploadLoadingMessage(heifCount))
 
   try {
-    const result = await convertUploadFiles(files)
+    const result = await convertUploadFiles(files, operationGeneration)
     if (!isCurrentUploadGeneration(input, generation)) {
       dismissUploadToast(loadingToast)
       return
     }
+    if (!contentScriptEnabled || operationGeneration !== siteOperationGeneration) {
+      replayInputFilesSafely(input, files)
+      dismissUploadToast(loadingToast)
+      return
+    }
 
-    replayInputFiles(input, result.files)
-    updateUploadToastForResult(loadingToast, result)
+    if (replayInputFilesSafely(input, result.files)) {
+      updateUploadToastForResult(loadingToast, result)
+    } else {
+      updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
+    }
   } catch (error) {
     if (!isCurrentUploadGeneration(input, generation)) {
       dismissUploadToast(loadingToast)
@@ -345,13 +656,18 @@ async function handleUploadChange(event: Event): Promise<void> {
     }
 
     console.warn("View HEIC upload conversion failed:", error)
-    replayInputFiles(input, files)
+    replayInputFilesSafely(input, files)
     updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
   }
 }
 
-async function handleUploadDrop(event: DragEvent): Promise<void> {
-  const files = Array.from(event.dataTransfer?.files ?? [])
+async function handleUploadDrop(event: Event): Promise<void> {
+  if (!(event instanceof CustomEvent)) return
+
+  const detail = event.detail as DropConversionDetail | undefined
+  if (!isDropConversionDetail(detail)) return
+  if (!contentScriptEnabled) return
+  const files = detail.files
   const heifCount = files.filter(isHEIFUploadCandidate).length
   if (heifCount === 0) return
 
@@ -362,11 +678,26 @@ async function handleUploadDrop(event: DragEvent): Promise<void> {
   event.stopImmediatePropagation()
 
   const input = getFileInputDropTarget(event)
+  if (input) acknowledgeInputDrop(detail)
   const generation = input ? nextUploadGeneration(input) : undefined
+  const operationGeneration = siteOperationGeneration
   const loadingToast = showUploadToast("loading", getUploadLoadingMessage(heifCount))
 
   try {
-    const result = await convertUploadFiles(files)
+    const result = await convertUploadFiles(files, operationGeneration)
+    if (!contentScriptEnabled || operationGeneration !== siteOperationGeneration) {
+      if (input) {
+        if (!isCurrentUploadGeneration(input, generation)) {
+          dismissUploadToast(loadingToast)
+          return
+        }
+        replayInputFilesSafely(input, files)
+      } else {
+        replayDropEventSafely(detail, files)
+      }
+      dismissUploadToast(loadingToast)
+      return
+    }
 
     if (input) {
       if (!isCurrentUploadGeneration(input, generation)) {
@@ -374,9 +705,15 @@ async function handleUploadDrop(event: DragEvent): Promise<void> {
         return
       }
 
-      replayInputFiles(input, result.files)
+      if (!replayInputFilesSafely(input, result.files)) {
+        updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
+        return
+      }
     } else {
-      replayDropEvent(target, event, result.files)
+      if (!replayDropEventSafely(detail, result.files)) {
+        updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
+        return
+      }
     }
 
     updateUploadToastForResult(loadingToast, result)
@@ -388,10 +725,43 @@ async function handleUploadDrop(event: DragEvent): Promise<void> {
 
     console.warn("View HEIC drag upload conversion failed:", error)
     if (input) {
-      replayInputFiles(input, files)
+      replayInputFilesSafely(input, files)
+    } else {
+      replayDropEventSafely(detail, files)
     }
     updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
   }
+}
+
+function acknowledgeInputDrop(detail: DropConversionDetail): void {
+  window.dispatchEvent(
+    new CustomEvent(DROP_REPLAY_EVENT, {
+      cancelable: true,
+      detail: { requestId: detail.requestId, handledByInput: true },
+    })
+  )
+}
+
+function isDropConversionDetail(detail: DropConversionDetail | undefined): detail is DropConversionDetail {
+  if (
+    !detail ||
+    typeof detail.requestId !== "string" ||
+    !Array.isArray(detail.files) ||
+    !detail.source
+  ) {
+    return false
+  }
+  const { source } = detail
+  return (
+    Number.isFinite(source.clientX) &&
+    Number.isFinite(source.clientY) &&
+    Number.isFinite(source.screenX) &&
+    Number.isFinite(source.screenY) &&
+    typeof source.ctrlKey === "boolean" &&
+    typeof source.shiftKey === "boolean" &&
+    typeof source.altKey === "boolean" &&
+    typeof source.metaKey === "boolean"
+  )
 }
 
 async function handleUploadPaste(event: Event): Promise<void> {
@@ -406,35 +776,58 @@ async function handleUploadPaste(event: Event): Promise<void> {
   const target = event.target
   if (!(target instanceof EventTarget)) return
 
+  if (!contentScriptEnabled) {
+    replayPasteEvent(target, detail, detail.files)
+    return
+  }
+
   event.preventDefault()
   event.stopImmediatePropagation()
 
   const loadingToast = showUploadToast("loading", getUploadLoadingMessage(heifCount))
+  const operationGeneration = siteOperationGeneration
 
   try {
-    const result = await convertUploadFiles(detail.files)
-    replayPasteEvent(target, detail, result.files)
-    updateUploadToastForResult(loadingToast, result)
+    const result = await convertUploadFiles(detail.files, operationGeneration)
+    if (!contentScriptEnabled || operationGeneration !== siteOperationGeneration) {
+      replayPasteEventSafely(target, detail, detail.files)
+      dismissUploadToast(loadingToast)
+      return
+    }
+    if (replayPasteEventSafely(target, detail, result.files)) {
+      updateUploadToastForResult(loadingToast, result)
+    } else {
+      updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
+    }
   } catch (error) {
     console.warn("View HEIC paste conversion failed:", error)
-    replayPasteEvent(target, detail, detail.files)
+    replayPasteEventSafely(target, detail, detail.files)
     updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
   }
 }
 
-async function convertUploadFiles(files: File[]): Promise<UploadConversionResult> {
+async function convertUploadFiles(
+  files: File[],
+  operationGeneration: number
+): Promise<UploadConversionResult> {
   const convertedFiles: File[] = []
   let convertedCount = 0
   let failedCount = 0
 
-  for (const file of files) {
+  for (let index = 0; index < files.length; index += 1) {
+    const file = files[index]
+    if (!contentScriptEnabled || operationGeneration !== siteOperationGeneration) {
+      convertedFiles.push(...files.slice(index))
+      break
+    }
+
     if (!isHEIFUploadCandidate(file)) {
       convertedFiles.push(file)
       continue
     }
 
     try {
-      convertedFiles.push(await convertHeifFileToJpegFile(file))
+      convertedFiles.push(await convertHeifUploadFileToJpegFile(file))
       convertedCount += 1
     } catch (error) {
       failedCount += 1
@@ -456,26 +849,37 @@ function replayInputFiles(input: HTMLInputElement, files: File[]): void {
   input.dispatchEvent(new Event("change", { bubbles: true }))
 }
 
-function replayDropEvent(target: EventTarget, event: DragEvent, files: File[]): void {
-  const dataTransfer = new DataTransfer()
-  files.forEach((file) => dataTransfer.items.add(file))
+function replayInputFilesSafely(input: HTMLInputElement, files: File[]): boolean {
+  try {
+    replayInputFiles(input, files)
+    return true
+  } catch (error) {
+    console.warn("View HEIC upload replay failed:", error)
+    return false
+  }
+}
 
-  target.dispatchEvent(
-    new DragEvent("drop", {
-      bubbles: true,
-      cancelable: true,
-      composed: true,
-      dataTransfer,
-      clientX: event.clientX,
-      clientY: event.clientY,
-      screenX: event.screenX,
-      screenY: event.screenY,
-      ctrlKey: event.ctrlKey,
-      shiftKey: event.shiftKey,
-      altKey: event.altKey,
-      metaKey: event.metaKey,
-    })
-  )
+function replayDropEvent(detail: DropConversionDetail, files: File[]): boolean {
+  const replayEvent = new CustomEvent(DROP_REPLAY_EVENT, {
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+    detail: { requestId: detail.requestId, files },
+  })
+  window.dispatchEvent(replayEvent)
+  return replayEvent.defaultPrevented
+}
+
+function replayDropEventSafely(
+  detail: DropConversionDetail,
+  files: File[]
+): boolean {
+  try {
+    return replayDropEvent(detail, files)
+  } catch (error) {
+    console.warn("View HEIC drag replay failed:", error)
+    return false
+  }
 }
 
 function replayPasteEvent(target: EventTarget, detail: PasteConversionDetail, files: File[]): void {
@@ -488,7 +892,21 @@ function replayPasteEvent(target: EventTarget, detail: PasteConversionDetail, fi
   )
 }
 
-function getFileInputDropTarget(event: DragEvent): HTMLInputElement | undefined {
+function replayPasteEventSafely(
+  target: EventTarget,
+  detail: PasteConversionDetail,
+  files: File[]
+): boolean {
+  try {
+    replayPasteEvent(target, detail, files)
+    return true
+  } catch (error) {
+    console.warn("View HEIC paste replay failed:", error)
+    return false
+  }
+}
+
+function getFileInputDropTarget(event: Event): HTMLInputElement | undefined {
   return event
     .composedPath()
     .find((target): target is HTMLInputElement => target instanceof HTMLInputElement && target.type === "file")
@@ -551,6 +969,16 @@ function showUploadToast(
   options: { durationMs?: number } = {}
 ): HTMLElement {
   const container = getUploadToastContainer()
+  if (type === "loading") {
+    if (activeUploadToast?.isConnected) {
+      removeUploadToastImmediately(activeUploadToast)
+    }
+    for (const existingToast of container.querySelectorAll<HTMLElement>(
+      ".view-heic-upload-toast"
+    )) {
+      removeUploadToastImmediately(existingToast)
+    }
+  }
   const previousRects = measureUploadToastRects(container)
   const toast = document.createElement("div")
   toast.className = `view-heic-upload-toast view-heic-upload-toast--${type}`
@@ -578,8 +1006,12 @@ function showUploadToast(
   animateUploadToastLayout(container, previousRects)
   animateUploadToastEnter(toast)
 
+  if (type === "loading") {
+    activeUploadToast = toast
+  }
+
   if (options.durationMs) {
-    setTimeout(() => dismissUploadToast(toast), options.durationMs)
+    scheduleUploadToastDismiss(toast, options.durationMs)
   }
 
   return toast
@@ -592,6 +1024,12 @@ function updateUploadToast(
   options: { durationMs?: number } = {}
 ): void {
   if (!toast.isConnected || toast.classList.contains("view-heic-upload-toast--leaving")) return
+  if (activeUploadToast && activeUploadToast !== toast) {
+    removeUploadToastImmediately(toast)
+    return
+  }
+
+  clearUploadToastDismissTimer(toast)
 
   toast.className = `view-heic-upload-toast view-heic-upload-toast--${type}`
   toast.setAttribute("role", type === "error" ? "alert" : "status")
@@ -607,12 +1045,16 @@ function updateUploadToast(
   }
 
   if (options.durationMs) {
-    setTimeout(() => dismissUploadToast(toast), options.durationMs)
+    scheduleUploadToastDismiss(toast, options.durationMs)
   }
 }
 
 function dismissUploadToast(toast: HTMLElement): void {
   if (!toast.isConnected || toast.classList.contains("view-heic-upload-toast--leaving")) return
+  clearUploadToastDismissTimer(toast)
+  if (activeUploadToast === toast) {
+    activeUploadToast = undefined
+  }
   const container = toast.parentElement
   toast.classList.add("view-heic-upload-toast--leaving")
 
@@ -634,6 +1076,32 @@ function dismissUploadToast(toast: HTMLElement): void {
     { duration: 0.24, ease: "easeIn" }
   )
   controls.finished.then(removeToast, removeToast)
+}
+
+function scheduleUploadToastDismiss(toast: HTMLElement, durationMs: number): void {
+  clearUploadToastDismissTimer(toast)
+  uploadToastDismissTimers.set(
+    toast,
+    window.setTimeout(() => {
+      uploadToastDismissTimers.delete(toast)
+      dismissUploadToast(toast)
+    }, durationMs)
+  )
+}
+
+function clearUploadToastDismissTimer(toast: HTMLElement): void {
+  const timer = uploadToastDismissTimers.get(toast)
+  if (timer === undefined) return
+  window.clearTimeout(timer)
+  uploadToastDismissTimers.delete(toast)
+}
+
+function removeUploadToastImmediately(toast: HTMLElement): void {
+  clearUploadToastDismissTimer(toast)
+  if (activeUploadToast === toast) {
+    activeUploadToast = undefined
+  }
+  toast.remove()
 }
 
 function animateUploadToastEnter(toast: HTMLElement): void {
@@ -974,9 +1442,10 @@ async function sendAnalyticsEvent(name: AnalyticsEventName, params: AnalyticsPar
 /**
  * 监听DOM变化，处理动态添加的HEIC图片
  */
-function observeHEICImages(converter: HEICConverter): void {
+function observeHEICImages(converter: HEICConverter): () => void {
   const debouncedProcess = debounce(
     () => {
+      if (!contentScriptEnabled) return
       processHEICImages(converter, "mutation")
     },
     CONFIG.DEBOUNCE_DELAY,
@@ -987,6 +1456,7 @@ function observeHEICImages(converter: HEICConverter): void {
   )
 
   const observer = new MutationObserver((mutations) => {
+    if (!contentScriptEnabled) return
     let hasNewImages = false
 
     for (const mutation of mutations) {
@@ -1019,8 +1489,11 @@ function observeHEICImages(converter: HEICConverter): void {
         mutation.target instanceof HTMLImageElement
       ) {
         const img = mutation.target
+        if (mutation.oldValue === img.getAttribute("src")) continue
+        if (converter.isCurrentConversionResult(img)) continue
+
+        converter.resetImageProcessed(img)
         if (isHEICImageCandidate(img)) {
-          converter.resetImageProcessed(img)
           hasNewImages = true
         }
       }
@@ -1036,8 +1509,14 @@ function observeHEICImages(converter: HEICConverter): void {
     childList: true,
     attributes: true,
     attributeFilter: ["src"],
+    attributeOldValue: true,
     subtree: true,
   })
+
+  return () => {
+    debouncedProcess.cancel()
+    observer.disconnect()
+  }
 }
 
 function isSameOriginUrl(src: string): boolean {
@@ -1048,28 +1527,182 @@ function isSameOriginUrl(src: string): boolean {
   }
 }
 
-function observeFailedImageLoads(converter: HEICConverter): void {
-  document.addEventListener(
-    "error",
-    async (event) => {
-      if (!(event.target instanceof HTMLImageElement)) return
+function observeFailedImageLoads(
+  converter: HEICConverter,
+  getOperationGeneration: () => number
+): FailedImageObserver {
+  const pendingImages = new Set<HTMLImageElement>()
+  let observerDisposed = false
+  let drainPromise: Promise<void> | undefined
 
-      const img = event.target
-      const src = getImageSrc(img)
-      if (!src || hasHeifExtension(src) || !isSameOriginUrl(src) || mimeOnlyProbeCache.has(src)) return
-      mimeOnlyProbeCache.add(src)
+  const queueImage = (img: HTMLImageElement): void => {
+    if (observerDisposed || !img.isConnected || pendingImages.size >= 50) return
+    pendingImages.add(img)
+    if (contentScriptEnabled) {
+      void drainPendingImages()
+    }
+  }
 
-      try {
-        const response = await fetch(src, { method: "HEAD" })
-        if (!response.ok || !isHeifMimeType(response.headers.get("content-type") ?? "")) return
+  const convertProbedImage = async (
+    img: HTMLImageElement,
+    src: string,
+    operationGeneration: number,
+    signal: AbortSignal
+  ): Promise<void> => {
+    if (
+      signal.aborted ||
+      observerDisposed ||
+      !contentScriptEnabled ||
+      !img.isConnected ||
+      getImageSrc(img) !== src ||
+      operationGeneration !== getOperationGeneration()
+    ) {
+      mimeOnlyProbeCache.delete(src)
+      queueImage(img)
+      return
+    }
 
-        sendAnalyticsEvent("heic_detected", { image_count: 1 })
-        const result = await converter.convertImage(img, { ignoreInvalidFormat: true })
-        await recordConversionResults([result], "mutation")
-      } catch {
-        // Ignore ordinary broken images and cross-origin probes we cannot classify.
+    const entry = { item: img, version: src }
+    if (pageConversionLedger.hasFailed(entry)) return
+
+    sendAnalyticsEvent("heic_detected", { image_count: 1 })
+    const started = pageConversionLedger.begin([entry])
+    updatePageState({
+      siteEnabled: true,
+      phase: "converting",
+      detected: started.detected,
+      converted: started.converted,
+      failed: started.failed,
+    })
+    const result = await converter.convertImage(img, {
+      ignoreInvalidFormat: true,
+      signal,
+    })
+    if (
+      signal.aborted ||
+      !contentScriptEnabled ||
+      operationGeneration !== getOperationGeneration()
+    ) {
+      if (!result.success) {
+        mimeOnlyProbeCache.delete(src)
+        queueImage(img)
       }
+      return
+    }
+
+    if (!isCurrentPageConversionResult(converter, entry, result)) {
+      const discarded = pageConversionLedger.discard([entry])
+      updatePageState({
+        siteEnabled: true,
+        phase: getSettledPagePhase(discarded),
+        detected: discarded.detected,
+        converted: discarded.converted,
+        failed: discarded.failed,
+      })
+      return
+    }
+
+    await recordConversionResults([result], "mutation")
+    if (
+      signal.aborted ||
+      !contentScriptEnabled ||
+      operationGeneration !== getOperationGeneration()
+    ) {
+      return
+    }
+
+    const settled = pageConversionLedger.settle([entry], [result.success])
+    updatePageState({
+      siteEnabled: true,
+      phase: getSettledPagePhase(settled),
+      detected: settled.detected,
+      converted: settled.converted,
+      failed: settled.failed,
+    })
+  }
+
+  const probeImage = async (img: HTMLImageElement): Promise<void> => {
+    if (observerDisposed || !img.isConnected) return
+    if (!contentScriptEnabled) {
+      pendingImages.add(img)
+      return
+    }
+
+    const src = getImageSrc(img)
+    if (!src || hasHeifExtension(src) || !isSameOriginUrl(src)) return
+    if (pageConversionLedger.hasFailed({ item: img, version: src })) return
+
+    const operationGeneration = getOperationGeneration()
+    const signal = pageConversionController.signal
+    const cachedMime = mimeOnlyProbeCache.get(src)
+    if (cachedMime === "not-heif") return
+
+    try {
+      if (cachedMime !== "heif") {
+        const response = await fetch(src, { method: "HEAD", signal })
+        if (
+          signal.aborted ||
+          !contentScriptEnabled ||
+          operationGeneration !== getOperationGeneration()
+        ) {
+          mimeOnlyProbeCache.delete(src)
+          queueImage(img)
+          return
+        }
+
+        const isHeif = response.ok && isHeifMimeType(response.headers.get("content-type") ?? "")
+        mimeOnlyProbeCache.set(src, isHeif ? "heif" : "not-heif")
+        if (!isHeif) return
+      }
+
+      await pageWorkQueue.run(() =>
+        convertProbedImage(img, src, operationGeneration, signal)
+      )
+    } catch {
+      if (signal.aborted) {
+        mimeOnlyProbeCache.delete(src)
+        queueImage(img)
+      } else {
+        mimeOnlyProbeCache.set(src, "not-heif")
+      }
+      // Ignore ordinary broken images and cross-origin probes we cannot classify.
+    }
+  }
+
+  const drainPendingImages = (): Promise<void> => {
+    if (drainPromise) return drainPromise
+
+    drainPromise = (async () => {
+      while (contentScriptEnabled && pendingImages.size > 0) {
+        const image = pendingImages.values().next().value as HTMLImageElement | undefined
+        if (!image) return
+        pendingImages.delete(image)
+        await probeImage(image)
+      }
+    })().finally(() => {
+      drainPromise = undefined
+      if (contentScriptEnabled && pendingImages.size > 0) {
+        void drainPendingImages()
+      }
+    })
+
+    return drainPromise
+  }
+
+  const handleImageError = (event: Event): void => {
+    if (!(event.target instanceof HTMLImageElement)) return
+    queueImage(event.target)
+  }
+
+  document.addEventListener("error", handleImageError, true)
+  return {
+    async flush() {
+      await drainPendingImages()
     },
-    true
-  )
+    dispose() {
+      observerDisposed = true
+      pendingImages.clear()
+      document.removeEventListener("error", handleImageError, true)
+    },
+  }
 }
