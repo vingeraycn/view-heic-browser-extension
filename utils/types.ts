@@ -8,6 +8,7 @@ export interface ConversionOptions {
 
 export interface ConversionResult {
   success: boolean
+  cancelled?: boolean
   blob?: Blob
   error?: ConversionError
 }

@@ -47,6 +47,40 @@ describe("PageConversionLedger", () => {
     })
   })
 
+  it("keeps a terminal failure out of later batches until its source changes", () => {
+    const ledger = new PageConversionLedger<object>()
+    const image = {}
+    const newImage = {}
+    const failedEntry = { item: image, version: "broken.heic" }
+    const newEntry = { item: newImage, version: "new.heic" }
+
+    ledger.begin([failedEntry])
+    ledger.settle([failedEntry], [false])
+
+    expect(ledger.hasFailed(failedEntry)).toBe(true)
+    expect(ledger.hasFailed({ item: image, version: "replacement.heic" })).toBe(false)
+    expect(
+      [failedEntry, newEntry].filter((entry) => !ledger.hasFailed(entry))
+    ).toEqual([newEntry])
+
+    ledger.reset()
+    expect(ledger.hasFailed(failedEntry)).toBe(false)
+  })
+
+  it("discards cancelled work instead of recording it as a failure", () => {
+    const ledger = new PageConversionLedger<object>()
+    const entry = { item: {}, version: "stale.heic" }
+
+    ledger.begin([entry])
+
+    expect(ledger.discard([entry])).toEqual({
+      detected: 0,
+      converted: 0,
+      failed: 0,
+      pending: 0,
+    })
+  })
+
   it("starts a clean page session after reset", () => {
     const ledger = new PageConversionLedger<object>()
     const image = {}

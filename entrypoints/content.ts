@@ -13,7 +13,11 @@ import {
 import { hasHeifExtension, isHeifMimeType } from "../utils/heif-format"
 import { HEICConverter } from "../utils/heic-converter"
 import { ISSUE_URL, STORE_REVIEW_URL } from "../utils/links"
-import { PageConversionLedger } from "../utils/page-conversion-ledger"
+import {
+  PageConversionLedger,
+  type PageConversionCounts,
+  type PageConversionEntry,
+} from "../utils/page-conversion-ledger"
 import { SerialTaskQueue } from "../utils/serial-task-queue"
 import {
   INTERCEPTOR_DISABLE_EVENT,
@@ -114,6 +118,7 @@ const UPLOAD_TOAST_ENTER_SPRING = {
 export default defineContentScript({
   matches: ["<all_urls>"],
   runAt: "document_start",
+  world: "ISOLATED",
   async main(ctx) {
     console.log("🖼️ View HEIC Extension Loaded")
 
@@ -161,10 +166,9 @@ export default defineContentScript({
       contentScriptEnabled = enabled
       pageConversionController.abort()
       pageConversionLedger.reset()
+      converter.cancelPendingConversions()
       if (enabled) {
         pageConversionController = new AbortController()
-      } else {
-        converter.cancelPendingConversions()
       }
       notifyPageInterceptor(enabled)
 
@@ -461,7 +465,9 @@ async function processHEICImages(converter: HEICConverter, trigger: ConversionTr
   await pageWorkQueue.run(async () => {
     if (signal.aborted || !contentScriptEnabled) return
 
-    const images = findHEICImages(document)
+    const images = findHEICImages(document).filter((image) =>
+      !pageConversionLedger.hasFailed({ item: image, version: getImageSrc(image) })
+    )
     if (images.length === 0) {
       if (trigger === "initial" || currentPageState.phase === "initializing") {
         updatePageState({
@@ -490,16 +496,30 @@ async function processHEICImages(converter: HEICConverter, trigger: ConversionTr
     const results = await converter.convertAllImages(images, { signal })
     if (signal.aborted || !contentScriptEnabled) return
 
-    await recordConversionResults(results, trigger)
+    const completedEntries: PageConversionEntry<HTMLImageElement>[] = []
+    const completedResults: ConversionResults = []
+    const discardedEntries: PageConversionEntry<HTMLImageElement>[] = []
+    entries.forEach((entry, index) => {
+      const result = results[index]
+      if (result && isCurrentPageConversionResult(converter, entry, result)) {
+        completedEntries.push(entry)
+        completedResults.push(result)
+      } else {
+        discardedEntries.push(entry)
+      }
+    })
+    pageConversionLedger.discard(discardedEntries)
+
+    await recordConversionResults(completedResults, trigger)
     if (signal.aborted || !contentScriptEnabled) return
 
     const settled = pageConversionLedger.settle(
-      entries,
-      results.map((result) => result.success)
+      completedEntries,
+      completedResults.map((result) => result.success)
     )
     updatePageState({
       siteEnabled: true,
-      phase: settled.pending > 0 ? "converting" : settled.failed > 0 ? "error" : "complete",
+      phase: getSettledPagePhase(settled),
       detected: settled.detected,
       converted: settled.converted,
       failed: settled.failed,
@@ -542,6 +562,23 @@ async function recordConversionResults(
 
 function getImageSrc(img: HTMLImageElement): string {
   return img.src
+}
+
+function getSettledPagePhase(counts: PageConversionCounts): PageState["phase"] {
+  if (counts.pending > 0) return "converting"
+  if (counts.failed > 0) return "error"
+  if (counts.converted > 0) return "complete"
+  return "idle"
+}
+
+function isCurrentPageConversionResult(
+  converter: HEICConverter,
+  entry: PageConversionEntry<HTMLImageElement>,
+  result: ConversionResults[number]
+): boolean {
+  if (result.cancelled) return false
+  if (result.success) return converter.isCurrentConversionResult(entry.item)
+  return result.error !== undefined
 }
 
 function isHEICImageCandidate(img: HTMLImageElement): boolean {
@@ -1452,8 +1489,11 @@ function observeHEICImages(converter: HEICConverter): () => void {
         mutation.target instanceof HTMLImageElement
       ) {
         const img = mutation.target
+        if (mutation.oldValue === img.getAttribute("src")) continue
+        if (converter.isCurrentConversionResult(img)) continue
+
+        converter.resetImageProcessed(img)
         if (isHEICImageCandidate(img)) {
-          converter.resetImageProcessed(img)
           hasNewImages = true
         }
       }
@@ -1469,6 +1509,7 @@ function observeHEICImages(converter: HEICConverter): () => void {
     childList: true,
     attributes: true,
     attributeFilter: ["src"],
+    attributeOldValue: true,
     subtree: true,
   })
 
@@ -1521,8 +1562,10 @@ function observeFailedImageLoads(
       return
     }
 
-    sendAnalyticsEvent("heic_detected", { image_count: 1 })
     const entry = { item: img, version: src }
+    if (pageConversionLedger.hasFailed(entry)) return
+
+    sendAnalyticsEvent("heic_detected", { image_count: 1 })
     const started = pageConversionLedger.begin([entry])
     updatePageState({
       siteEnabled: true,
@@ -1547,6 +1590,18 @@ function observeFailedImageLoads(
       return
     }
 
+    if (!isCurrentPageConversionResult(converter, entry, result)) {
+      const discarded = pageConversionLedger.discard([entry])
+      updatePageState({
+        siteEnabled: true,
+        phase: getSettledPagePhase(discarded),
+        detected: discarded.detected,
+        converted: discarded.converted,
+        failed: discarded.failed,
+      })
+      return
+    }
+
     await recordConversionResults([result], "mutation")
     if (
       signal.aborted ||
@@ -1559,7 +1614,7 @@ function observeFailedImageLoads(
     const settled = pageConversionLedger.settle([entry], [result.success])
     updatePageState({
       siteEnabled: true,
-      phase: settled.pending > 0 ? "converting" : settled.failed > 0 ? "error" : "complete",
+      phase: getSettledPagePhase(settled),
       detected: settled.detected,
       converted: settled.converted,
       failed: settled.failed,
@@ -1575,6 +1630,7 @@ function observeFailedImageLoads(
 
     const src = getImageSrc(img)
     if (!src || hasHeifExtension(src) || !isSameOriginUrl(src)) return
+    if (pageConversionLedger.hasFailed({ item: img, version: src })) return
 
     const operationGeneration = getOperationGeneration()
     const signal = pageConversionController.signal

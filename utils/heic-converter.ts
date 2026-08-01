@@ -113,6 +113,7 @@ function getJpegFileName(fileName: string): string {
  */
 export class HEICConverter {
   private processedImages = new WeakSet<HTMLImageElement>()
+  private processedImageSources = new WeakMap<HTMLImageElement, string>()
   private conversionGeneration = new WeakMap<HTMLImageElement, number>()
   /** Prevents duplicate concurrent conversions of the same element. */
   private processingQueue = new Map<HTMLImageElement, Promise<ConversionResult>>()
@@ -129,7 +130,13 @@ export class HEICConverter {
 
   private markImageAsProcessed(img: HTMLImageElement): void {
     this.processedImages.add(img)
+    this.processedImageSources.set(img, img.src)
+    img.removeAttribute(DATA_ATTRIBUTES.FAILED)
     img.setAttribute(DATA_ATTRIBUTES.PROCESSED, "true")
+  }
+
+  isCurrentConversionResult(img: HTMLImageElement): boolean {
+    return this.processedImageSources.get(img) === img.src
   }
 
   private nextGeneration(img: HTMLImageElement): number {
@@ -170,8 +177,10 @@ export class HEICConverter {
     this.nextGeneration(img)
     this.processingQueue.delete(img)
     this.processedImages.delete(img)
+    this.processedImageSources.delete(img)
     img.removeAttribute(DATA_ATTRIBUTES.PROCESSED)
     img.removeAttribute(DATA_ATTRIBUTES.ORIGINAL_SRC)
+    img.removeAttribute(DATA_ATTRIBUTES.FAILED)
     img.removeAttribute("data-error-type")
     img.removeAttribute("data-error-message")
     img.classList.remove("heic-processing", "heic-converted", "heic-error")
@@ -376,9 +385,11 @@ export class HEICConverter {
     const originalSrc = img.src
     const { maxRetries = CONFIG.RETRY_ATTEMPTS, signal } = options
     const generation = this.nextGeneration(img)
+    const isStale = (): boolean =>
+      !this.isCurrentGeneration(img, generation) || img.src !== originalSrc
 
     if (signal?.aborted) {
-      return { success: false }
+      return { success: false, cancelled: true }
     }
 
     // Persist original src so failure paths can restore the page state silently.
@@ -388,8 +399,8 @@ export class HEICConverter {
 
     // Reuse an already-converted blob URL for this src
     if (this.urlCache.has(originalSrc)) {
-      if (signal?.aborted || !this.isCurrentGeneration(img, generation) || img.src !== originalSrc) {
-        return { success: false }
+      if (signal?.aborted || isStale()) {
+        return { success: false, cancelled: true }
       }
       img.src = this.urlCache.get(originalSrc)!
       img.classList.add("heic-converted")
@@ -398,32 +409,30 @@ export class HEICConverter {
     }
 
     img.classList.add("heic-processing")
+    img.removeAttribute(DATA_ATTRIBUTES.FAILED)
 
     let lastError: any
     for (let attempt = 0; attempt < maxRetries; attempt++) {
-      if (signal?.aborted) {
+      if (signal?.aborted || isStale()) {
         img.classList.remove("heic-processing")
-        return { success: false }
+        return { success: false, cancelled: true }
       }
 
       try {
         const buffer = await this.fetchImageData(originalSrc, signal)
-        if (signal?.aborted) {
+        if (signal?.aborted || isStale()) {
           img.classList.remove("heic-processing")
-          return { success: false }
+          return { success: false, cancelled: true }
         }
 
         // ── Animated path ──────────────────────────────────────────────
         if (isHeifSequenceBuffer(buffer)) {
           const canvasResult = await this.convertAnimatedToCanvas(img, buffer, generation, options)
-          if (signal?.aborted) {
+          if (signal?.aborted || isStale()) {
             img.classList.remove("heic-processing")
-            return { success: false }
+            return { success: false, cancelled: true }
           }
           if (canvasResult !== null) {
-            if (!this.isCurrentGeneration(img, generation)) {
-              return { success: false }
-            }
             // "animated-canvas" → canvas replaced the img; or null means fallback
             img.classList.remove("heic-processing")
             return { success: true }
@@ -436,12 +445,11 @@ export class HEICConverter {
 
         if (
           signal?.aborted ||
-          !this.isCurrentGeneration(img, generation) ||
-          img.src !== originalSrc
+          isStale()
         ) {
           URL.revokeObjectURL(objectURL)
           img.classList.remove("heic-processing")
-          return { success: false }
+          return { success: false, cancelled: true }
         }
 
         // Revoke any previous blob URL we set on this img
@@ -457,9 +465,9 @@ export class HEICConverter {
 
         return { success: true }
       } catch (error: any) {
-        if (signal?.aborted) {
+        if (signal?.aborted || isStale()) {
           img.classList.remove("heic-processing")
-          return { success: false }
+          return { success: false, cancelled: true }
         }
 
         lastError = error
@@ -475,13 +483,15 @@ export class HEICConverter {
       }
     }
 
-    if (!this.isCurrentGeneration(img, generation) || img.src !== originalSrc) {
-      return { success: false }
+    if (isStale()) {
+      img.classList.remove("heic-processing")
+      return { success: false, cancelled: true }
     }
 
     if (options.ignoreInvalidFormat && lastError?.message?.includes(ERROR_MESSAGES.INVALID_FORMAT)) {
       img.classList.remove("heic-processing")
       img.removeAttribute(DATA_ATTRIBUTES.ORIGINAL_SRC)
+      img.setAttribute(DATA_ATTRIBUTES.FAILED, "true")
       return { success: false, error: { type: "format", message: ERROR_MESSAGES.INVALID_FORMAT } }
     }
 
@@ -552,7 +562,6 @@ export class HEICConverter {
   ): ConversionResult {
     img.classList.remove("heic-processing")
     img.classList.remove("heic-error")
-    img.src = originalSrc
     this.restoreExtensionErrorState(img)
 
     let errorType: ConversionError["type"] = "unknown"
@@ -588,6 +597,7 @@ export class HEICConverter {
       originalError: error,
     })
 
+    img.setAttribute(DATA_ATTRIBUTES.FAILED, "true")
     return { success: false, error: { type: errorType, message: errorMessage, originalError: error } }
   }
 }

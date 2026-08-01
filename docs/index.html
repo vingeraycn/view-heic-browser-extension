@@ -77,6 +77,7 @@
       .heic-processing { opacity: 0.65; }
       img.heic-processing ~ .status-badge { background: #fef3c7; color: #92400e; }
       img.heic-converted ~ .status-badge { background: #dcfce7; color: #166534; }
+      img.demo-failed ~ .status-badge { background: #fee2e2; color: #b91c1c; }
       pre { white-space: pre-wrap; word-break: break-word; }
     </style>
   </head>
@@ -351,6 +352,7 @@
           waiting: 'Waiting',
           converted: 'Converted',
           processing: 'Converting',
+          failed: 'Conversion Failed',
           demoCases: [
             ['samples/heic-still.heic', 'Standard HEIC', '1.1 MB', 'HEVC Still'],
             ['samples/msf1-sequence.heic', 'HEIF Sequence', '873 KB', 'First-Frame Preview'],
@@ -462,6 +464,7 @@
           waiting: '等待扩展',
           converted: '已转换',
           processing: '转换中',
+          failed: '转换失败',
           demoCases: [
             ['samples/heic-still.heic', '标准 HEIC', '1.1 MB', 'HEVC 静态图'],
             ['samples/msf1-sequence.heic', 'HEIF 序列图', '873 KB', '首帧预览'],
@@ -516,6 +519,15 @@
       let dynamicCount = 0
       let currentLang = getInitialLang()
       let uploadDemoPreviewUrl = ''
+      const demoFailurePlaceholder = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+          <rect width="640" height="360" fill="#f1f5f9"/>
+          <path d="M278 126h84a18 18 0 0 1 18 18v72a18 18 0 0 1-18 18h-84a18 18 0 0 1-18-18v-72a18 18 0 0 1 18-18Z" fill="none" stroke="#94a3b8" stroke-width="8"/>
+          <path d="m274 214 28-30 22 22 14-14 36 38" fill="none" stroke="#94a3b8" stroke-linecap="round" stroke-linejoin="round" stroke-width="8"/>
+          <circle cx="346" cy="158" r="9" fill="#94a3b8"/>
+          <path d="m302 112 36 136" stroke="#ef4444" stroke-linecap="round" stroke-width="10"/>
+        </svg>
+      `)}`
 
       function getInitialLang() {
         const queryLang = new URLSearchParams(window.location.search).get('lang')
@@ -571,7 +583,6 @@
         renderFooter(t)
         setText('#add-dynamic-btn', t.dynamicButton)
         setText('#ext-status-banner', t.detecting)
-        updateBadges()
         updateStats()
       }
 
@@ -676,7 +687,6 @@
             const suffix = document.createTextNode(t.notDetectedSuffix)
             banner.append(prefix, link, suffix)
           }
-          updateBadges()
           updateStats()
         }, 2200)
       }
@@ -687,29 +697,84 @@
           const img = card.querySelector('img')
           const badge = card.querySelector('.status-badge')
           if (!img || !badge) return
-          if (img.classList.contains('heic-converted')) {
-            badge.textContent = t.converted
-            badge.className = 'status-badge bg-emerald-100 text-emerald-700'
+          let label = t.waiting
+          let className = 'status-badge bg-slate-100 text-slate-500'
+          if (img.dataset.demoState === 'failed') {
+            label = t.failed
+            className = 'status-badge bg-red-100 text-red-700'
+          } else if (img.classList.contains('heic-converted')) {
+            label = t.converted
+            className = 'status-badge bg-emerald-100 text-emerald-700'
           } else if (img.classList.contains('heic-processing')) {
-            badge.textContent = t.processing
-            badge.className = 'status-badge bg-amber-100 text-amber-800'
-          } else {
-            badge.textContent = t.waiting
-            badge.className = 'status-badge bg-slate-100 text-slate-500'
+            label = t.processing
+            className = 'status-badge bg-amber-100 text-amber-800'
           }
+          if (badge.textContent !== label) badge.textContent = label
+          if (badge.className !== className) badge.className = className
         })
       }
 
       function updateStats() {
         const all = document.querySelectorAll('.heic-card img')
         const ok = document.querySelectorAll('.heic-card img.heic-converted')
+        const failed = document.querySelectorAll('.heic-card img[data-demo-state="failed"]')
         const total = document.getElementById('total-count')
         const success = document.getElementById('success-count')
         const failure = document.getElementById('failure-count')
-        if (total) total.textContent = all.length
-        if (success) success.textContent = ok.length
-        if (failure) failure.textContent = all.length - ok.length
+        if (total && total.textContent !== String(all.length)) total.textContent = all.length
+        if (success && success.textContent !== String(ok.length)) success.textContent = ok.length
+        if (failure && failure.textContent !== String(failed.length)) failure.textContent = failed.length
         updateBadges()
+      }
+
+      function initDemoStateObserver() {
+        const demo = document.getElementById('demo')
+        const observer = new MutationObserver((mutations) => {
+          const completedFailures = new Set()
+          let demoImagesChanged = false
+
+          mutations.forEach((mutation) => {
+            if (mutation.type === 'childList') {
+              const changedNodes = [...mutation.addedNodes, ...mutation.removedNodes]
+              if (changedNodes.some((node) => node instanceof Element && (node.matches('.heic-card img') || node.querySelector('.heic-card img')))) {
+                demoImagesChanged = true
+              }
+              return
+            }
+
+            if (!(mutation.target instanceof HTMLImageElement) || !mutation.target.closest('.heic-card')) return
+            const img = mutation.target
+            if (img.dataset.demoState === 'failed') return
+            demoImagesChanged = true
+
+            if (
+              mutation.attributeName === 'data-heic-failed' &&
+              img.getAttribute('data-heic-failed') === 'true'
+            ) {
+              completedFailures.add(img)
+            }
+          })
+
+          completedFailures.forEach((img) => {
+            if (
+              !/\.(?:heic|heif|heics|heifs)(?:$|[?#])/i.test(img.src)
+            ) return
+
+            img.dataset.demoState = 'failed'
+            img.classList.add('demo-failed')
+            img.src = demoFailurePlaceholder
+          })
+
+          if (demoImagesChanged) updateStats()
+        })
+
+        observer.observe(demo, {
+          attributes: true,
+          attributeFilter: ['class', 'src', 'data-heic-failed'],
+          attributeOldValue: true,
+          childList: true,
+          subtree: true,
+        })
       }
 
       function addDynamicImage() {
@@ -729,7 +794,6 @@
             <p class="mt-1 text-xs text-slate-500">${tc[2]} · ${new Date().toLocaleTimeString()}</p>
           </div>`
         container.appendChild(card)
-        setTimeout(updateStats, 1200)
       }
 
       function initUploadDemo() {
@@ -772,13 +836,13 @@
       }
 
       document.addEventListener('DOMContentLoaded', () => {
+        initDemoStateObserver()
         renderLanguage(currentLang)
         document.querySelectorAll('.lang-btn').forEach((button) => {
           button.addEventListener('click', () => renderLanguage(button.dataset.langOption, true))
         })
         initUploadDemo()
         detectExtension()
-        setInterval(updateStats, 2500)
       })
     </script>
   </body>

@@ -41,6 +41,23 @@ export class PageConversionLedger<T extends object> {
     }
   }
 
+  hasFailed(entry: PageConversionEntry<T>): boolean {
+    const record = this.outcomes.get(entry.item)
+    return record?.version === entry.version && record.outcome === "failed"
+  }
+
+  discard(entries: readonly PageConversionEntry<T>[]): PageConversionCounts {
+    for (const entry of entries) {
+      const record = this.outcomes.get(entry.item)
+      if (record?.version !== entry.version) continue
+
+      this.remove(record.outcome)
+      this.outcomes.delete(entry.item)
+    }
+
+    return this.snapshot()
+  }
+
   begin(entries: readonly PageConversionEntry<T>[]): PageConversionCounts {
     for (const entry of entries) {
       let record = this.outcomes.get(entry.item)

@@ -144,6 +144,10 @@ a {
   background: var(--hover);
 }
 
+.drop-zone[hidden] {
+  display: none;
+}
+
 .drop-icon {
   display: grid;
   width: 64px;
@@ -265,6 +269,10 @@ a {
   max-width: 100%;
   max-height: 438px;
   object-fit: contain;
+}
+
+.preview[hidden] {
+  display: none;
 }
 
 .download-button {

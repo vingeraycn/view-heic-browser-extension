@@ -56,9 +56,11 @@ const checks = [
       !/img\.onclick\s*=\s*null/.test(resetBody),
   },
   {
-    name: "conversion failures silently restore the original image",
+    name: "conversion failures preserve the original source without restarting conversion",
     pass:
-      /img\.src\s*=\s*originalSrc/.test(errorBody) &&
+      !/img\.src\s*=/.test(errorBody) &&
+      /mutation\.oldValue === img\.getAttribute\("src"\)/.test(content) &&
+      /attributeOldValue:\s*true/.test(content) &&
       /console\.debug/.test(errorBody) &&
       !/classList\.add\("heic-error"\)/.test(errorBody) &&
       !/img\.title\s*=/.test(errorBody) &&

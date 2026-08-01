@@ -9,7 +9,7 @@ import {
   isSiteEnabledSetResponse,
   type PageState,
 } from "../../utils/extension-messages"
-import { FAQ_URL, HELP_URL } from "../../utils/links"
+import { getLocalizedFaqUrl, getLocalizedHelpUrl } from "../../utils/links"
 import {
   getConnectedPresentation,
   getDisconnectedPresentation,
@@ -51,7 +51,7 @@ async function initialize(): Promise<void> {
     locale === "zh" ? "View HEIC 控制" : "View HEIC controls"
   )
 
-  helpButton.addEventListener("click", () => openExternalPage(HELP_URL))
+  helpButton.addEventListener("click", () => openExternalPage(getLocalizedHelpUrl(locale)))
   converterButton.addEventListener("click", openConverter)
   pageRow.addEventListener("click", handlePageAction)
   siteToggle.addEventListener("click", toggleSite)
@@ -128,7 +128,7 @@ async function handlePageAction(): Promise<void> {
   }
 
   if (pageAction === "troubleshoot") {
-    await openExternalPage(FAQ_URL)
+    await openExternalPage(getLocalizedFaqUrl(locale))
   }
 }
 
@@ -196,6 +196,7 @@ function getStatusIcon(presentation: PopupPresentation): string {
   if (presentation.pageAction === "refresh") return "ph-arrow-clockwise"
   if (presentation.tone === "success") return "ph-check-circle"
   if (presentation.tone === "working") return "ph-circle-notch"
+  if (presentation.tone === "partial") return "ph-warning-circle"
   if (presentation.tone === "warning") return "ph-warning-circle"
   if (presentation.tone === "muted") return "ph-pause-circle"
   return "ph-circle-dashed"

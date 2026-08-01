@@ -231,9 +231,9 @@ describe("getConnectedPresentation", () => {
   })
 
   it.each([
-    ["zh", "已显示 1/2 张"],
-    ["en", "1 of 2 visible"],
-  ] as const)("turns a partially successful completion into troubleshooting in %s", (locale, pageValue) => {
+    ["zh", "已转换 1 张图片", "已显示 1/2 张"],
+    ["en", "1 image converted", "1 of 2 visible"],
+  ] as const)("keeps partial success visible while offering troubleshooting in %s", (locale, headline, pageValue) => {
     const presentation = getConnectedPresentation(
       createPageState({
         phase: "complete",
@@ -245,10 +245,20 @@ describe("getConnectedPresentation", () => {
     )
 
     expect(presentation).toMatchObject({
+      headline,
       pageValue,
       pageAction: "troubleshoot",
-      tone: "warning",
+      tone: "partial",
     })
+  })
+
+  it("uses a plural success headline when several images were converted", () => {
+    expect(
+      getConnectedPresentation(
+        createPageState({ phase: "error", detected: 4, converted: 3, failed: 1 }),
+        "en"
+      ).headline
+    ).toBe("3 images converted")
   })
 })
 

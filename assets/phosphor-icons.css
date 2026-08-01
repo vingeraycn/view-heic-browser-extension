@@ -1,6 +1,6 @@
 /* Phosphor Icons 2.1.2, regular weight — https://phosphoricons.com */
 @font-face {
-  font-family: "Phosphor";
+  font-family: Phosphor;
   src: url("@phosphor-icons/web/regular/Phosphor.woff2") format("woff2");
   font-style: normal;
   font-weight: normal;
@@ -9,7 +9,7 @@
 
 .ph {
   display: inline-block;
-  font-family: "Phosphor" !important;
+  font-family: Phosphor !important;
   font-style: normal;
   font-variant: normal;
   font-weight: normal;

@@ -1,4 +1,4 @@
-import { createReadStream, existsSync, readFileSync, statSync } from "node:fs"
+import { createReadStream, readFileSync, statSync } from "node:fs"
 import { createServer } from "node:http"
 import { extname, join, normalize } from "node:path"
 
@@ -13,6 +13,14 @@ const contentTypes = {
   ".png": "image/png",
   ".svg": "image/svg+xml",
   ".woff2": "font/woff2",
+}
+
+function isRegularFile(filePath) {
+  try {
+    return statSync(filePath).isFile()
+  } catch {
+    return false
+  }
 }
 
 const popupPreviewShim = `
@@ -77,13 +85,23 @@ createServer((request, response) => {
   const pathname = requestUrl.pathname === "/" ? "/popup.html" : requestUrl.pathname
 
   if (pathname === "/reference.png") {
-    if (!referenceImagePath || !existsSync(referenceImagePath)) {
+    if (!referenceImagePath || !isRegularFile(referenceImagePath)) {
       response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" })
       response.end("Set VIEW_HEIC_REFERENCE_IMAGE to enable visual comparison.")
       return
     }
+
+    const imageStream = createReadStream(referenceImagePath)
+    imageStream.once("error", () => {
+      if (!response.headersSent) {
+        response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" })
+        response.end("Reference image is unavailable.")
+      } else {
+        response.destroy()
+      }
+    })
     response.setHeader("Content-Type", "image/png")
-    createReadStream(referenceImagePath).pipe(response)
+    imageStream.pipe(response)
     return
   }
 
@@ -105,7 +123,7 @@ createServer((request, response) => {
 
   if (pathname === "/comparison.html") {
     const referenceMarkup =
-      referenceImagePath && existsSync(referenceImagePath)
+      referenceImagePath && isRegularFile(referenceImagePath)
         ? `<figure>
               <figcaption>Reference</figcaption>
               <img class="frame" src="/reference.png" alt="Approved popup reference">

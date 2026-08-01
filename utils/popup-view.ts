@@ -1,7 +1,7 @@
 import type { PageState } from "./extension-messages"
 
 export type PopupLocale = "en" | "zh"
-export type PopupTone = "neutral" | "success" | "working" | "warning" | "muted"
+export type PopupTone = "neutral" | "success" | "working" | "partial" | "warning" | "muted"
 export type PopupPageAction = "refresh" | "troubleshoot"
 
 export interface PopupPresentation {
@@ -170,7 +170,13 @@ function getFailurePresentation(
 
   return {
     ...base,
-    headline: locale === "zh" ? "无法显示 HEIC" : "Couldn’t show HEIC",
+    headline: hasVisibleImage
+      ? locale === "zh"
+        ? `已转换 ${state.converted} 张图片`
+        : formatCount(state.converted, "image converted", "images converted")
+      : locale === "zh"
+        ? "无法显示 HEIC"
+        : "Couldn’t show HEIC",
     pageValue: hasVisibleImage
       ? locale === "zh"
         ? `已显示 ${state.converted}/${total} 张`
@@ -179,7 +185,7 @@ function getFailurePresentation(
         ? "查看原因"
         : "See why",
     pageAction: "troubleshoot",
-    tone: "warning",
+    tone: hasVisibleImage ? "partial" : "warning",
     siteEnabled: true,
     toggleDisabled: false,
   }

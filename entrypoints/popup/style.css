@@ -9,7 +9,8 @@
   --divider: #e6e2dc;
   --accent: #567a66;
   --danger: #b42318;
-  --focus: #1d6fe8;
+  --theme-blue: #1d6fe8;
+  --focus: var(--theme-blue);
   --hover: #f2efea;
   --pressed: #eae6df;
   --switch-off-fill: #d5d8d5;
@@ -118,6 +119,10 @@ button {
 
 .primary-status[data-tone="warning"] .status-icon {
   color: var(--danger);
+}
+
+.primary-status[data-tone="partial"] .status-icon {
+  color: var(--theme-blue);
 }
 
 .primary-status.is-busy .status-icon {
@@ -292,7 +297,7 @@ button {
   height: 1px;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
   white-space: nowrap;
 }
 
@@ -312,7 +317,8 @@ button {
     --divider: #34363a;
     --accent: #8db49a;
     --danger: #ff8a80;
-    --focus: #6ea8ff;
+    --theme-blue: #6ea8ff;
+    --focus: var(--theme-blue);
     --hover: #2e3034;
     --pressed: #36383d;
     --switch-off-fill: #4a4d52;

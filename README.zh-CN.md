@@ -1,6 +1,6 @@
 # View HEIC 浏览器扩展
 
-[![Version](https://img.shields.io/badge/version-1.0.15-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?logo=google-chrome&logoColor=white)](https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge)
 
@@ -79,11 +79,12 @@ View HEIC 使用 `storage` 权限保存评价提示相关的本地状态，例�
 
 ## 最新版本
 
-### v1.0.15
+### v1.3.0
 
-- 新增匿名转换与评价漏斗埋点，用于判断发布后的真实使用链路。
-- 图片仍在浏览器本地转换，埋点不包含图片内容、图片地址、页面地址、文件名、浏览历史或转换后的图片。
-- 收紧埋点事件校验，并让评价提示按钮不被网络请求阻塞。
+- 新增精致的 Popup，提供页面状态、网站开关、帮助入口与本地文件转换。
+- 改进 Gemini 的 HEIC / HEIF 上传兼容，同时保留既有 ChatGPT 工作流。
+- 让转换失败稳定结束，避免 loading 与重试循环反复出现。
+- 首次安装默认打开英文引导，并让帮助链接跟随 Popup 语言。
 
 ### v1.0.12
 

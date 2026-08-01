@@ -24,6 +24,7 @@ export const SELECTORS = {
 export const DATA_ATTRIBUTES = {
   ORIGINAL_SRC: "data-original-src",
   PROCESSED: "data-heic-processed",
+  FAILED: "data-heic-failed",
   ERROR_COUNT: "data-error-count",
   PREVIOUS_FILTER: "data-heic-previous-filter",
   PREVIOUS_CURSOR: "data-heic-previous-cursor",

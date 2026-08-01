@@ -10,6 +10,16 @@ const directConverter = fs.readFileSync("utils/direct-heif-converter.ts", "utf8"
 const geminiDecoder = fs.readFileSync("entrypoints/gemini-decoder.content.ts", "utf8")
 const dropReplay = fs.readFileSync("utils/upload-drop-replay.ts", "utf8")
 const testPage = fs.readFileSync("docs/test-improved.html", "utf8")
+const builtManifestPath = ".output/chrome-mv3/manifest.json"
+const builtContentScripts = JSON.parse(
+  fs.readFileSync(builtManifestPath, "utf8")
+).content_scripts ?? []
+
+function findBuiltContentScript(fileName) {
+  return builtContentScripts?.find((script) =>
+    script.js?.some((file) => file.endsWith(`content-scripts/${fileName}`))
+  )
+}
 
 function assert(condition, message) {
   if (!condition) {
@@ -163,10 +173,16 @@ assert(
     directConverter.includes('import("@heic-to-csp-lib")') &&
     directConverter.includes("MAX_IMAGE_PIXELS") &&
     geminiDecoder.includes('matches: ["https://gemini.google.com/*"]') &&
+    geminiDecoder.includes('world: "ISOLATED"') &&
     geminiDecoder.includes("registerGeminiDecoderService") &&
     geminiDecoder.includes("new SerialTaskQueue()") &&
-    content.includes("convertHeifUploadFileToJpegFile(file)"),
-  "Gemini alone receives the current bundled direct decoder while ordinary sites keep the Worker path"
+    content.includes("convertHeifUploadFileToJpegFile(file)") &&
+    content.includes('world: "ISOLATED"') &&
+    interceptor.includes('world: "MAIN"') &&
+    findBuiltContentScript("content.js")?.world === "ISOLATED" &&
+    findBuiltContentScript("gemini-decoder.js")?.world === "ISOLATED" &&
+    findBuiltContentScript("upload-interceptor.js")?.world === "MAIN",
+  "Gemini's decoder and its content-script consumer share the isolated world while the MAIN-world interceptor only forwards DOM events"
 )
 
 assert(
