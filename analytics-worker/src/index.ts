@@ -185,7 +185,12 @@ function isAnalyticsPayload(value: unknown): value is AnalyticsPayload {
 
 function isAnalyticsEvent(value: unknown): value is AnalyticsEvent {
   if (!isRecord(value) || !hasOnlyKeys(value, ["name", "params"])) return false
-  if (typeof value.name !== "string" || !(value.name in EVENT_PARAMS)) return false
+  if (
+    typeof value.name !== "string" ||
+    !Object.prototype.hasOwnProperty.call(EVENT_PARAMS, value.name)
+  ) {
+    return false
+  }
   if (!isRecord(value.params)) return false
   const params = value.params
 

@@ -153,12 +153,19 @@ async function handlePageAction(): Promise<void> {
 async function toggleAnalytics(): Promise<void> {
   if (analyticsTogglePending) return
 
+  const previousAnalyticsEnabled = analyticsEnabled
   analyticsTogglePending = true
   analyticsToggle.disabled = true
+  actionFeedback.textContent = ""
   try {
-    analyticsEnabled = !analyticsEnabled
+    analyticsEnabled = !previousAnalyticsEnabled
     await setAnalyticsEnabled(analyticsEnabled)
     renderAnalyticsPreference()
+  } catch {
+    analyticsEnabled = await getAnalyticsEnabled().catch(() => previousAnalyticsEnabled)
+    renderAnalyticsPreference()
+    actionFeedback.textContent =
+      locale === "zh" ? "无法更新使用数据设置。" : "Couldn’t update the usage data setting."
   } finally {
     analyticsTogglePending = false
     analyticsToggle.disabled = false

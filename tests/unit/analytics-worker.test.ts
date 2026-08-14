@@ -77,6 +77,18 @@ describe("analytics edge proxy", () => {
     ).resolves.toMatchObject({ status: 400 })
   })
 
+  it.each(["constructor", "toString", "__proto__"])(
+    "rejects inherited event name %s without throwing",
+    async (eventName) => {
+      const payload = validPayload()
+      payload.events[0].name = eventName
+
+      await expect(handleAnalyticsRequest(createRequest(payload), env)).resolves.toMatchObject({
+        status: 400,
+      })
+    }
+  )
+
   it("rejects inconsistent conversion counts and outcomes", async () => {
     const payload = validConversionPayload()
     payload.events[0].params.success_count = 2
