@@ -4,8 +4,9 @@ import {
   updateAnalyticsPreference,
 } from "../utils/analytics-transport"
 import { WELCOME_URL } from "../utils/links"
+import { SerialTaskQueue } from "../utils/serial-task-queue"
 
-let analyticsQueue: Promise<boolean> = Promise.resolve(true)
+const analyticsQueue = new SerialTaskQueue()
 
 export default defineBackground(() => {
   console.log("🚀 View HEIC Extension Background Loaded")
@@ -26,6 +27,7 @@ export default defineBackground(() => {
 
   browser.runtime.onMessage.addListener((message) => {
     if (isAnalyticsPreferenceMessage(message)) {
+      analyticsQueue.invalidatePending()
       return updateAnalyticsPreference(message.enabled)
     }
     if (!isAnalyticsMessage(message)) return
@@ -37,9 +39,5 @@ function enqueueAnalyticsEvent(
   name: Parameters<typeof sendAnalyticsEvent>[0],
   params: Parameters<typeof sendAnalyticsEvent>[1]
 ): Promise<boolean> {
-  analyticsQueue = analyticsQueue.then(
-    () => sendAnalyticsEvent(name, params),
-    () => sendAnalyticsEvent(name, params)
-  )
-  return analyticsQueue
+  return analyticsQueue.runIfCurrent(() => sendAnalyticsEvent(name, params), false)
 }

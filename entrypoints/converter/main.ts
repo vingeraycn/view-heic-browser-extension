@@ -1,6 +1,7 @@
 import "../../assets/phosphor-icons.css"
 import "./style.css"
 import {
+  getAnalyticsErrorType,
   getAnalyticsDurationMs,
   getConversionOutcome,
   trackAnalyticsEvent,
@@ -221,15 +222,6 @@ function getErrorCopy(error: unknown): string {
   if (message.includes(ERROR_MESSAGES.FILE_TOO_LARGE)) return copy.tooLarge
   if (message.includes(ERROR_MESSAGES.INVALID_FORMAT)) return copy.invalid
   return copy.failed
-}
-
-function getAnalyticsErrorType(error: unknown): AnalyticsErrorType {
-  const message = error instanceof Error ? error.message : ""
-  if (message.includes(ERROR_MESSAGES.FILE_TOO_LARGE)) return "size"
-  if (message.includes(ERROR_MESSAGES.INVALID_FORMAT)) return "format"
-  if (message.includes(ERROR_MESSAGES.CORS_ERROR)) return "cors"
-  if (message.includes(ERROR_MESSAGES.NETWORK_ERROR)) return "network"
-  return "conversion"
 }
 
 function trackFileConversion(

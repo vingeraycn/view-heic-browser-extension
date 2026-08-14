@@ -39,7 +39,9 @@ import {
 import type { UploadDropReplaySource } from "../utils/upload-drop-replay"
 import { convertHeifUploadFileToJpegFile } from "../utils/upload-heif-converter"
 import {
+  getAggregateAnalyticsErrorType,
   getAnalyticsDurationMs,
+  getAnalyticsErrorType,
   getConversionOutcome,
   trackAnalyticsEvent,
   type AnalyticsErrorType,
@@ -59,6 +61,7 @@ interface UploadConversionResult {
   files: File[]
   convertedCount: number
   failedCount: number
+  errorTypes: AnalyticsErrorType[]
 }
 
 interface ConversionSummary {
@@ -67,7 +70,8 @@ interface ConversionSummary {
 }
 
 interface FailedImageObserver {
-  flush: () => Promise<void>
+  prepareInitialBatch: () => void
+  flushInitialBatch: () => Promise<void>
   dispose: () => void
 }
 
@@ -167,6 +171,7 @@ export default defineContentScript({
 
       sitePreferenceInitialized = true
       const applyGeneration = ++siteOperationGeneration
+      if (enabled) failedImageObserver.prepareInitialBatch()
       contentScriptEnabled = enabled
       pageConversionController.abort()
       pageConversionLedger.reset()
@@ -198,7 +203,7 @@ export default defineContentScript({
         return currentPageState
       }
 
-      await failedImageObserver.flush()
+      await failedImageObserver.flushInitialBatch()
       return currentPageState
     }
 
@@ -842,6 +847,7 @@ async function convertUploadFiles(
   const convertedFiles: File[] = []
   let convertedCount = 0
   let failedCount = 0
+  const errorTypes: AnalyticsErrorType[] = []
 
   for (let index = 0; index < files.length; index += 1) {
     const file = files[index]
@@ -860,12 +866,13 @@ async function convertUploadFiles(
       convertedCount += 1
     } catch (error) {
       failedCount += 1
+      errorTypes.push(getAnalyticsErrorType(error))
       convertedFiles.push(file)
       console.warn("View HEIC upload file conversion failed:", file.name, error)
     }
   }
 
-  return { files: convertedFiles, convertedCount, failedCount }
+  return { files: convertedFiles, convertedCount, failedCount, errorTypes }
 }
 
 function trackUploadConversion(
@@ -885,7 +892,9 @@ function trackUploadConversion(
     success_count: successCount,
     failure_count: failureCount,
     duration_ms: getAnalyticsDurationMs(performance.now() - startedAt),
-    error_type: replayed ? (failureCount > 0 ? "conversion" : undefined) : "replay",
+    error_type: replayed
+      ? getAggregateAnalyticsErrorType(result.errorTypes)
+      : "replay",
   })
 }
 
@@ -1503,10 +1512,9 @@ function getRatingPromptCopy(successCount: number): { text: string; review: stri
 }
 
 function getAggregateErrorType(errorTypes: ConversionError["type"][]): AnalyticsErrorType | undefined {
-  if (errorTypes.length === 0) return undefined
-  const normalized = errorTypes.map((type) => (type === "unsupported" ? "conversion" : type))
-  const first = normalized[0]
-  return normalized.every((type) => type === first) ? first : "mixed"
+  return getAggregateAnalyticsErrorType(
+    errorTypes.map((type) => (type === "unsupported" ? "conversion" : type))
+  )
 }
 
 /**
@@ -1604,11 +1612,13 @@ function observeFailedImageLoads(
   const pendingImages = new Set<HTMLImageElement>()
   let observerDisposed = false
   let drainPromise: Promise<void> | undefined
+  let initialBatchPending = true
+  let initialBatchGeneration = 0
 
   const queueImage = (img: HTMLImageElement): void => {
     if (observerDisposed || !img.isConnected || pendingImages.size >= 50) return
     pendingImages.add(img)
-    if (contentScriptEnabled) {
+    if (contentScriptEnabled && !initialBatchPending) {
       void drainPendingImages()
     }
   }
@@ -1617,8 +1627,9 @@ function observeFailedImageLoads(
     img: HTMLImageElement,
     src: string,
     operationGeneration: number,
-    signal: AbortSignal
-  ): Promise<void> => {
+    signal: AbortSignal,
+    reportImmediately: boolean
+  ): Promise<ConversionResults[number] | undefined> => {
     if (
       signal.aborted ||
       observerDisposed ||
@@ -1672,7 +1683,9 @@ function observeFailedImageLoads(
       return
     }
 
-    await recordConversionResults([result], "mutation", conversionStartedAt)
+    if (reportImmediately) {
+      await recordConversionResults([result], "mutation", conversionStartedAt)
+    }
     if (
       signal.aborted ||
       !contentScriptEnabled ||
@@ -1689,9 +1702,13 @@ function observeFailedImageLoads(
       converted: settled.converted,
       failed: settled.failed,
     })
+    return result
   }
 
-  const probeImage = async (img: HTMLImageElement): Promise<void> => {
+  const probeImage = async (
+    img: HTMLImageElement,
+    reportImmediately: boolean
+  ): Promise<ConversionResults[number] | undefined> => {
     if (observerDisposed || !img.isConnected) return
     if (!contentScriptEnabled) {
       pendingImages.add(img)
@@ -1725,8 +1742,8 @@ function observeFailedImageLoads(
         if (!isHeif) return
       }
 
-      await pageWorkQueue.run(() =>
-        convertProbedImage(img, src, operationGeneration, signal)
+      return await pageWorkQueue.run(() =>
+        convertProbedImage(img, src, operationGeneration, signal, reportImmediately)
       )
     } catch {
       if (signal.aborted) {
@@ -1747,11 +1764,11 @@ function observeFailedImageLoads(
         const image = pendingImages.values().next().value as HTMLImageElement | undefined
         if (!image) return
         pendingImages.delete(image)
-        await probeImage(image)
+        await probeImage(image, true)
       }
     })().finally(() => {
       drainPromise = undefined
-      if (contentScriptEnabled && pendingImages.size > 0) {
+      if (contentScriptEnabled && !initialBatchPending && pendingImages.size > 0) {
         void drainPendingImages()
       }
     })
@@ -1766,8 +1783,44 @@ function observeFailedImageLoads(
 
   document.addEventListener("error", handleImageError, true)
   return {
-    async flush() {
-      await drainPendingImages()
+    prepareInitialBatch() {
+      initialBatchPending = true
+      initialBatchGeneration += 1
+    },
+    async flushInitialBatch() {
+      await drainPromise
+      const batchGeneration = initialBatchGeneration
+      const startedAt = performance.now()
+      const results: ConversionResults = []
+      const initialDrain = (async () => {
+        while (
+          contentScriptEnabled &&
+          batchGeneration === initialBatchGeneration &&
+          pendingImages.size > 0
+        ) {
+          const image = pendingImages.values().next().value as HTMLImageElement | undefined
+          if (!image) return
+          pendingImages.delete(image)
+          const result = await probeImage(image, false)
+          if (result) results.push(result)
+        }
+        if (contentScriptEnabled && batchGeneration === initialBatchGeneration) {
+          await recordConversionResults(results, "initial", startedAt)
+        }
+      })()
+      drainPromise = initialDrain.finally(() => {
+        drainPromise = undefined
+      })
+      try {
+        await drainPromise
+      } finally {
+        if (batchGeneration === initialBatchGeneration) {
+          initialBatchPending = false
+          if (contentScriptEnabled && pendingImages.size > 0) {
+            void drainPendingImages()
+          }
+        }
+      }
     },
     dispose() {
       observerDisposed = true

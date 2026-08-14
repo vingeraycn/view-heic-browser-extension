@@ -48,7 +48,8 @@ let pageState: PageState | undefined
 let pageAction: PopupPageAction | undefined
 let currentPresentation: PopupPresentation
 let togglePending = false
-let analyticsEnabled = true
+let analyticsEnabled = false
+let analyticsPreferenceLoaded = false
 let analyticsTogglePending = false
 
 void initialize()
@@ -78,6 +79,7 @@ async function initialize(): Promise<void> {
   ])
   activeTab = tab
   analyticsEnabled = storedAnalyticsEnabled
+  analyticsPreferenceLoaded = true
   renderAnalyticsPreference()
 
   if (typeof tab?.id !== "number") {
@@ -151,7 +153,7 @@ async function handlePageAction(): Promise<void> {
 }
 
 async function toggleAnalytics(): Promise<void> {
-  if (analyticsTogglePending) return
+  if (!analyticsPreferenceLoaded || analyticsTogglePending) return
 
   const previousAnalyticsEnabled = analyticsEnabled
   analyticsTogglePending = true
@@ -168,7 +170,7 @@ async function toggleAnalytics(): Promise<void> {
       locale === "zh" ? "无法更新使用数据设置。" : "Couldn’t update the usage data setting."
   } finally {
     analyticsTogglePending = false
-    analyticsToggle.disabled = false
+    renderAnalyticsPreference()
   }
 }
 
@@ -176,6 +178,7 @@ function renderAnalyticsPreference(): void {
   analyticsToggleLabel.textContent =
     locale === "zh" ? "共享基本使用数据" : "Share basic usage data"
   analyticsToggle.setAttribute("aria-checked", String(analyticsEnabled))
+  analyticsToggle.disabled = !analyticsPreferenceLoaded || analyticsTogglePending
 }
 
 async function toggleSite(): Promise<void> {

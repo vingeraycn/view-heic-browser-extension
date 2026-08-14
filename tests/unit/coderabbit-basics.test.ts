@@ -146,6 +146,23 @@ describe("review regression contracts", () => {
     expect(visuallyHiddenRule).not.toMatch(/(^|\s)clip\s*:/)
   })
 
+  it("keeps the analytics switch disabled until its stored preference loads", async () => {
+    const popupHtml = await readRepositoryFile("entrypoints/popup/index.html")
+    const popupMain = await readRepositoryFile("entrypoints/popup/main.ts")
+    const analyticsButton = popupHtml.match(
+      /<button[^>]*id="analytics-toggle"[^>]*>/
+    )?.[0]
+
+    expect(analyticsButton).toContain('aria-checked="false"')
+    expect(analyticsButton).toContain("disabled")
+    expect(popupMain).toContain("let analyticsPreferenceLoaded = false")
+    expect(popupMain).toContain("analyticsPreferenceLoaded = true")
+    expect(popupMain).toContain("if (!analyticsPreferenceLoaded || analyticsTogglePending) return")
+    expect(popupMain).toContain(
+      "analyticsToggle.disabled = !analyticsPreferenceLoaded || analyticsTogglePending"
+    )
+  })
+
   it("clears converter work before choosing the next site-enabled state", async () => {
     const contentScript = await readRepositoryFile("entrypoints/content.ts")
 

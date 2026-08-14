@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { SerialTaskQueue } from "../../utils/serial-task-queue"
 
 describe("SerialTaskQueue", () => {
@@ -39,5 +39,27 @@ describe("SerialTaskQueue", () => {
 
     await expect(first).rejects.toThrow("expected")
     await expect(second).resolves.toBe("next")
+  })
+
+  it("drops queued tasks invalidated before they start", async () => {
+    const queue = new SerialTaskQueue()
+    let releaseFirst: (() => void) | undefined
+    const firstGate = new Promise<void>((resolve) => {
+      releaseFirst = resolve
+    })
+    const first = queue.runIfCurrent(async () => {
+      await firstGate
+      return "first"
+    }, "stale")
+    const staleTask = vi.fn(() => "second")
+    const second = queue.runIfCurrent(staleTask, "stale")
+
+    await Promise.resolve()
+    queue.invalidatePending()
+    releaseFirst?.()
+
+    await expect(first).resolves.toBe("first")
+    await expect(second).resolves.toBe("stale")
+    expect(staleTask).not.toHaveBeenCalled()
   })
 })

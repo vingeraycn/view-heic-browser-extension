@@ -125,9 +125,21 @@ assert(
   content.includes("interface UploadConversionResult") &&
     content.includes("convertedCount") &&
     content.includes("failedCount") &&
+    content.includes("errorTypes") &&
+    content.includes("errorTypes.push(getAnalyticsErrorType(error))") &&
+    content.includes("getAggregateAnalyticsErrorType(result.errorTypes)") &&
     content.includes("convertedFiles.push(file)") &&
     content.includes("View HEIC upload file conversion failed"),
   "per-file conversion failures keep the original file instead of dropping the whole selection"
+)
+
+assert(
+  content.includes("failedImageObserver.prepareInitialBatch()") &&
+    content.includes("failedImageObserver.flushInitialBatch()") &&
+    content.includes("const result = await probeImage(image, false)") &&
+    content.includes('recordConversionResults(results, "initial", startedAt)') &&
+    content.includes("contentScriptEnabled && !initialBatchPending"),
+  "MIME-only images queued before initial processing report as one initial conversion batch"
 )
 
 assert(

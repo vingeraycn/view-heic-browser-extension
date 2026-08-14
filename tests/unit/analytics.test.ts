@@ -7,12 +7,15 @@ import {
   ANALYTICS_MESSAGE_TYPE,
   ANALYTICS_SESSION_STORAGE_KEY,
   getAnalyticsDurationMs,
+  getAnalyticsErrorType,
+  getAggregateAnalyticsErrorType,
   getAnalyticsEnabled,
   getConversionOutcome,
   isAnalyticsMessage,
   isAnalyticsPreferenceMessage,
   setAnalyticsEnabled,
 } from "../../utils/analytics"
+import { ERROR_MESSAGES } from "../../utils/constants"
 import {
   createGoogleAnalyticsClientId,
   isGoogleAnalyticsClientId,
@@ -236,5 +239,17 @@ describe("analytics duration", () => {
   it("preserves slow conversions while capping suspended workflows at 24 hours", () => {
     expect(getAnalyticsDurationMs(700_000)).toBe(700_000)
     expect(getAnalyticsDurationMs(100_000_000)).toBe(86_400_000)
+  })
+})
+
+describe("analytics error categories", () => {
+  it("preserves file validation categories for upload failures", () => {
+    expect(getAnalyticsErrorType(new Error(ERROR_MESSAGES.FILE_TOO_LARGE))).toBe("size")
+    expect(getAnalyticsErrorType(new Error(ERROR_MESSAGES.INVALID_FORMAT))).toBe("format")
+  })
+
+  it("reports mixed categories when upload failures have different causes", () => {
+    expect(getAggregateAnalyticsErrorType(["size", "format"])).toBe("mixed")
+    expect(getAggregateAnalyticsErrorType(["format", "format"])).toBe("format")
   })
 })

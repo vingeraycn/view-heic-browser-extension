@@ -1,3 +1,5 @@
+import { ERROR_MESSAGES } from "./constants"
+
 export const ANALYTICS_SCHEMA_VERSION = "2"
 export const ANALYTICS_MAX_DURATION_MS = 24 * 60 * 60 * 1000
 export const ANALYTICS_MESSAGE_TYPE = "analytics:event"
@@ -142,6 +144,23 @@ export function getConversionOutcome(
 
 export function getAnalyticsDurationMs(elapsedMs: number): number {
   return Math.min(ANALYTICS_MAX_DURATION_MS, Math.max(0, Math.round(elapsedMs)))
+}
+
+export function getAnalyticsErrorType(error: unknown): AnalyticsErrorType {
+  const message = error instanceof Error ? error.message : ""
+  if (message.includes(ERROR_MESSAGES.FILE_TOO_LARGE)) return "size"
+  if (message.includes(ERROR_MESSAGES.INVALID_FORMAT)) return "format"
+  if (message.includes(ERROR_MESSAGES.CORS_ERROR)) return "cors"
+  if (message.includes(ERROR_MESSAGES.NETWORK_ERROR)) return "network"
+  return "conversion"
+}
+
+export function getAggregateAnalyticsErrorType(
+  errorTypes: AnalyticsErrorType[]
+): AnalyticsErrorType | undefined {
+  if (errorTypes.length === 0) return undefined
+  const first = errorTypes[0]
+  return errorTypes.every((type) => type === first) ? first : "mixed"
 }
 
 export function isAnalyticsMessage(message: unknown): message is AnalyticsEventMessage {

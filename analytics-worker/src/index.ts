@@ -45,38 +45,55 @@ const EVENT_PARAMS: Record<string, ReadonlySet<string>> = {
   extension_active: new Set(["activity_source", "engagement_time_msec"]),
 }
 
-const ALLOWED_VALUES: Record<string, ReadonlySet<string>> = {
-  connection_state: new Set(["connected", "disconnected"]),
-  page_phase: new Set([
-    "initializing",
-    "converting",
-    "complete",
-    "error",
-    "idle",
-    "disabled",
-    "unavailable",
-  ]),
-  surface: new Set(["page_image", "web_upload", "file_converter", "popup"]),
-  trigger: new Set(["initial", "mutation", "file_picker", "drop", "paste"]),
-  outcome: new Set(["success", "partial", "failure"]),
-  error_type: new Set([
-    "network",
-    "cors",
-    "size",
-    "format",
-    "conversion",
-    "mixed",
-    "replay",
-    "unknown",
-  ]),
-  action: new Set(["review", "feedback", "dismissed"]),
-  activity_source: new Set([
-    "conversion",
-    "popup",
-    "file_converter",
-    "help",
-    "review_prompt",
-  ]),
+const ALLOWED_VALUES_BY_EVENT: Record<string, Record<string, ReadonlySet<string>>> = {
+  popup_opened: {
+    connection_state: new Set(["connected", "disconnected"]),
+    page_phase: new Set([
+      "initializing",
+      "converting",
+      "complete",
+      "error",
+      "idle",
+      "disabled",
+      "unavailable",
+    ]),
+  },
+  help_opened: {
+    surface: new Set(["popup", "file_converter"]),
+  },
+  conversion_completed: {
+    surface: new Set(["page_image", "web_upload", "file_converter"]),
+    trigger: new Set(["initial", "mutation", "file_picker", "drop", "paste"]),
+    outcome: new Set(["success", "partial", "failure"]),
+    error_type: new Set([
+      "network",
+      "cors",
+      "size",
+      "format",
+      "conversion",
+      "mixed",
+      "replay",
+      "unknown",
+    ]),
+  },
+  review_prompt_action: {
+    action: new Set(["review", "feedback", "dismissed"]),
+  },
+  extension_active: {
+    activity_source: new Set([
+      "conversion",
+      "popup",
+      "file_converter",
+      "help",
+      "review_prompt",
+    ]),
+  },
+}
+
+const CONVERSION_TRIGGERS_BY_SURFACE: Record<string, ReadonlySet<string>> = {
+  page_image: new Set(["initial", "mutation"]),
+  web_upload: new Set(["file_picker", "drop", "paste"]),
+  file_converter: new Set(["file_picker", "drop"]),
 }
 
 const REQUIRED_EVENT_PARAMS: Record<string, readonly string[]> = {
@@ -203,6 +220,7 @@ function isAnalyticsEvent(value: unknown): value is AnalyticsEvent {
   ) {
     return false
   }
+  const eventName = value.name
   if (!isRecord(value.params)) return false
   const params = value.params
 
@@ -213,13 +231,13 @@ function isAnalyticsEvent(value: unknown): value is AnalyticsEvent {
   }
   if (!REQUIRED_EVENT_PARAMS[value.name].every((key) => key in params)) return false
 
-  if (!Object.entries(params).every(([key, param]) => isValidParam(key, param))) {
+  if (!Object.entries(params).every(([key, param]) => isValidParam(eventName, key, param))) {
     return false
   }
   return value.name !== "conversion_completed" || isValidConversionResult(params)
 }
 
-function isValidParam(key: string, value: unknown): boolean {
+function isValidParam(eventName: string, key: string, value: unknown): boolean {
   if (key === "analytics_schema_version") return value === "2"
   if (key === "extension_version" || key === "previous_version") {
     return typeof value === "string" && /^\d+\.\d+\.\d+(?:\.\d+)?$/.test(value)
@@ -238,8 +256,9 @@ function isValidParam(key: string, value: unknown): boolean {
   }
   if (key === "duration_ms") return isBoundedInteger(value, 0, MAX_DURATION_MS)
   if (key === "engagement_time_msec") return value === 1
-  if (ALLOWED_VALUES[key]) {
-    return typeof value === "string" && ALLOWED_VALUES[key].has(value)
+  const allowedValues = ALLOWED_VALUES_BY_EVENT[eventName]?.[key]
+  if (allowedValues) {
+    return typeof value === "string" && allowedValues.has(value)
   }
   return false
 }
@@ -255,6 +274,13 @@ function isValidConversionResult(params: Record<string, unknown>): boolean {
     typeof failureCount !== "number" ||
     attemptedCount < 1 ||
     successCount + failureCount !== attemptedCount
+  ) {
+    return false
+  }
+  if (
+    typeof params.surface !== "string" ||
+    typeof params.trigger !== "string" ||
+    !CONVERSION_TRIGGERS_BY_SURFACE[params.surface]?.has(params.trigger)
   ) {
     return false
   }

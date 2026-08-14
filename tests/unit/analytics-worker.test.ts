@@ -109,6 +109,40 @@ describe("analytics edge proxy", () => {
     ).resolves.toMatchObject({ status: 204 })
   })
 
+  it.each([
+    ["conversion-only surface", "popup", "file_picker"],
+    ["surface and trigger combination", "web_upload", "mutation"],
+  ])("rejects an invalid %s", async (_name, surface, trigger) => {
+    const payload = validConversionPayload()
+    payload.events[0].params.surface = surface
+    payload.events[0].params.trigger = trigger
+    const forward = vi.fn(async () => new Response(null, { status: 204 }))
+
+    await expect(
+      handleAnalyticsRequest(createRequest(payload), env, forward as unknown as typeof fetch)
+    ).resolves.toMatchObject({ status: 400 })
+    expect(forward).not.toHaveBeenCalled()
+  })
+
+  it("rejects a help surface outside the client contract", async () => {
+    const payload = validPayload()
+    payload.events = [
+      {
+        name: "help_opened",
+        params: {
+          ...commonParams(),
+          surface: "page_image",
+        },
+      },
+    ]
+    const forward = vi.fn(async () => new Response(null, { status: 204 }))
+
+    await expect(
+      handleAnalyticsRequest(createRequest(payload), env, forward as unknown as typeof fetch)
+    ).resolves.toMatchObject({ status: 400 })
+    expect(forward).not.toHaveBeenCalled()
+  })
+
   it("stops reading oversized request bodies before parsing or forwarding", async () => {
     const forward = vi.fn(async () => new Response(null, { status: 204 }))
     const request = new Request("https://analytics.example.workers.dev", {
