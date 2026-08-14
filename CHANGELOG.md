@@ -1,333 +1,333 @@
-# 📋 变更日志
+# 📋 Changelog
 
-所有项目的重要更改都会记录在此文件中。
+All notable changes to this project are documented in this file.
 
-格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
-并且本项目遵守 [语义化版本](https://semver.org/lang/zh-CN/)。
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project follows [Semantic Versioning](https://semver.org/).
 
-## [1.4.0] - 2026-08-14 📊 可解释的产品分析
+## [1.4.0] - 2026-08-14 📊 Explainable Product Analytics
 
-### ✨ 新增
+### ✨ Added
 
-- 新增每日一次的 `extension_active`，以“发生过真实插件活动的安装实例”作为核心活跃指标
-- Popup、网站开关、本地文件转换器、网页图片、文件选择、拖拽、粘贴和评价提示统一接入类型化事件协议
-- Popup 新增“共享基本使用数据”开关；关闭后立即停止上报并删除本地分析标识
-- 新增第一方边缘代理，在转发至 GA4 前校验来源、事件名、参数、取值与请求体积
+- Added one daily `extension_active` event so the primary activity metric represents installations that performed real extension work.
+- Connected the popup, per-site preference, local file converter, page images, file picker, drag-and-drop, paste, and review prompt to one typed event contract.
+- Added a "Share basic usage data" switch to the popup; disabling it stops reporting immediately and deletes the local analytics identifier.
+- Added a first-party edge proxy that validates origins, event names, parameters, values, and request size before forwarding events to GA4.
 
-### 🔧 改进
+### 🔧 Changed
 
-- 一次转换流程只发送一条汇总结果，避免 DOM 重试和同一失败反复抬高事件量
-- 所有事件自动携带扩展版本、埋点协议版本与会话标识，支持按版本、入口和结果进行归因分析
-- 只采集粗粒度枚举和计数，不采集图片内容、URL、域名、文件名、页面内容、浏览历史或表单数据
+- Each conversion workflow now sends one aggregate result, preventing DOM retries and repeated failures from inflating event volume.
+- Every event now carries extension version, analytics schema version, and session identifiers for attribution by version, surface, and outcome.
+- Collection is limited to coarse enums and counts. It excludes image contents, URLs, hostnames, file names, page contents, browsing history, and form data.
 
-### 🔒 安全与隐私
+### 🔒 Security and Privacy
 
-- 从客户端代码和构建环境移除 GA4 Measurement Protocol API Secret
-- 新增中英文隐私政策与埋点规范，明确假名化标识、第三方处理方和用户控制方式
+- Removed the GA4 Measurement Protocol API secret from client code and the extension build environment.
+- Added an English privacy policy and analytics specification covering pseudonymous identifiers, data processors, collection exclusions, and user controls.
 
-## [1.3.0] - 2026-08-01 🧭 Popup、主动转换与 Gemini 兼容
+## [1.3.0] - 2026-08-01 🧭 Popup, Manual Conversion, and Gemini Compatibility
 
-### ✨ 新增
+### ✨ Added
 
-- 新增 Popup 页面，清晰展示当前页面的检测、转换、部分成功与失败状态
-- 支持按网站启用或关闭自动转换，并提供本地 HEIC / HEIF 文件转换、预览和下载入口
-- 改进 Gemini 文件选择与粘贴上传流程，同时保留 ChatGPT 已有的选择、粘贴和拖拽能力
+- Added a popup that clearly presents detection, conversion, partial-success, and failure states for the current page.
+- Added per-site automatic conversion controls and a local HEIC / HEIF file converter with preview and download actions.
+- Improved Gemini file-picker and paste uploads while preserving existing picker, paste, and drag-and-drop behavior on ChatGPT.
 
-### 🔧 改进
+### 🔧 Changed
 
-- 首次安装默认打开英文引导，Popup 的帮助和 FAQ 链接跟随当前界面语言
-- 部分成功时明确展示已转换图片数量，并使用克制的主题蓝状态提示
-- 官网 Demo 使用稳定的失败终态，不再通过轮询反复刷新状态
+- First installation now opens English onboarding by default, while popup help and FAQ links follow the interface language.
+- Partial success now displays the number of converted images with a restrained theme-blue status treatment.
+- The website demo now settles into a stable failure state instead of repeatedly refreshing through polling.
 
-### 🐛 修复
+### 🐛 Fixed
 
-- 限制临时转换错误的重试次数，确定性错误不再无意义重试
-- 修复失败后相同图片被 DOM 变化反复拉起转换的问题，包括 MIME-only 图片路径
-- 修复失败、取消或图片换源后 loading 未结束，以及过期任务被误记为真实失败的问题
-- 修复上传 loading 与 error toast 同时存在的问题
+- Limited retries for transient conversion failures and prevented deterministic errors from retrying without purpose.
+- Prevented DOM changes from repeatedly restarting failed conversions for the same image, including MIME-only paths.
+- Fixed loading states that did not end after failure, cancellation, or image-source changes, and stopped stale tasks from being counted as real failures.
+- Fixed upload loading and error toasts appearing at the same time.
 
-## [1.2.0] - 2026-07-12 📋 粘贴转换与品牌焕新
+## [1.2.0] - 2026-07-12 📋 Paste Conversion and Brand Refresh
 
-### ✨ 新增
+### ✨ Added
 
-- 支持直接粘贴 HEIC / HEIF 图片，并在浏览器本地自动转换为 JPG 后交给网页
-- 粘贴转换兼容普通输入框、富文本编辑器和自定义上传区域
+- Added direct HEIC / HEIF paste support that converts images to JPEG locally before delivering them to the page.
+- Added paste conversion compatibility for standard inputs, rich-text editors, and custom upload targets.
 
-### 🔧 改进
+### 🔧 Changed
 
-- 保留同次粘贴中的文本、HTML 与普通文件，单张图片转换失败时也不会丢失整次粘贴内容
-- 更新扩展图标、官网 Logo、上传提示 Logo 与应用市场宣传素材
-- 统一品牌与市场素材源文件，确保后续生成的扩展和宣传素材保持一致
+- Preserved text, HTML, and ordinary files from the same paste operation, even when one image fails to convert.
+- Updated the extension icon, website logo, upload-prompt logo, and store promotional assets.
+- Consolidated brand and store asset sources so future generated extension and promotional assets remain consistent.
 
-## [1.0.15] - 2026-07-04 📈 评价漏斗分析
+## [1.0.15] - 2026-07-04 📈 Review Funnel Analytics
 
-### ✨ 新增
+### ✨ Added
 
-- 新增 GA4 Measurement Protocol 匿名产品事件，覆盖 HEIC 发现、转换成功/失败、评价提示展示/点击/关闭和反馈点击
-- 新增发布环境变量示例，支持通过 `WXT_ENABLE_EXTENSION_ANALYTICS` 控制是否启用扩展分析
-- 新增埋点契约自检脚本，避免事件参数引入图片地址、页面地址或文件名
+- Added anonymous GA4 Measurement Protocol events for HEIC detection, conversion success and failure, review-prompt views, review actions, dismissals, and feedback actions.
+- Added release environment examples controlled by `WXT_ENABLE_EXTENSION_ANALYTICS`.
+- Added an analytics-contract verification script to prevent event parameters from including image URLs, page URLs, or file names.
 
-### 🔧 改进
+### 🔧 Changed
 
-- 保留既有评价提示流程，同时补齐成功/失败累计状态
-- MIME-only HEIF fallback 路径纳入同一套转换统计和评价提示计数
-- 埋点请求由 background 统一发送，并增加事件名、参数类型和参数白名单校验
-- 评价、反馈和关闭按钮不等待埋点请求，避免网络请求拖慢提示关闭
-- 更新 README 和官网隐私文案，明确图片仍本地转换且不上传图片内容、图片地址、页面地址、文件名、浏览历史或转换后的图片
+- Preserved the existing review-prompt flow while adding cumulative success and failure state.
+- Included MIME-only HEIF fallback paths in conversion statistics and review-prompt counts.
+- Centralized analytics requests in the background worker and added event-name, parameter-type, and parameter allowlists.
+- Review, feedback, and dismissal actions no longer wait for analytics requests, so network activity cannot delay prompt closure.
+- Updated the README and website privacy copy to clarify that images remain local and that image contents, image URLs, page URLs, file names, browsing history, and converted images are not uploaded.
 
-## [1.0.12] - 2026-06-24 ⭐ 评分引导体验
+## [1.0.12] - 2026-06-24 ⭐ Review Prompt Experience
 
-### ✨ 新增
+### ✨ Added
 
-- 在累计成功转换超过 10 张图片后展示应用商店评价入口
-- 评价提示支持中英文文案，并使用实际成功转换张数
-- 为评价提示增加进入和退出缓动动画
+- Added a store review entry point after more than ten successful image conversions.
+- Added localized review-prompt copy that includes the actual successful conversion count.
+- Added eased enter and exit animations for the prompt.
 
-### 🔧 改进
+### 🔧 Changed
 
-- 点击评价按钮后记录本地状态，避免重复打扰用户
-- Firefox 构建不展示 Chrome Web Store 评价入口
-- 评价链接在点击同步阶段打开，降低被浏览器拦截的概率
+- Recorded local state after the review action to prevent repeated interruptions.
+- Disabled the Chrome Web Store review entry point in Firefox builds.
+- Opened review links synchronously from the click path to reduce browser blocking.
 
-## [1.0.11] - 2026-06-15 ⚡ 性能优化与稳定性修复
+## [1.0.11] - 2026-06-15 ⚡ Performance and Stability
 
-### 🔧 改进
+### 🔧 Changed
 
-- 默认将 HEIC 转换为 JPEG 预览，减少大图输出体积和浏览器渲染压力
-- 为转换流程增加阶段耗时日志，便于定位性能瓶颈
-- 序列 HEIC 默认降级为首帧预览，避免一次性多帧解码拖慢页面
+- Switched the default HEIC preview output to JPEG to reduce large-image output size and browser rendering cost.
+- Added stage-level conversion timing logs for performance diagnosis.
+- Defaulted HEIC sequences to first-frame previews to avoid expensive multi-frame decoding.
 
-### 🐛 修复
+### 🐛 Fixed
 
-- 修复复用同一个 `<img>` 并变更 `src` 时，旧转换结果可能覆盖新图片的问题
-- 修复带查询参数的 HEIC URL 在 `src` mutation 路径中无法重新处理的问题
-- 修复同一批 mutation 中多张 HEIC 图片变更时只 reset 第一张的问题
-- reset 时不再清除页面自身的样式、标题和点击处理器
-- 修复 TypeScript 6 下动画帧 `ImageData` 构造的类型兼容问题
+- Prevented an old conversion result from overwriting a newer image when a page reuses an `<img>` element and changes its `src`.
+- Fixed reprocessing of HEIC URLs with query parameters through the `src` mutation path.
+- Fixed mutation batches where only the first of several changed HEIC images was reset.
+- Stopped reset logic from removing page-owned styles, titles, and click handlers.
+- Fixed TypeScript 6 compatibility for animated-frame `ImageData` construction.
 
-## [1.0.8] - 2025-01-28 🚀 重大重构版本
+## [1.0.8] - 2025-01-28 🚀 Major Refactor
 
-### ✨ 新增功能
+### ✨ Added
 
-- **现代化测试环境**: 全新的 Node.js 测试服务器
-  - 自动打开浏览器
-  - 跨平台兼容性
-  - 优雅的错误处理
-- **Tailwind CSS 集成**: 现代化的 UI 设计
-  - 响应式布局
-  - 优美的组件设计
-  - 更小的 CSS 体积
+- **Modern test environment:** introduced a new Node.js test server.
+  - Opens the browser automatically.
+  - Supports multiple platforms.
+  - Handles server errors cleanly.
+- **Tailwind CSS integration:** introduced a modern UI foundation.
+  - Responsive layout.
+  - Refined component styling.
+  - Smaller CSS output.
 
-### 🔧 改进
+### 🔧 Changed
 
-- **依赖升级**: 从 `heic2any@0.0.4` 升级到 `heic-to@1.2.1`
-  - 基于最新 libheif 1.20.1
-  - 更好的性能和稳定性
-  - 持续维护支持
-- **架构重构**: 完整的 TypeScript 模块化重写
-  - `utils/heic-converter.ts` - 核心转换引擎
-  - `utils/types.ts` - 完整类型定义
-  - `utils/constants.ts` - 配置常量管理
-- **内存管理优化**
-  - 自动清理 blob URLs
-  - 避免重复处理同一图片
-  - 智能资源回收
-- **错误处理增强**
-  - 分类错误类型 (CORS, 格式, 网络等)
-  - 用户友好的错误提示
-  - 点击查看原图功能
-- **性能优化**
-  - 限制并发处理数量 (最多 3 张)
-  - 防抖动的 DOM 监听
-  - 智能缓存机制
+- **Dependency upgrade:** moved from `heic2any@0.0.4` to `heic-to@1.2.1`.
+  - Based on libheif 1.20.1.
+  - Improved performance and stability.
+  - Uses an actively maintained dependency.
+- **Architecture:** rewrote the extension as typed TypeScript modules.
+  - `utils/heic-converter.ts` — conversion engine.
+  - `utils/types.ts` — shared type definitions.
+  - `utils/constants.ts` — configuration and limits.
+- **Memory management:**
+  - Cleans up blob URLs automatically.
+  - Avoids processing the same image more than once.
+  - Reclaims temporary resources deliberately.
+- **Error handling:**
+  - Classifies CORS, format, network, and related errors.
+  - Presents user-friendly failure states.
+  - Provides an action to open the original image.
+- **Performance:**
+  - Limits concurrent processing to three images.
+  - Debounces DOM observation.
+  - Uses targeted caching.
 
-### 🧪 测试改进
+### 🧪 Testing
 
-- **本地化测试环境**: 4 个不同类型的 HEIC 测试文件
-  - `example.heic` (1.1MB) - 大文件性能测试
-  - `small-test.heic` (873KB) - Nokia 标准文件
-  - `medium-test.heic` (219KB) - 小文件快速转换
-  - `corrupted-test.heic` (78B) - 错误处理测试
-- **零 CORS 问题**: 完全本地化的测试方案
-- **实时统计**: 转换成功/失败数量实时显示
+- **Local fixtures:** added four HEIC files covering different paths.
+  - `example.heic` (1.1 MB) — large-file performance.
+  - `small-test.heic` (873 KB) — Nokia standard fixture.
+  - `medium-test.heic` (219 KB) — small, fast conversion.
+  - `corrupted-test.heic` (78 B) — error handling.
+- **No CORS dependency:** test cases run entirely from local fixtures.
+- **Live statistics:** displays conversion success and failure counts.
 
-### 🗑️ 移除
+### 🗑️ Removed
 
-- 移除未使用的 React 依赖和相关配置
-- 清理测试代码和注释残留
-- 删除重复的文档文件
+- Removed unused React dependencies and configuration.
+- Removed obsolete test code and comments.
+- Removed duplicated documentation files.
 
-### 🐛 修复
+### 🐛 Fixed
 
-- 修复内存泄漏问题
-- 解决重复处理图片的问题
-- 修复 Python 服务器 BrokenPipe 错误
-- 改进 CORS 错误处理
+- Fixed memory leaks.
+- Fixed repeated processing of the same image.
+- Fixed BrokenPipe errors in the Python server.
+- Improved CORS error handling.
 
-### 📚 文档更新
+### 📚 Documentation
 
-- 全新的 README.md 设计
-- 添加完整的 CHANGELOG.md
-- 更新安装和开发指南
-- 添加故障排除指南
-
----
-
-## [1.0.7] - 2024-07-10 🔄 稳定性改进
-
-### 🔧 改进
-
-- 修复扩展在某些网站的兼容性问题
-- 优化图片加载性能
-- 改进错误日志记录
-
-### 🐛 修复
-
-- 修复动态加载图片的监听问题
-- 解决部分网站的样式冲突
+- Reworked `README.md`.
+- Added a complete changelog.
+- Updated installation and development instructions.
+- Added a troubleshooting guide.
 
 ---
 
-## [1.0.6] - 2024-06-15 🎨 UI 优化
+## [1.0.7] - 2024-07-10 🔄 Stability Improvements
 
-### ✨ 新增功能
+### 🔧 Changed
 
-- 添加转换状态视觉指示
-- 改进处理中的加载动画
+- Improved compatibility with affected websites.
+- Improved image-loading performance.
+- Improved error logging.
 
-### 🔧 改进
+### 🐛 Fixed
 
-- 优化扩展图标设计
-- 改进用户界面交互
-
----
-
-## [1.0.5] - 2024-05-20 🚀 性能提升
-
-### 🔧 改进
-
-- 提升大文件处理速度
-- 优化内存使用效率
-- 改进并发处理机制
-
-### 🐛 修复
-
-- 修复某些 HEIC 文件无法识别的问题
-- 解决扩展在 Firefox 上的兼容性问题
+- Fixed observation of dynamically loaded images.
+- Fixed style conflicts on some websites.
 
 ---
 
-## [1.0.4] - 2024-04-10 🔧 基础优化
+## [1.0.6] - 2024-06-15 🎨 UI Improvements
 
-### 🔧 改进
+### ✨ Added
 
-- 改进 HEIC 文件检测算法
-- 优化转换质量设置
-- 提升扩展启动速度
+- Added visual conversion status indicators.
+- Added an improved in-progress animation.
 
-### 🐛 修复
+### 🔧 Changed
 
-- 修复在某些网站上的 JavaScript 错误
-- 解决图片缓存问题
-
----
-
-## [1.0.3] - 2024-03-05 🛠️ 稳定性修复
-
-### 🐛 修复
-
-- 修复扩展在页面刷新后失效的问题
-- 解决与其他扩展的冲突问题
-- 修复内存泄漏问题
+- Refined the extension icon.
+- Improved interface interactions.
 
 ---
 
-## [1.0.2] - 2024-02-01 📱 兼容性改进
+## [1.0.5] - 2024-05-20 🚀 Performance Improvements
 
-### 🔧 改进
+### 🔧 Changed
 
-- 改进对不同 HEIC 文件格式的支持
-- 优化在移动设备上的表现
-- 提升转换成功率
+- Improved conversion speed for large files.
+- Reduced memory use.
+- Improved concurrent processing.
 
-### 🐛 修复
+### 🐛 Fixed
 
-- 修复某些网站的 CSS 样式冲突
-- 解决大文件转换超时问题
-
----
-
-## [1.0.1] - 2024-01-15 🐛 初期修复
-
-### 🐛 修复
-
-- 修复扩展安装后首次使用的问题
-- 解决在某些浏览器版本上的兼容性问题
-- 修复转换失败时的错误处理
+- Fixed detection failures for some HEIC files.
+- Fixed Firefox compatibility issues.
 
 ---
 
-## [1.0.0] - 2024-01-01 🎉 首次发布
+## [1.0.4] - 2024-04-10 🔧 Foundation Improvements
 
-### ✨ 核心功能
+### 🔧 Changed
 
-- **HEIC 图片转换**: 自动将 HEIC 格式转换为 PNG
-- **智能检测**: 自动识别页面中的 HEIC 图片
-- **动态监听**: 支持动态加载的图片转换
-- **跨域支持**: 处理各种网站的 CORS 限制
+- Improved HEIC detection.
+- Refined conversion quality settings.
+- Improved startup performance.
 
-### 🏗️ 技术栈
+### 🐛 Fixed
 
-- 基于 WXT 框架开发
-- 使用 heic2any 进行格式转换
-- TypeScript 支持
-- Chrome/Firefox 兼容
-
-### 📦 发布渠道
-
-- Chrome Web Store 上架
-- GitHub Releases 手动下载
+- Fixed JavaScript errors on affected websites.
+- Fixed image-cache handling.
 
 ---
 
-## 🔮 未来计划
+## [1.0.3] - 2024-03-05 🛠️ Stability Fixes
 
-### v1.1.0 (计划中)
+### 🐛 Fixed
 
-- [ ] 更多动态 HEIC 格式支持
-- [ ] 批量转换功能
-- [ ] 转换质量可调节
-- [ ] 更多输出格式支持 (JPEG, WebP)
-
-### v1.2.0 (规划中)
-
-- [ ] 云端转换服务集成
-- [ ] 离线模式支持
-- [ ] 高级设置面板
-- [ ] 转换历史记录
+- Fixed extension behavior after a page refresh.
+- Fixed conflicts with other extensions.
+- Fixed memory leaks.
 
 ---
 
-## 🤝 贡献者
+## [1.0.2] - 2024-02-01 📱 Compatibility Improvements
 
-感谢所有为这个项目做出贡献的开发者：
+### 🔧 Changed
 
-- [@vingeray](https://github.com/vingeray) - 项目创建者和主要维护者
+- Improved support for different HEIC file variants.
+- Improved behavior on mobile devices.
+- Improved conversion success rates.
+
+### 🐛 Fixed
+
+- Fixed CSS conflicts on affected websites.
+- Fixed timeouts when converting large files.
 
 ---
 
-## 📞 支持
+## [1.0.1] - 2024-01-15 🐛 Initial Fixes
 
-如果你在使用过程中遇到问题或有功能建议，请：
+### 🐛 Fixed
 
-1. 查看 [故障排除指南](README.md#故障排除)
-2. 搜索 [现有问题](https://github.com/vingeraycn/view-heic-browser-extension/issues)
-3. 创建 [新问题](https://github.com/vingeraycn/view-heic-browser-extension/issues/new)
+- Fixed first-run behavior after installation.
+- Fixed compatibility with affected browser versions.
+- Fixed conversion failure handling.
+
+---
+
+## [1.0.0] - 2024-01-01 🎉 Initial Release
+
+### ✨ Core Features
+
+- **HEIC conversion:** automatically converts HEIC images to PNG.
+- **Automatic detection:** identifies HEIC images on pages.
+- **Dynamic observation:** handles images loaded after the initial page render.
+- **Cross-origin support:** handles common CORS constraints.
+
+### 🏗️ Technology
+
+- Built with WXT.
+- Used `heic2any` for conversion.
+- Written in TypeScript.
+- Supported Chrome and Firefox.
+
+### 📦 Distribution
+
+- Chrome Web Store.
+- Manual installation from GitHub Releases.
+
+---
+
+## 🔮 Historical Roadmap
+
+### v1.1.0
+
+- [ ] Support additional dynamic HEIC variants.
+- [ ] Add batch conversion.
+- [ ] Add configurable conversion quality.
+- [ ] Add additional output formats such as JPEG and WebP.
+
+### v1.2.0
+
+- [ ] Explore an optional cloud conversion service.
+- [ ] Add offline mode.
+- [ ] Add an advanced settings panel.
+- [ ] Add conversion history.
+
+---
+
+## 🤝 Contributors
+
+Thank you to everyone who has contributed to this project:
+
+- [@vingeray](https://github.com/vingeray) — creator and primary maintainer.
+
+---
+
+## 📞 Support
+
+If you encounter a problem or have a feature request:
+
+1. Read the [troubleshooting guide](README.md#troubleshooting).
+2. Search [existing issues](https://github.com/vingeraycn/view-heic-browser-extension/issues).
+3. Create a [new issue](https://github.com/vingeraycn/view-heic-browser-extension/issues/new).
 
 ---
 
 <div align="center">
 
-**项目链接**: [GitHub](https://github.com/vingeraycn/view-heic-browser-extension) • [Chrome Web Store](https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge)
+**Project links:** [GitHub](https://github.com/vingeraycn/view-heic-browser-extension) • [Chrome Web Store](https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge)
 
 </div>

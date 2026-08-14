@@ -4,8 +4,6 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?logo=google-chrome&logoColor=white)](https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge)
 
-Read this in [Chinese](README.zh-CN.md).
-
 View HEIC helps Chrome display and upload iPhone HEIC/HEIF photos on web pages. It detects likely HEIC/HEIF images, converts them locally, and replaces the original image or upload file with a browser-friendly JPEG.
 
 ## Features

@@ -117,9 +117,9 @@ const checks = [
   {
     name: "the analytics specification defines KPIs, events, and GA4 custom definitions",
     pass:
-      files["docs/analytics.md"].includes("每日活跃安装量") &&
-      files["docs/analytics.md"].includes("## 事件协议") &&
-      files["docs/analytics.md"].includes("## GA4 自定义定义"),
+      files["docs/analytics.md"].includes("Daily active installations") &&
+      files["docs/analytics.md"].includes("## Event Contract") &&
+      files["docs/analytics.md"].includes("## GA4 Custom Definitions"),
   },
 ]
 
