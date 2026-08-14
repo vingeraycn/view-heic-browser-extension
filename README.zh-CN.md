@@ -1,6 +1,6 @@
 # View HEIC 浏览器扩展
 
-[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
+[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?logo=google-chrome&logoColor=white)](https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge)
 
@@ -37,8 +37,10 @@ pnpm build
 
 ```bash
 pnpm compile
+pnpm test
 pnpm verify:heif-detection
 pnpm verify:rating-prompt
+pnpm verify:analytics-events
 pnpm verify:upload-conversion
 pnpm verify:performance
 pnpm verify:src-change
@@ -58,10 +60,15 @@ pnpm test:server
 
 ```text
 view-heic-browser-extension/
+├── analytics-worker/        # 第一方 GA4 事件代理
 ├── entrypoints/
+│   ├── background.ts
 │   ├── content.ts
-│   └── background.ts
+│   ├── converter/
+│   └── popup/
 ├── utils/
+│   ├── analytics.ts
+│   ├── analytics-transport.ts
 │   ├── constants.ts
 │   ├── heic-converter.ts
 │   └── types.ts
@@ -75,9 +82,16 @@ view-heic-browser-extension/
 
 ## 权限说明
 
-View HEIC 使用 `storage` 权限保存评价提示相关的本地状态，例如用户是否已经关闭或点击过提示。图片转换仍然完全在浏览器本地完成。发布版本启用扩展分析时，View HEIC 会发送匿名产品事件，例如转换成功/失败和评价提示点击。扩展不会上传图片内容、图片地址、页面地址、文件名、浏览历史或转换后的图片数据。
+View HEIC 使用 `storage` 权限保存网站开关、评价提示状态和数据共享偏好。图片转换始终完全在浏览器本地完成。扩展默认会使用随机生成的假名化安装标识，通过第一方校验代理向 Google Analytics 发送粗粒度产品事件，范围包括插件是否发生真实活动、功能入口、一次转换流程的汇总结果和评价提示操作。事件绝不包含图片内容、图片或页面地址、网站域名、文件名、浏览历史、表单内容或转换后的图片数据。用户可随时在 Popup 中关闭“共享基本使用数据”；关闭后，本地分析标识也会一并删除。详见[隐私政策](docs/privacy.html)与[埋点规范](docs/analytics.md)。
 
 ## 最新版本
+
+### v1.4.0
+
+- 围绕“每日活跃安装量”和“一次真实转换流程一条事件”重建产品埋点。
+- 补齐版本、使用入口、触发方式、转换结果、耗时和批量结果维度，不采集页面或文件身份。
+- Popup 新增清晰的数据共享开关；关闭时删除本地假名化标识。
+- 从扩展包移除 Google Analytics 密钥，改由严格校验的第一方边缘代理转发。
 
 ### v1.3.0
 

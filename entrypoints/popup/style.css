@@ -37,7 +37,7 @@ button {
 
 .popup-shell {
   width: 360px;
-  min-height: 392px;
+  min-height: 448px;
   padding: 24px;
 }
 
@@ -131,7 +131,7 @@ button {
 
 .action-list {
   overflow: hidden;
-  height: 168px;
+  height: 224px;
   margin-top: 24px;
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -245,16 +245,16 @@ button {
   transition: transform 140ms ease;
 }
 
-.site-row[aria-checked="true"] .switch-control {
+.action-row[role="switch"][aria-checked="true"] .switch-control {
   border-color: var(--accent);
   background: var(--accent);
 }
 
-.site-row[aria-checked="true"] .switch-thumb {
+.action-row[role="switch"][aria-checked="true"] .switch-thumb {
   transform: translateX(16px);
 }
 
-.site-row:disabled .switch-control {
+.action-row[role="switch"]:disabled .switch-control {
   opacity: 0.58;
 }
 

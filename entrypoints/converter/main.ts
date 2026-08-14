@@ -1,5 +1,11 @@
 import "../../assets/phosphor-icons.css"
 import "./style.css"
+import {
+  getConversionOutcome,
+  trackAnalyticsEvent,
+  type AnalyticsErrorType,
+  type ConversionTrigger,
+} from "../../utils/analytics"
 import { CONFIG, ERROR_MESSAGES } from "../../utils/constants"
 import { hasHeifExtension, isHeifMimeType } from "../../utils/heif-format"
 import { convertHeifFileToJpegFile } from "../../utils/heic-converter"
@@ -53,6 +59,7 @@ const chooseAnother = getElement<HTMLButtonElement>("choose-another")
 const preview = getElement<HTMLElement>("preview")
 const previewImage = getElement<HTMLImageElement>("preview-image")
 const downloadButton = getElement<HTMLAnchorElement>("download-button")
+const helpLink = getElement<HTMLAnchorElement>("help-link")
 const liveStatus = getElement<HTMLElement>("live-status")
 
 let previewUrl: string | undefined
@@ -60,12 +67,19 @@ let dragDepth = 0
 let conversionGeneration = 0
 
 localizePage()
+void trackAnalyticsEvent("file_converter_opened", {})
 
 dropZone.addEventListener("click", () => fileInput.click())
 chooseAnother.addEventListener("click", resetConverter)
 fileInput.addEventListener("change", () => {
   const file = fileInput.files?.[0]
-  if (file) void convertFile(file)
+  if (file) void convertFile(file, "file_picker")
+})
+downloadButton.addEventListener("click", () => {
+  void trackAnalyticsEvent("file_downloaded", {})
+})
+helpLink.addEventListener("click", () => {
+  void trackAnalyticsEvent("help_opened", { surface: "file_converter" })
 })
 
 for (const eventName of ["dragenter", "dragover"]) {
@@ -91,21 +105,27 @@ for (const eventName of ["dragleave", "drop"]) {
 
 dropZone.addEventListener("drop", (event) => {
   const file = event.dataTransfer?.files[0]
-  if (file) void convertFile(file)
+  if (file) void convertFile(file, "drop")
 })
 
 window.addEventListener("beforeunload", revokePreviewUrl, { once: true })
 
-async function convertFile(file: File): Promise<void> {
+async function convertFile(
+  file: File,
+  trigger: Extract<ConversionTrigger, "file_picker" | "drop">
+): Promise<void> {
   const generation = ++conversionGeneration
+  const conversionStartedAt = performance.now()
 
   if (!isHeifCandidate(file)) {
     showError(copy.invalid, file.name)
+    trackFileConversion(trigger, conversionStartedAt, false, "format")
     return
   }
 
   if (file.size > CONFIG.MAX_FILE_SIZE) {
     showError(copy.tooLarge, file.name)
+    trackFileConversion(trigger, conversionStartedAt, false, "size")
     return
   }
 
@@ -142,9 +162,11 @@ async function convertFile(file: File): Promise<void> {
     resultTitle.textContent = copy.ready
     resultDetail.textContent = `${converted.name} · ${formatBytes(converted.size)}`
     setLiveStatus(`${copy.ready}: ${converted.name}`)
+    trackFileConversion(trigger, conversionStartedAt, true)
   } catch (error) {
     if (generation !== conversionGeneration) return
     showError(getErrorCopy(error), file.name)
+    trackFileConversion(trigger, conversionStartedAt, false, getAnalyticsErrorType(error))
   } finally {
     if (generation === conversionGeneration) chooseAnother.disabled = false
   }
@@ -183,7 +205,7 @@ function localizePage(): void {
   dropTitle.textContent = copy.choose
   getElement<HTMLElement>("drop-hint").textContent = copy.hint
   getElement<HTMLElement>("help-label").textContent = copy.help
-  getElement<HTMLAnchorElement>("help-link").href = HELP_URL
+  helpLink.href = HELP_URL
   getElement<HTMLElement>("choose-another").textContent = copy.another
   getElement<HTMLElement>("download-label").textContent = copy.download
   getElement<HTMLElement>("privacy-label").textContent = copy.privacy
@@ -198,6 +220,35 @@ function getErrorCopy(error: unknown): string {
   if (message.includes(ERROR_MESSAGES.FILE_TOO_LARGE)) return copy.tooLarge
   if (message.includes(ERROR_MESSAGES.INVALID_FORMAT)) return copy.invalid
   return copy.failed
+}
+
+function getAnalyticsErrorType(error: unknown): AnalyticsErrorType {
+  const message = error instanceof Error ? error.message : ""
+  if (message.includes(ERROR_MESSAGES.FILE_TOO_LARGE)) return "size"
+  if (message.includes(ERROR_MESSAGES.INVALID_FORMAT)) return "format"
+  if (message.includes(ERROR_MESSAGES.CORS_ERROR)) return "cors"
+  if (message.includes(ERROR_MESSAGES.NETWORK_ERROR)) return "network"
+  return "conversion"
+}
+
+function trackFileConversion(
+  trigger: Extract<ConversionTrigger, "file_picker" | "drop">,
+  startedAt: number,
+  succeeded: boolean,
+  errorType?: AnalyticsErrorType
+): void {
+  const successCount = succeeded ? 1 : 0
+  const failureCount = succeeded ? 0 : 1
+  void trackAnalyticsEvent("conversion_completed", {
+    surface: "file_converter",
+    trigger,
+    outcome: getConversionOutcome(successCount, failureCount),
+    attempted_count: 1,
+    success_count: successCount,
+    failure_count: failureCount,
+    duration_ms: Math.max(0, Math.round(performance.now() - startedAt)),
+    error_type: errorType,
+  })
 }
 
 function formatFileDetail(file: File): string {

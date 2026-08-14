@@ -1,107 +1,165 @@
-export type AnalyticsEventName =
-  | "heic_detected"
-  | "conversion_success"
-  | "conversion_failed"
-  | "review_prompt_shown"
-  | "review_prompt_clicked"
-  | "review_prompt_dismissed"
-  | "feedback_clicked"
+export const ANALYTICS_SCHEMA_VERSION = "2"
+export const ANALYTICS_MESSAGE_TYPE = "analytics:event"
+export const ANALYTICS_ENABLED_STORAGE_KEY = "viewHeicAnalyticsEnabled"
+export const ANALYTICS_CLIENT_ID_STORAGE_KEY = "viewHeicAnalyticsClientId"
+export const ANALYTICS_SESSION_STORAGE_KEY = "viewHeicAnalyticsSession"
+export const ANALYTICS_ACTIVE_DATE_STORAGE_KEY = "viewHeicAnalyticsActiveDate"
 
+export type AnalyticsErrorType =
+  | "network"
+  | "cors"
+  | "size"
+  | "format"
+  | "conversion"
+  | "mixed"
+  | "replay"
+  | "unknown"
+
+export type ConversionSurface = "page_image" | "web_upload" | "file_converter"
+export type ConversionTrigger =
+  | "initial"
+  | "mutation"
+  | "file_picker"
+  | "drop"
+  | "paste"
+export type ConversionOutcome = "success" | "partial" | "failure"
+
+export interface AnalyticsEventParamsByName {
+  extension_installed: Record<string, never>
+  extension_updated: {
+    previous_version?: string
+  }
+  popup_opened: {
+    connection_state: "connected" | "disconnected"
+    page_phase: string
+    site_enabled: boolean
+  }
+  site_preference_changed: {
+    enabled: boolean
+  }
+  help_opened: {
+    surface: "popup" | "file_converter"
+  }
+  file_converter_opened: Record<string, never>
+  conversion_completed: {
+    surface: ConversionSurface
+    trigger: ConversionTrigger
+    outcome: ConversionOutcome
+    attempted_count: number
+    success_count: number
+    failure_count: number
+    duration_ms: number
+    error_type?: AnalyticsErrorType
+  }
+  file_downloaded: Record<string, never>
+  review_prompt_shown: {
+    success_total: number
+  }
+  review_prompt_action: {
+    action: "review" | "feedback" | "dismissed"
+    success_total: number
+    failure_total: number
+  }
+}
+
+export type AnalyticsEventName = keyof AnalyticsEventParamsByName
 export type AnalyticsParams = Record<string, string | number | boolean | undefined>
 
-const GA_ENDPOINT = "https://www.google-analytics.com/mp/collect"
-const CLIENT_ID_KEY = "viewHeicAnalyticsClientId"
-const SESSION_KEY = "viewHeicAnalyticsSession"
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000
-const DEFAULT_ENGAGEMENT_TIME_MS = 100
+export interface AnalyticsEventMessage {
+  type: typeof ANALYTICS_MESSAGE_TYPE
+  name: AnalyticsEventName
+  params: AnalyticsParams
+}
+
 const EVENT_PARAM_ALLOWLIST: Record<AnalyticsEventName, readonly string[]> = {
-  heic_detected: ["image_count"],
-  conversion_success: ["success_count", "trigger"],
-  conversion_failed: ["failure_count", "error_type", "trigger"],
+  extension_installed: [],
+  extension_updated: ["previous_version"],
+  popup_opened: ["connection_state", "page_phase", "site_enabled"],
+  site_preference_changed: ["enabled"],
+  help_opened: ["surface"],
+  file_converter_opened: [],
+  conversion_completed: [
+    "surface",
+    "trigger",
+    "outcome",
+    "attempted_count",
+    "success_count",
+    "failure_count",
+    "duration_ms",
+    "error_type",
+  ],
+  file_downloaded: [],
   review_prompt_shown: ["success_total"],
-  review_prompt_clicked: ["success_total"],
-  review_prompt_dismissed: ["success_total"],
-  feedback_clicked: ["failure_total"],
+  review_prompt_action: ["action", "success_total", "failure_total"],
 }
 
-interface AnalyticsSession {
-  id: number
-  lastSeenAt: number
-}
-
-export async function sendAnalyticsEvent(
-  name: AnalyticsEventName,
-  params: AnalyticsParams = {}
+export async function trackAnalyticsEvent<Name extends AnalyticsEventName>(
+  name: Name,
+  params: AnalyticsEventParamsByName[Name]
 ): Promise<boolean> {
-  const allowedParams = EVENT_PARAM_ALLOWLIST[name]
-  if (!allowedParams) return false
-
-  if (import.meta.env.WXT_ENABLE_EXTENSION_ANALYTICS !== "true") return false
-
-  const measurementId = import.meta.env.WXT_GA_MEASUREMENT_ID
-  const apiSecret = import.meta.env.WXT_GA_API_SECRET
-  if (!measurementId || !apiSecret) return false
-
-  const now = Date.now()
-  const [clientId, sessionId] = await Promise.all([getOrCreateClientId(), getOrCreateSessionId(now)])
-
   try {
-    const response = await fetch(
-      `${GA_ENDPOINT}?measurement_id=${encodeURIComponent(measurementId)}&api_secret=${encodeURIComponent(apiSecret)}`,
-      {
-        method: "POST",
-        keepalive: true,
-        signal: AbortSignal.timeout(5000),
-        body: JSON.stringify({
-          client_id: clientId,
-          events: [
-            {
-              name,
-              params: {
-                ...sanitizeParams(params, allowedParams),
-                session_id: sessionId,
-                engagement_time_msec: DEFAULT_ENGAGEMENT_TIME_MS,
-              },
-            },
-          ],
-        }),
-      }
+    return Boolean(
+      await browser.runtime.sendMessage({
+        type: ANALYTICS_MESSAGE_TYPE,
+        name,
+        params,
+      } satisfies AnalyticsEventMessage)
     )
-
-    return response.ok
   } catch (error) {
-    console.warn("View HEIC analytics event failed:", error)
+    console.warn("View HEIC analytics message failed:", error)
     return false
   }
 }
 
-async function getOrCreateClientId(): Promise<string> {
-  const stored = await browser.storage.local.get(CLIENT_ID_KEY)
-  if (typeof stored[CLIENT_ID_KEY] === "string") return stored[CLIENT_ID_KEY]
-
-  const clientId = crypto.randomUUID()
-  await browser.storage.local.set({ [CLIENT_ID_KEY]: clientId })
-  return clientId
+export async function getAnalyticsEnabled(): Promise<boolean> {
+  const stored = await browser.storage.local.get(ANALYTICS_ENABLED_STORAGE_KEY)
+  return stored[ANALYTICS_ENABLED_STORAGE_KEY] !== false
 }
 
-async function getOrCreateSessionId(now: number): Promise<number> {
-  const stored = await browser.storage.local.get(SESSION_KEY)
-  const session = stored[SESSION_KEY] as AnalyticsSession | undefined
+export async function setAnalyticsEnabled(enabled: boolean): Promise<void> {
+  await browser.storage.local.set({ [ANALYTICS_ENABLED_STORAGE_KEY]: enabled })
+  if (enabled) return
 
-  if (session && now - session.lastSeenAt < SESSION_TIMEOUT_MS) {
-    const nextSession = { ...session, lastSeenAt: now }
-    await browser.storage.local.set({ [SESSION_KEY]: nextSession })
-    return nextSession.id
-  }
-
-  const nextSession = { id: now, lastSeenAt: now }
-  await browser.storage.local.set({ [SESSION_KEY]: nextSession })
-  return nextSession.id
+  await browser.storage.local.remove([
+    ANALYTICS_CLIENT_ID_STORAGE_KEY,
+    ANALYTICS_SESSION_STORAGE_KEY,
+    ANALYTICS_ACTIVE_DATE_STORAGE_KEY,
+  ])
 }
 
-function sanitizeParams(params: AnalyticsParams, allowedParams: readonly string[]): AnalyticsParams {
-  const allowed = new Set(allowedParams)
-  return Object.fromEntries(
-    Object.entries(params).filter(([key, value]) => allowed.has(key) && value !== undefined)
-  ) as AnalyticsParams
+export function getConversionOutcome(
+  successCount: number,
+  failureCount: number
+): ConversionOutcome {
+  if (successCount > 0 && failureCount > 0) return "partial"
+  if (successCount > 0) return "success"
+  return "failure"
+}
+
+export function isAnalyticsMessage(message: unknown): message is AnalyticsEventMessage {
+  if (!isRecord(message) || message.type !== ANALYTICS_MESSAGE_TYPE) return false
+  if (typeof message.name !== "string" || !isAnalyticsEventName(message.name)) return false
+  if (!isRecord(message.params)) return false
+
+  const allowedParams = new Set(EVENT_PARAM_ALLOWLIST[message.name])
+  return Object.entries(message.params).every(
+    ([key, value]) => allowedParams.has(key) && isAnalyticsParamValue(value)
+  )
+}
+
+function isAnalyticsEventName(value: string): value is AnalyticsEventName {
+  return Object.prototype.hasOwnProperty.call(EVENT_PARAM_ALLOWLIST, value)
+}
+
+function isAnalyticsParamValue(value: unknown): value is string | number | boolean | undefined {
+  return (
+    value === undefined ||
+    typeof value === "string" ||
+    (typeof value === "number" && Number.isFinite(value)) ||
+    typeof value === "boolean"
+  )
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
 }

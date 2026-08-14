@@ -6,7 +6,7 @@
     <title>View HEIC - View HEIC / HEIF Images Directly In Your Browser</title>
     <meta
       name="description"
-      content="A free open-source Chrome extension that helps Chrome display iPhone HEIC and HEIF photos on web pages with local image conversion and anonymous product analytics."
+      content="A free open-source Chrome extension that helps Chrome display iPhone HEIC and HEIF photos on web pages with local image conversion and privacy-conscious product analytics."
     />
     <meta name="keywords" content="HEIC,HEIF,Chrome extension,image viewer,HEIC viewer,HEIC to JPEG,heic-to,libheif" />
     <link rel="canonical" href="https://vingeraycn.github.io/view-heic-browser-extension/" />
@@ -293,7 +293,7 @@
         en: {
           lang: 'en',
           title: 'View HEIC - View HEIC / HEIF Images Directly In Your Browser',
-          description: 'A free open-source Chrome extension that helps Chrome display iPhone HEIC and HEIF photos on web pages with local image conversion and anonymous product analytics.',
+          description: 'A free open-source Chrome extension that helps Chrome display iPhone HEIC and HEIF photos on web pages with local image conversion and privacy-conscious product analytics.',
           nav: [
             ['how-it-works', 'Guide'],
             ['features', 'Why View HEIC'],
@@ -389,7 +389,7 @@
           faqTitle: 'FAQ',
           faqs: [
             ['Images Still Do Not Display After Installation. What Should I Check?', 'Make sure the extension is enabled, refresh the page, and open DevTools to confirm the View HEIC content script loaded. If the source server blocks cross-origin fetching, open the original image in a new tab.'],
-            ['Are Images Uploaded To A Server?', 'No. Decoding happens locally in your browser through WebAssembly. Converted images live as Blob URLs in the current tab and are released when the page closes. When extension analytics are enabled, View HEIC sends anonymous product events such as conversion success/failure and review prompt clicks, without image contents, image URLs, page URLs, or file names.'],
+            ['Are Images Uploaded To A Server?', 'No. Decoding happens locally in your browser through WebAssembly. Converted images live as Blob URLs in the current tab and are released when the page closes. By default, View HEIC sends coarse product events with a random pseudonymous installation ID, without image contents, image or page URLs, hostnames, file names, browsing history, or form contents. You can turn this off in the extension popup.'],
             ['Does It Support Firefox?', 'The codebase is built with WXT and can build a Firefox target with pnpm build:firefox. The current store listing is for Chromium browsers.'],
             ['What Is The Maximum HEIC File Size?', 'The default limit is 50 MB. It is configured in utils/constants.ts as CONFIG.MAX_FILE_SIZE.'],
             ['How Are Animated HEIC Files Handled?', 'Sequence HEIC files are detected by ISO BMFF brands such as msf1, hevc, or hevx. The extension previews the first frame by default to avoid expensive multi-frame decoding.'],
@@ -401,11 +401,12 @@
           footerProject: 'Project',
           license: 'Open Source under the MIT License.',
           devTest: 'Developer Test Page',
+          privacyPolicy: 'Privacy Policy',
         },
         zh: {
           lang: 'zh-CN',
           title: 'View HEIC - 在浏览器中直接查看 HEIC / HEIF 图片',
-          description: '免费开源的 Chrome 浏览器扩展，让 HEIC / HEIF 图片在网页中直接显示，本地转换图片，并只发送匿名产品事件。',
+          description: '免费开源的 Chrome 浏览器扩展，让 HEIC / HEIF 图片在网页中直接显示，在本地转换图片，并采用注重隐私的产品分析。',
           nav: [
             ['how-it-works', '使用引导'],
             ['features', '为什么需要'],
@@ -501,7 +502,7 @@
           faqTitle: '常见问题',
           faqs: [
             ['安装后图片还是无法显示，怎么办？', '请确认扩展已启用，刷新页面，并打开开发者工具确认 View HEIC 内容脚本已加载。如果源站阻止跨域读取，可以点击原图在新标签页中查看。'],
-            ['图片会被上传到云端吗？', '不会。解码通过 WebAssembly 在你的浏览器本地完成。转换后的图片以 Blob URL 存在于当前标签页内存中，页面关闭即释放。发布版本启用扩展分析时，View HEIC 会发送匿名产品事件，例如转换成功/失败和评价提示点击，但不包含图片内容、图片地址、页面地址或文件名。'],
+            ['图片会被上传到云端吗？', '不会。解码通过 WebAssembly 在你的浏览器本地完成。转换后的图片以 Blob URL 存在于当前标签页内存中，页面关闭即释放。View HEIC 默认使用随机的假名化安装标识发送粗粒度产品事件，但不包含图片内容、图片或页面地址、网站域名、文件名、浏览历史或表单内容；你可以在扩展 Popup 中随时关闭。'],
             ['支持 Firefox 吗？', '项目使用 WXT 构建，可以通过 pnpm build:firefox 构建 Firefox 版本。当前商店版本面向 Chromium 浏览器。'],
             ['最大支持多大的 HEIC 文件？', '默认上限为 50 MB，可在 utils/constants.ts 的 CONFIG.MAX_FILE_SIZE 中修改。'],
             ['动画 HEIC 如何处理？', '扩展会通过 msf1、hevc、hevx 等 ISO BMFF 品牌识别序列 HEIC，默认只预览首帧，避免昂贵的多帧解码。'],
@@ -513,6 +514,7 @@
           footerProject: '项目',
           license: '基于 MIT 许可证开源。',
           devTest: '开发者测试页',
+          privacyPolicy: '隐私政策',
         },
       }
 
@@ -656,7 +658,8 @@
           ['install', t.installShort],
           ['faq', t.nav[3][1]],
         ].map(([id, label]) => `<li><a href="#${id}" class="transition hover:text-white">${label}</a></li>`).join('') +
-          `<li><a href="./test-improved.html" class="transition hover:text-white">${t.devTest}</a></li>`
+          `<li><a href="./test-improved.html" class="transition hover:text-white">${t.devTest}</a></li>` +
+          `<li><a href="./privacy.html" class="transition hover:text-white">${t.privacyPolicy}</a></li>`
 
         document.getElementById('project-links').innerHTML = [
           [GITHUB_URL, 'GitHub'],

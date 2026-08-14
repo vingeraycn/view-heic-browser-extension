@@ -1,6 +1,6 @@
 # View HEIC Browser Extension
 
-[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
+[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?logo=google-chrome&logoColor=white)](https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge)
 
@@ -37,8 +37,10 @@ Then open `chrome://extensions/`, enable Developer mode, choose "Load unpacked",
 
 ```bash
 pnpm compile
+pnpm test
 pnpm verify:heif-detection
 pnpm verify:rating-prompt
+pnpm verify:analytics-events
 pnpm verify:upload-conversion
 pnpm verify:performance
 pnpm verify:src-change
@@ -58,10 +60,15 @@ Open `http://127.0.0.1:8080/test-improved.html` to test conversion behavior with
 
 ```text
 view-heic-browser-extension/
+├── analytics-worker/        # First-party GA4 event proxy
 ├── entrypoints/
+│   ├── background.ts
 │   ├── content.ts
-│   └── background.ts
+│   ├── converter/
+│   └── popup/
 ├── utils/
+│   ├── analytics.ts
+│   ├── analytics-transport.ts
 │   ├── constants.ts
 │   ├── heic-converter.ts
 │   └── types.ts
@@ -75,9 +82,16 @@ view-heic-browser-extension/
 
 ## Permissions
 
-View HEIC uses the `storage` permission to save local state for the review prompt, such as whether the user has dismissed or clicked it. Image conversion still runs locally in the browser. When extension analytics are enabled for a release, View HEIC sends anonymous product events such as conversion success/failure and review prompt clicks. It does not upload image contents, image URLs, page URLs, file names, browsing history, or converted image data.
+View HEIC uses the `storage` permission for per-site preferences, review-prompt state, and the analytics preference. Image conversion always runs locally in the browser. By default, the extension sends coarse product events with a randomly generated pseudonymous installation ID through a first-party validation proxy to Google Analytics. These events cover extension activity, feature entry points, aggregate conversion outcomes, and review-prompt actions. They never include image contents, image or page URLs, hostnames, file names, browsing history, form contents, or converted image data. Users can turn this off at any time from the popup; disabling it also deletes the local analytics identifier. See the [Privacy Policy](docs/privacy.html) and [analytics specification](docs/analytics.md).
 
 ## Latest Release
+
+### v1.4.0
+
+- Rebuilt product analytics around daily active installations and one event per completed conversion workflow.
+- Added version, surface, trigger, outcome, duration, and aggregate-result dimensions without collecting page or file identity.
+- Added a visible usage-data switch that deletes the local pseudonymous identifier when disabled.
+- Removed the Google Analytics secret from the extension bundle and introduced a strict first-party edge proxy.
 
 ### v1.3.0
 
