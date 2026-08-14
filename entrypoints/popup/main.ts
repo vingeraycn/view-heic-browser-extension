@@ -82,7 +82,7 @@ async function initialize(): Promise<void> {
 
   if (typeof tab?.id !== "number") {
     render(getDisconnectedPresentation(tab?.url, locale))
-    await trackPopupOpened("disconnected", "unavailable", false)
+    trackPopupOpened("disconnected", "unavailable", false)
     return
   }
 
@@ -98,10 +98,10 @@ async function initialize(): Promise<void> {
 
     pageState = response
     render(getConnectedPresentation(response, locale))
-    await trackPopupOpened("connected", response.phase, response.siteEnabled)
+    trackPopupOpened("connected", response.phase, response.siteEnabled)
   } catch {
     render(getDisconnectedPresentation(tab.url, locale))
-    await trackPopupOpened("disconnected", "unavailable", false)
+    trackPopupOpened("disconnected", "unavailable", false)
   }
 }
 
@@ -232,16 +232,16 @@ async function openExternalPage(url: string): Promise<void> {
 }
 
 async function openHelpPage(url: string): Promise<void> {
-  await trackAnalyticsEvent("help_opened", { surface: "popup" })
+  void trackAnalyticsEvent("help_opened", { surface: "popup" })
   await openExternalPage(url)
 }
 
-async function trackPopupOpened(
+function trackPopupOpened(
   connectionState: "connected" | "disconnected",
   pagePhase: string,
   siteEnabled: boolean
-): Promise<void> {
-  await trackAnalyticsEvent("popup_opened", {
+): void {
+  void trackAnalyticsEvent("popup_opened", {
     connection_state: connectionState,
     page_phase: pagePhase,
     site_enabled: siteEnabled,

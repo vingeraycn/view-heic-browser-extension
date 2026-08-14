@@ -78,6 +78,10 @@ const checks = [
     ),
   },
   {
+    name: "product behavior never waits for analytics delivery",
+    pass: productSources.every((source) => !source.includes("await trackAnalyticsEvent")),
+  },
+  {
     name: "the extension sends only to a configured first-party endpoint",
     pass:
       files["utils/analytics-transport.ts"].includes("WXT_ANALYTICS_ENDPOINT") &&
