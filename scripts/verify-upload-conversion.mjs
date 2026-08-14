@@ -9,6 +9,7 @@ const uploadConverter = fs.readFileSync("utils/upload-heif-converter.ts", "utf8"
 const directConverter = fs.readFileSync("utils/direct-heif-converter.ts", "utf8")
 const geminiDecoder = fs.readFileSync("entrypoints/gemini-decoder.content.ts", "utf8")
 const dropReplay = fs.readFileSync("utils/upload-drop-replay.ts", "utf8")
+const inputInterception = fs.readFileSync("utils/upload-input-interception.ts", "utf8")
 const testPage = fs.readFileSync("docs/test-improved.html", "utf8")
 const builtManifestPath = ".output/chrome-mv3/manifest.json"
 const builtContentScripts = JSON.parse(
@@ -34,10 +35,16 @@ function assert(condition, message) {
 assert(
   interceptor.includes('world: "MAIN"') &&
     interceptor.includes('runAt: "document_start"') &&
+    interceptor.includes('window.addEventListener("input", interceptHeifUpload, true)') &&
     interceptor.includes('window.addEventListener("change", interceptHeifUpload, true)') &&
+    interceptor.includes("uploadInputInterceptionGate.decide(") &&
+    interceptor.includes('action === "suppress"') &&
+    inputInterception.includes('eventType === "input"') &&
+    inputInterception.includes('eventType === "change"') &&
+    inputInterception.includes('return "suppress"') &&
     interceptor.includes("event.stopImmediatePropagation()") &&
     content.includes("event.preventDefault()"),
-  "upload HEIF files are intercepted in the page world before page handlers consume them"
+  "file-picker HEIF inputs are intercepted before page input and change handlers consume them"
 )
 
 assert(

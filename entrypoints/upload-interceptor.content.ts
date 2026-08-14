@@ -16,6 +16,7 @@ import {
   replayUploadDrop,
   type UploadDropReplaySource,
 } from "../utils/upload-drop-replay"
+import { UploadInputInterceptionGate } from "../utils/upload-input-interception"
 
 interface ClipboardStringItem {
   type: string
@@ -53,6 +54,10 @@ let replayingPaste = false
 let replayingDrop = false
 let interceptionEnabled = false
 let nextDropRequestId = 0
+const uploadInputInterceptionGate = new UploadInputInterceptionGate<
+  HTMLInputElement,
+  File
+>()
 const pendingDropSessions = new Map<string, PendingDropSession>()
 const MAX_PENDING_DROP_SESSIONS = 16
 
@@ -70,6 +75,7 @@ export default defineContentScript({
 
     window.addEventListener(INTERCEPTOR_ENABLE_EVENT, enableInterception)
     window.addEventListener(INTERCEPTOR_DISABLE_EVENT, disableInterception)
+    window.addEventListener("input", interceptHeifUpload, true)
     window.addEventListener("change", interceptHeifUpload, true)
     window.addEventListener("drop", interceptHeifDrop, true)
     window.addEventListener("paste", interceptHeifPaste, true)
@@ -90,10 +96,17 @@ function interceptHeifUpload(event: Event): void {
   if (!interceptionEnabled) return
 
   const files = Array.from(input.files ?? [])
-  if (!files.some(isHeifFile)) return
+  const action = uploadInputInterceptionGate.decide(
+    input,
+    event.type,
+    files,
+    files.some(isHeifFile)
+  )
+  if (action === "pass") return
 
   event.preventDefault()
   event.stopImmediatePropagation()
+  if (action === "suppress") return
   input.dispatchEvent(new CustomEvent(UPLOAD_REQUEST_EVENT, { bubbles: true }))
 }
 
