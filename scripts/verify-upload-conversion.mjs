@@ -49,11 +49,13 @@ assert(
 
 assert(
   interceptor.includes("UPLOAD_REPLAY_ATTRIBUTE") &&
-    interceptor.includes("input.removeAttribute(UPLOAD_REPLAY_ATTRIBUTE)") &&
+    interceptor.includes("isUploadReplayEvent(input, UPLOAD_REPLAY_ATTRIBUTE)") &&
     interceptor.includes('../utils/upload-constants') &&
     content.includes('../utils/upload-constants') &&
-    content.includes("input.setAttribute(UPLOAD_REPLAY_ATTRIBUTE"),
-  "replayed upload events are guarded against recursive conversion"
+    content.includes("withUploadReplayMarker(input, UPLOAD_REPLAY_ATTRIBUTE") &&
+    inputInterception.includes("input.setAttribute(attributeName") &&
+    inputInterception.includes("input.removeAttribute(attributeName)"),
+  "the complete input-and-change replay sequence is guarded against recursive conversion"
 )
 
 assert(

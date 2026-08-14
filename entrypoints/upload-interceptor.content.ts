@@ -16,7 +16,10 @@ import {
   replayUploadDrop,
   type UploadDropReplaySource,
 } from "../utils/upload-drop-replay"
-import { UploadInputInterceptionGate } from "../utils/upload-input-interception"
+import {
+  isUploadReplayEvent,
+  UploadInputInterceptionGate,
+} from "../utils/upload-input-interception"
 
 interface ClipboardStringItem {
   type: string
@@ -89,10 +92,7 @@ function interceptHeifUpload(event: Event): void {
   if (!(event.target instanceof HTMLInputElement) || event.target.type !== "file") return
 
   const input = event.target
-  if (input.hasAttribute(UPLOAD_REPLAY_ATTRIBUTE)) {
-    input.removeAttribute(UPLOAD_REPLAY_ATTRIBUTE)
-    return
-  }
+  if (isUploadReplayEvent(input, UPLOAD_REPLAY_ATTRIBUTE)) return
   if (!interceptionEnabled) return
 
   const files = Array.from(input.files ?? [])

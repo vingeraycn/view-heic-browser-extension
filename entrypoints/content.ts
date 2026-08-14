@@ -38,6 +38,7 @@ import {
 } from "../utils/upload-constants"
 import type { UploadDropReplaySource } from "../utils/upload-drop-replay"
 import { convertHeifUploadFileToJpegFile } from "../utils/upload-heif-converter"
+import { withUploadReplayMarker } from "../utils/upload-input-interception"
 import {
   getAggregateAnalyticsErrorType,
   getAnalyticsDurationMs,
@@ -920,9 +921,10 @@ function replayInputFiles(input: HTMLInputElement, files: File[]): void {
   files.forEach((file) => dataTransfer.items.add(file))
   input.files = dataTransfer.files
 
-  input.setAttribute(UPLOAD_REPLAY_ATTRIBUTE, "true")
-  input.dispatchEvent(new Event("input", { bubbles: true }))
-  input.dispatchEvent(new Event("change", { bubbles: true }))
+  withUploadReplayMarker(input, UPLOAD_REPLAY_ATTRIBUTE, () => {
+    input.dispatchEvent(new Event("input", { bubbles: true }))
+    input.dispatchEvent(new Event("change", { bubbles: true }))
+  })
 }
 
 function replayInputFilesSafely(input: HTMLInputElement, files: File[]): boolean {
