@@ -76,6 +76,62 @@ describe("analytics edge proxy", () => {
       handleAnalyticsRequest(createRequest(sensitiveParam), env)
     ).resolves.toMatchObject({ status: 400 })
   })
+
+  it("rejects inconsistent conversion counts and outcomes", async () => {
+    const payload = validConversionPayload()
+    payload.events[0].params.success_count = 2
+    payload.events[0].params.outcome = "failure"
+
+    await expect(handleAnalyticsRequest(createRequest(payload), env)).resolves.toMatchObject({
+      status: 400,
+    })
+  })
+
+  it("accepts completed conversions that take longer than ten minutes", async () => {
+    const payload = validConversionPayload()
+    payload.events[0].params.duration_ms = 700_000
+    const forward = vi.fn(async () => new Response(null, { status: 204 }))
+
+    await expect(
+      handleAnalyticsRequest(createRequest(payload), env, forward as unknown as typeof fetch)
+    ).resolves.toMatchObject({ status: 204 })
+  })
+
+  it("stops reading oversized request bodies before parsing or forwarding", async () => {
+    const forward = vi.fn(async () => new Response(null, { status: 204 }))
+    const request = new Request("https://analytics.example.workers.dev", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: extensionOrigin,
+      },
+      body: "x".repeat(20_000),
+    })
+    expect(request.headers.get("Content-Length")).toBeNull()
+
+    await expect(
+      handleAnalyticsRequest(request, env, forward as unknown as typeof fetch)
+    ).resolves.toMatchObject({ status: 413 })
+    expect(forward).not.toHaveBeenCalled()
+  })
+
+  it("rejects lifecycle events as daily activity sources", async () => {
+    const payload = validPayload()
+    payload.events.push({
+      name: "extension_active",
+      params: {
+        analytics_schema_version: "2",
+        extension_version: "1.4.0",
+        session_id: 1_786_716_000,
+        activity_source: "extension_updated",
+        engagement_time_msec: 1,
+      },
+    })
+
+    await expect(handleAnalyticsRequest(createRequest(payload), env)).resolves.toMatchObject({
+      status: 400,
+    })
+  })
 })
 
 function createRequest(payload: unknown, origin = extensionOrigin): Request {
@@ -102,6 +158,29 @@ function validPayload() {
           connection_state: "connected",
           page_phase: "idle",
           site_enabled: true,
+        } as Record<string, unknown>,
+      },
+    ],
+  }
+}
+
+function validConversionPayload() {
+  return {
+    client_id: "123456789.1786716000",
+    events: [
+      {
+        name: "conversion_completed",
+        params: {
+          analytics_schema_version: "2",
+          extension_version: "1.4.0",
+          session_id: 1_786_716_000,
+          surface: "file_converter",
+          trigger: "file_picker",
+          outcome: "success",
+          attempted_count: 1,
+          success_count: 1,
+          failure_count: 0,
+          duration_ms: 96,
         } as Record<string, unknown>,
       },
     ],

@@ -1,5 +1,7 @@
 export const ANALYTICS_SCHEMA_VERSION = "2"
+export const ANALYTICS_MAX_DURATION_MS = 24 * 60 * 60 * 1000
 export const ANALYTICS_MESSAGE_TYPE = "analytics:event"
+export const ANALYTICS_PREFERENCE_MESSAGE_TYPE = "analytics:preference"
 export const ANALYTICS_ENABLED_STORAGE_KEY = "viewHeicAnalyticsEnabled"
 export const ANALYTICS_CLIENT_ID_STORAGE_KEY = "viewHeicAnalyticsClientId"
 export const ANALYTICS_SESSION_STORAGE_KEY = "viewHeicAnalyticsSession"
@@ -71,6 +73,11 @@ export interface AnalyticsEventMessage {
   params: AnalyticsParams
 }
 
+export interface AnalyticsPreferenceMessage {
+  type: typeof ANALYTICS_PREFERENCE_MESSAGE_TYPE
+  enabled: boolean
+}
+
 const EVENT_PARAM_ALLOWLIST: Record<AnalyticsEventName, readonly string[]> = {
   extension_installed: [],
   extension_updated: ["previous_version"],
@@ -117,14 +124,11 @@ export async function getAnalyticsEnabled(): Promise<boolean> {
 }
 
 export async function setAnalyticsEnabled(enabled: boolean): Promise<void> {
-  await browser.storage.local.set({ [ANALYTICS_ENABLED_STORAGE_KEY]: enabled })
-  if (enabled) return
-
-  await browser.storage.local.remove([
-    ANALYTICS_CLIENT_ID_STORAGE_KEY,
-    ANALYTICS_SESSION_STORAGE_KEY,
-    ANALYTICS_ACTIVE_DATE_STORAGE_KEY,
-  ])
+  const updated = await browser.runtime.sendMessage({
+    type: ANALYTICS_PREFERENCE_MESSAGE_TYPE,
+    enabled,
+  } satisfies AnalyticsPreferenceMessage)
+  if (updated !== true) throw new Error("Analytics preference was not updated")
 }
 
 export function getConversionOutcome(
@@ -136,6 +140,10 @@ export function getConversionOutcome(
   return "failure"
 }
 
+export function getAnalyticsDurationMs(elapsedMs: number): number {
+  return Math.min(ANALYTICS_MAX_DURATION_MS, Math.max(0, Math.round(elapsedMs)))
+}
+
 export function isAnalyticsMessage(message: unknown): message is AnalyticsEventMessage {
   if (!isRecord(message) || message.type !== ANALYTICS_MESSAGE_TYPE) return false
   if (typeof message.name !== "string" || !isAnalyticsEventName(message.name)) return false
@@ -144,6 +152,16 @@ export function isAnalyticsMessage(message: unknown): message is AnalyticsEventM
   const allowedParams = new Set(EVENT_PARAM_ALLOWLIST[message.name])
   return Object.entries(message.params).every(
     ([key, value]) => allowedParams.has(key) && isAnalyticsParamValue(value)
+  )
+}
+
+export function isAnalyticsPreferenceMessage(
+  message: unknown
+): message is AnalyticsPreferenceMessage {
+  return (
+    isRecord(message) &&
+    message.type === ANALYTICS_PREFERENCE_MESSAGE_TYPE &&
+    typeof message.enabled === "boolean"
   )
 }
 

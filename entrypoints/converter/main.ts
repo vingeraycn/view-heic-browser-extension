@@ -1,6 +1,7 @@
 import "../../assets/phosphor-icons.css"
 import "./style.css"
 import {
+  getAnalyticsDurationMs,
   getConversionOutcome,
   trackAnalyticsEvent,
   type AnalyticsErrorType,
@@ -246,7 +247,7 @@ function trackFileConversion(
     attempted_count: 1,
     success_count: successCount,
     failure_count: failureCount,
-    duration_ms: Math.max(0, Math.round(performance.now() - startedAt)),
+    duration_ms: getAnalyticsDurationMs(performance.now() - startedAt),
     error_type: errorType,
   })
 }

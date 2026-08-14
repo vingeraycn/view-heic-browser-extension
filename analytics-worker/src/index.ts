@@ -15,6 +15,7 @@ interface AnalyticsPayload {
 }
 
 const MAX_BODY_BYTES = 16_384
+const MAX_DURATION_MS = 86_400_000
 const COMMON_PARAMS = new Set([
   "analytics_schema_version",
   "extension_version",
@@ -70,8 +71,6 @@ const ALLOWED_VALUES: Record<string, ReadonlySet<string>> = {
   ]),
   action: new Set(["review", "feedback", "dismissed"]),
   activity_source: new Set([
-    "extension_installed",
-    "extension_updated",
     "conversion",
     "popup",
     "file_converter",
@@ -131,8 +130,8 @@ export async function handleAnalyticsRequest(
     return new Response("Payload too large", { status: 413, headers: responseHeaders })
   }
 
-  const body = await request.text()
-  if (new TextEncoder().encode(body).byteLength > MAX_BODY_BYTES) {
+  const body = await readBoundedBody(request.body, MAX_BODY_BYTES)
+  if (body === undefined) {
     return new Response("Payload too large", { status: 413, headers: responseHeaders })
   }
 
@@ -197,7 +196,10 @@ function isAnalyticsEvent(value: unknown): value is AnalyticsEvent {
   }
   if (!REQUIRED_EVENT_PARAMS[value.name].every((key) => key in params)) return false
 
-  return Object.entries(params).every(([key, param]) => isValidParam(key, param))
+  if (!Object.entries(params).every(([key, param]) => isValidParam(key, param))) {
+    return false
+  }
+  return value.name !== "conversion_completed" || isValidConversionResult(params)
 }
 
 function isValidParam(key: string, value: unknown): boolean {
@@ -217,12 +219,64 @@ function isValidParam(key: string, value: unknown): boolean {
   if (key === "success_total" || key === "failure_total") {
     return isBoundedInteger(value, 0, 1_000_000_000)
   }
-  if (key === "duration_ms") return isBoundedInteger(value, 0, 600_000)
+  if (key === "duration_ms") return isBoundedInteger(value, 0, MAX_DURATION_MS)
   if (key === "engagement_time_msec") return value === 1
   if (ALLOWED_VALUES[key]) {
     return typeof value === "string" && ALLOWED_VALUES[key].has(value)
   }
   return false
+}
+
+function isValidConversionResult(params: Record<string, unknown>): boolean {
+  const attemptedCount = params.attempted_count
+  const successCount = params.success_count
+  const failureCount = params.failure_count
+  const outcome = params.outcome
+  if (
+    typeof attemptedCount !== "number" ||
+    typeof successCount !== "number" ||
+    typeof failureCount !== "number" ||
+    attemptedCount < 1 ||
+    successCount + failureCount !== attemptedCount
+  ) {
+    return false
+  }
+  if (outcome === "success") return successCount > 0 && failureCount === 0
+  if (outcome === "partial") return successCount > 0 && failureCount > 0
+  return outcome === "failure" && successCount === 0 && failureCount > 0
+}
+
+async function readBoundedBody(
+  body: ReadableStream<Uint8Array> | null,
+  maxBytes: number
+): Promise<string | undefined> {
+  if (!body) return ""
+
+  const reader = body.getReader()
+  const chunks: Uint8Array[] = []
+  let totalBytes = 0
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      totalBytes += value.byteLength
+      if (totalBytes > maxBytes) {
+        await reader.cancel()
+        return undefined
+      }
+      chunks.push(value)
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  const bytes = new Uint8Array(totalBytes)
+  let offset = 0
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return new TextDecoder().decode(bytes)
 }
 
 function isBoundedInteger(value: unknown, min: number, max: number): boolean {

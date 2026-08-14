@@ -39,6 +39,7 @@ import {
 import type { UploadDropReplaySource } from "../utils/upload-drop-replay"
 import { convertHeifUploadFileToJpegFile } from "../utils/upload-heif-converter"
 import {
+  getAnalyticsDurationMs,
   getConversionOutcome,
   trackAnalyticsEvent,
   type AnalyticsErrorType,
@@ -560,7 +561,7 @@ async function recordConversionResults(
     attempted_count: results.length,
     success_count: successCount,
     failure_count: failureCount,
-    duration_ms: getElapsedMilliseconds(startedAt),
+    duration_ms: getAnalyticsDurationMs(performance.now() - startedAt),
     error_type: errorType ?? (failureCount > 0 ? "unknown" : undefined),
   })
 
@@ -883,7 +884,7 @@ function trackUploadConversion(
     attempted_count: attemptedCount,
     success_count: successCount,
     failure_count: failureCount,
-    duration_ms: getElapsedMilliseconds(startedAt),
+    duration_ms: getAnalyticsDurationMs(performance.now() - startedAt),
     error_type: replayed ? (failureCount > 0 ? "conversion" : undefined) : "replay",
   })
 }
@@ -900,7 +901,7 @@ function trackUploadFailure(
     attempted_count: attemptedCount,
     success_count: 0,
     failure_count: attemptedCount,
-    duration_ms: getElapsedMilliseconds(startedAt),
+    duration_ms: getAnalyticsDurationMs(performance.now() - startedAt),
     error_type: "unknown",
   })
 }
@@ -1506,10 +1507,6 @@ function getAggregateErrorType(errorTypes: ConversionError["type"][]): Analytics
   const normalized = errorTypes.map((type) => (type === "unsupported" ? "conversion" : type))
   const first = normalized[0]
   return normalized.every((type) => type === first) ? first : "mixed"
-}
-
-function getElapsedMilliseconds(startedAt: number): number {
-  return Math.max(0, Math.round(performance.now() - startedAt))
 }
 
 /**

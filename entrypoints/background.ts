@@ -1,5 +1,8 @@
-import { isAnalyticsMessage } from "../utils/analytics"
-import { sendAnalyticsEvent } from "../utils/analytics-transport"
+import { isAnalyticsMessage, isAnalyticsPreferenceMessage } from "../utils/analytics"
+import {
+  sendAnalyticsEvent,
+  updateAnalyticsPreference,
+} from "../utils/analytics-transport"
 import { WELCOME_URL } from "../utils/links"
 
 let analyticsQueue: Promise<boolean> = Promise.resolve(true)
@@ -22,6 +25,9 @@ export default defineBackground(() => {
   })
 
   browser.runtime.onMessage.addListener((message) => {
+    if (isAnalyticsPreferenceMessage(message)) {
+      return updateAnalyticsPreference(message.enabled)
+    }
     if (!isAnalyticsMessage(message)) return
     return enqueueAnalyticsEvent(message.name, message.params)
   })

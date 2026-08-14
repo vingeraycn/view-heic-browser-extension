@@ -1,6 +1,7 @@
 import {
   ANALYTICS_ACTIVE_DATE_STORAGE_KEY,
   ANALYTICS_CLIENT_ID_STORAGE_KEY,
+  ANALYTICS_ENABLED_STORAGE_KEY,
   ANALYTICS_SCHEMA_VERSION,
   ANALYTICS_SESSION_STORAGE_KEY,
   getAnalyticsEnabled,
@@ -10,6 +11,10 @@ import {
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000
 const ACTIVE_EVENT_ENGAGEMENT_TIME_MS = 1
+const REQUEST_TIMEOUT_MS = 5_000
+
+let consentGeneration = 0
+let activeRequestController: AbortController | undefined
 
 interface AnalyticsSession {
   id: number
@@ -26,23 +31,38 @@ export async function sendAnalyticsEvent(
   params: AnalyticsParams = {}
 ): Promise<boolean> {
   if (import.meta.env.WXT_ENABLE_EXTENSION_ANALYTICS !== "true") return false
-  if (!(await getAnalyticsEnabled())) return false
+  const deliveryGeneration = consentGeneration
+  if (!(await isAnalyticsDeliveryAllowed(deliveryGeneration))) return false
 
   const endpoint = import.meta.env.WXT_ANALYTICS_ENDPOINT
   if (!endpoint) return false
 
   const now = Date.now()
-  const [clientId, sessionId, activeDate] = await Promise.all([
-    getOrCreateClientId(now),
-    getOrCreateSessionId(now),
-    getStoredActiveDate(),
+  const stored = await browser.storage.local.get([
+    ANALYTICS_CLIENT_ID_STORAGE_KEY,
+    ANALYTICS_SESSION_STORAGE_KEY,
+    ANALYTICS_ACTIVE_DATE_STORAGE_KEY,
   ])
+  if (!(await isAnalyticsDeliveryAllowed(deliveryGeneration))) return false
+
+  const clientId = getClientId(stored[ANALYTICS_CLIENT_ID_STORAGE_KEY], now)
+  const session = getSession(stored[ANALYTICS_SESSION_STORAGE_KEY], now)
+  const activeDate = getActiveDate(stored[ANALYTICS_ACTIVE_DATE_STORAGE_KEY])
+  await browser.storage.local.set({
+    [ANALYTICS_CLIENT_ID_STORAGE_KEY]: clientId,
+    [ANALYTICS_SESSION_STORAGE_KEY]: session,
+  })
+  if (!(await isAnalyticsDeliveryAllowed(deliveryGeneration))) {
+    await clearAnalyticsState()
+    return false
+  }
+
   const currentDate = getLocalDateKey(now)
   const extensionVersion = browser.runtime.getManifest().version
   const commonParams: AnalyticsParams = {
     extension_version: extensionVersion,
     analytics_schema_version: ANALYTICS_SCHEMA_VERSION,
-    session_id: sessionId,
+    session_id: session.id,
   }
   const events: MeasurementEvent[] = [
     {
@@ -54,7 +74,9 @@ export async function sendAnalyticsEvent(
     },
   ]
 
-  if (activeDate !== currentDate) {
+  const shouldAttachDailyActivity =
+    activeDate !== currentDate && isUserDrivenActivity(name)
+  if (shouldAttachDailyActivity) {
     events.push({
       name: "extension_active",
       params: {
@@ -65,22 +87,59 @@ export async function sendAnalyticsEvent(
     })
   }
 
+  const requestController = new AbortController()
+  activeRequestController = requestController
+  const timeout = setTimeout(() => requestController.abort(), REQUEST_TIMEOUT_MS)
+
   try {
+    if (!(await isAnalyticsDeliveryAllowed(deliveryGeneration))) return false
     const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(5000),
+      signal: requestController.signal,
       body: JSON.stringify({ client_id: clientId, events }),
     })
 
-    if (response.ok && activeDate !== currentDate) {
+    if (
+      response.ok &&
+      shouldAttachDailyActivity &&
+      (await isAnalyticsDeliveryAllowed(deliveryGeneration))
+    ) {
       await browser.storage.local.set({ [ANALYTICS_ACTIVE_DATE_STORAGE_KEY]: currentDate })
+      if (!(await isAnalyticsDeliveryAllowed(deliveryGeneration))) {
+        await clearAnalyticsState()
+        return false
+      }
     }
     return response.ok
   } catch (error) {
-    console.warn("View HEIC analytics event failed:", error)
+    if (!requestController.signal.aborted) {
+      console.warn("View HEIC analytics event failed:", error)
+    }
     return false
+  } finally {
+    clearTimeout(timeout)
+    if (activeRequestController === requestController) activeRequestController = undefined
   }
+}
+
+export async function updateAnalyticsPreference(enabled: boolean): Promise<boolean> {
+  consentGeneration += 1
+  activeRequestController?.abort()
+
+  await browser.storage.local.set({ [ANALYTICS_ENABLED_STORAGE_KEY]: enabled })
+  if (!enabled) {
+    await clearAnalyticsState()
+  }
+  return true
+}
+
+async function clearAnalyticsState(): Promise<void> {
+  await browser.storage.local.remove([
+    ANALYTICS_CLIENT_ID_STORAGE_KEY,
+    ANALYTICS_SESSION_STORAGE_KEY,
+    ANALYTICS_ACTIVE_DATE_STORAGE_KEY,
+  ])
 }
 
 export function createGoogleAnalyticsClientId(now: number): string {
@@ -92,36 +151,20 @@ export function isGoogleAnalyticsClientId(value: unknown): value is string {
   return typeof value === "string" && /^\d+\.\d+$/.test(value)
 }
 
-async function getOrCreateClientId(now: number): Promise<string> {
-  const stored = await browser.storage.local.get(ANALYTICS_CLIENT_ID_STORAGE_KEY)
-  const existingClientId = stored[ANALYTICS_CLIENT_ID_STORAGE_KEY]
-  if (isGoogleAnalyticsClientId(existingClientId)) return existingClientId
-
-  const clientId = createGoogleAnalyticsClientId(now)
-  await browser.storage.local.set({ [ANALYTICS_CLIENT_ID_STORAGE_KEY]: clientId })
-  return clientId
+function getClientId(stored: unknown, now: number): string {
+  return isGoogleAnalyticsClientId(stored) ? stored : createGoogleAnalyticsClientId(now)
 }
 
-async function getOrCreateSessionId(now: number): Promise<number> {
-  const stored = await browser.storage.local.get(ANALYTICS_SESSION_STORAGE_KEY)
-  const session = stored[ANALYTICS_SESSION_STORAGE_KEY] as AnalyticsSession | undefined
-
+function getSession(stored: unknown, now: number): AnalyticsSession {
+  const session = stored as AnalyticsSession | undefined
   if (isAnalyticsSession(session) && now - session.lastSeenAt < SESSION_TIMEOUT_MS) {
-    await browser.storage.local.set({
-      [ANALYTICS_SESSION_STORAGE_KEY]: { ...session, lastSeenAt: now },
-    })
-    return session.id
+    return { ...session, lastSeenAt: now }
   }
-
-  const nextSession = { id: Math.floor(now / 1000), lastSeenAt: now }
-  await browser.storage.local.set({ [ANALYTICS_SESSION_STORAGE_KEY]: nextSession })
-  return nextSession.id
+  return { id: Math.floor(now / 1000), lastSeenAt: now }
 }
 
-async function getStoredActiveDate(): Promise<string | undefined> {
-  const stored = await browser.storage.local.get(ANALYTICS_ACTIVE_DATE_STORAGE_KEY)
-  const value = stored[ANALYTICS_ACTIVE_DATE_STORAGE_KEY]
-  return typeof value === "string" ? value : undefined
+function getActiveDate(stored: unknown): string | undefined {
+  return typeof stored === "string" ? stored : undefined
 }
 
 function getLocalDateKey(now: number): string {
@@ -133,12 +176,21 @@ function getLocalDateKey(now: number): string {
 }
 
 function getActivitySource(name: AnalyticsEventName): string {
-  if (name === "extension_installed" || name === "extension_updated") return name
   if (name === "conversion_completed") return "conversion"
   if (name === "popup_opened" || name === "site_preference_changed") return "popup"
   if (name === "file_converter_opened" || name === "file_downloaded") return "file_converter"
   if (name === "help_opened") return "help"
   return "review_prompt"
+}
+
+function isUserDrivenActivity(name: AnalyticsEventName): boolean {
+  return name !== "extension_installed" && name !== "extension_updated"
+}
+
+async function isAnalyticsDeliveryAllowed(generation: number): Promise<boolean> {
+  if (generation !== consentGeneration) return false
+  const enabled = await getAnalyticsEnabled()
+  return enabled && generation === consentGeneration
 }
 
 function isAnalyticsSession(value: unknown): value is AnalyticsSession {

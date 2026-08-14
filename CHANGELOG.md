@@ -18,7 +18,7 @@ and this project follows [Semantic Versioning](https://semver.org/).
 
 - Each conversion workflow now sends one aggregate result, preventing DOM retries and repeated failures from inflating event volume.
 - Every event now carries extension version, analytics schema version, and session identifiers for attribution by version, surface, and outcome.
-- Collection is limited to coarse enums and counts. It excludes image contents, URLs, hostnames, file names, page contents, browsing history, and form data.
+- Collection is limited to coarse enums, counts, versions, durations, and pseudonymous session context. It excludes image contents, URLs, hostnames, file names, page contents, browsing history, and form data.
 
 ### 🔒 Security and Privacy
 
@@ -63,7 +63,7 @@ and this project follows [Semantic Versioning](https://semver.org/).
 
 ### ✨ Added
 
-- Added anonymous GA4 Measurement Protocol events for HEIC detection, conversion success and failure, review-prompt views, review actions, dismissals, and feedback actions.
+- Added pseudonymous GA4 Measurement Protocol events for HEIC detection, conversion success and failure, review-prompt views, review actions, dismissals, and feedback actions.
 - Added release environment examples controlled by `WXT_ENABLE_EXTENSION_ANALYTICS`.
 - Added an analytics-contract verification script to prevent event parameters from including image URLs, page URLs, or file names.
 

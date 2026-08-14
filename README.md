@@ -80,7 +80,7 @@ view-heic-browser-extension/
 
 ## Permissions
 
-View HEIC uses the `storage` permission for per-site preferences, review-prompt state, and the analytics preference. Image conversion always runs locally in the browser. By default, the extension sends coarse product events with a randomly generated pseudonymous installation ID through a first-party validation proxy to Google Analytics. These events cover extension activity, feature entry points, aggregate conversion outcomes, and review-prompt actions. They never include image contents, image or page URLs, hostnames, file names, browsing history, form contents, or converted image data. Users can turn this off at any time from the popup; disabling it also deletes the local analytics identifier. See the [Privacy Policy](docs/privacy.html) and [analytics specification](docs/analytics.md).
+View HEIC uses the `storage` permission for per-site preferences, review-prompt state, and the analytics preference. Image conversion always runs locally in the browser. By default, the extension sends coarse product events with a randomly generated pseudonymous installation ID and a short-lived session ID through a first-party validation proxy to Google Analytics. These events cover extension activity, feature entry points, aggregate conversion outcomes, and review-prompt actions. They never include image contents, image or page URLs, hostnames, file names, browsing history, form contents, or converted image data. Users can turn this off at any time from the popup; disabling it also deletes the local analytics identifiers. See the [Privacy Policy](docs/privacy.html) and [analytics specification](docs/analytics.md).
 
 ## Latest Release
 
