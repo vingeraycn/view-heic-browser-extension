@@ -222,6 +222,48 @@ describe("analytics preference", () => {
     const payload = JSON.parse(String(init?.body)) as { events: Array<{ name: string }> }
     expect(payload.events.map((event) => event.name)).toEqual(["extension_updated"])
   })
+
+  it("preserves the event occurrence time when delivery starts later", async () => {
+    vi.stubEnv("WXT_ENABLE_EXTENSION_ANALYTICS", "true")
+    vi.stubEnv("WXT_ANALYTICS_ENDPOINT", "https://analytics.example.workers.dev")
+    const occurredAt = Date.now() - 60_000
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(null, { status: 204 })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    await sendAnalyticsEvent(
+      "popup_opened",
+      {
+        connection_state: "connected",
+        page_phase: "idle",
+        site_enabled: true,
+      },
+      occurredAt
+    )
+
+    const [, init] = fetchMock.mock.calls[0]
+    const payload = JSON.parse(String(init?.body)) as {
+      timestamp_micros: number
+      events: Array<{ params: { session_id: number } }>
+    }
+    expect(payload.timestamp_micros).toBe(occurredAt * 1000)
+    expect(payload.events[0].params.session_id).toBe(Math.floor(occurredAt / 1000))
+  })
+
+  it("expires queued events before they can shift a later activity day", async () => {
+    vi.stubEnv("WXT_ENABLE_EXTENSION_ANALYTICS", "true")
+    vi.stubEnv("WXT_ANALYTICS_ENDPOINT", "https://analytics.example.workers.dev")
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(
+      sendAnalyticsEvent("popup_opened", {}, Date.now() - 6 * 60 * 1000)
+    ).resolves.toBe(false)
+    expect(fetchMock).not.toHaveBeenCalled()
+    await expect(fakeBrowser.storage.local.get()).resolves.toEqual({})
+  })
 })
 
 describe("conversion outcome", () => {

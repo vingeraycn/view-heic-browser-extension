@@ -12,6 +12,7 @@ import {
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000
 const ACTIVE_EVENT_ENGAGEMENT_TIME_MS = 1
 const REQUEST_TIMEOUT_MS = 5_000
+const MAX_EVENT_QUEUE_AGE_MS = 5 * 60 * 1000
 
 let consentGeneration = 0
 let activeRequestController: AbortController | undefined
@@ -28,16 +29,24 @@ interface MeasurementEvent {
 
 export async function sendAnalyticsEvent(
   name: AnalyticsEventName,
-  params: AnalyticsParams = {}
+  params: AnalyticsParams = {},
+  occurredAt = Date.now()
 ): Promise<boolean> {
   if (import.meta.env.WXT_ENABLE_EXTENSION_ANALYTICS !== "true") return false
+  const deliveryStartedAt = Date.now()
+  if (
+    !Number.isSafeInteger(occurredAt) ||
+    occurredAt > deliveryStartedAt ||
+    deliveryStartedAt - occurredAt > MAX_EVENT_QUEUE_AGE_MS
+  ) {
+    return false
+  }
   const deliveryGeneration = consentGeneration
   if (!(await isAnalyticsDeliveryAllowed(deliveryGeneration))) return false
 
   const endpoint = import.meta.env.WXT_ANALYTICS_ENDPOINT
   if (!endpoint) return false
 
-  const now = Date.now()
   const stored = await browser.storage.local.get([
     ANALYTICS_CLIENT_ID_STORAGE_KEY,
     ANALYTICS_SESSION_STORAGE_KEY,
@@ -45,8 +54,8 @@ export async function sendAnalyticsEvent(
   ])
   if (!(await isAnalyticsDeliveryAllowed(deliveryGeneration))) return false
 
-  const clientId = getClientId(stored[ANALYTICS_CLIENT_ID_STORAGE_KEY], now)
-  const session = getSession(stored[ANALYTICS_SESSION_STORAGE_KEY], now)
+  const clientId = getClientId(stored[ANALYTICS_CLIENT_ID_STORAGE_KEY], occurredAt)
+  const session = getSession(stored[ANALYTICS_SESSION_STORAGE_KEY], occurredAt)
   const activeDate = getActiveDate(stored[ANALYTICS_ACTIVE_DATE_STORAGE_KEY])
   await browser.storage.local.set({
     [ANALYTICS_CLIENT_ID_STORAGE_KEY]: clientId,
@@ -57,7 +66,7 @@ export async function sendAnalyticsEvent(
     return false
   }
 
-  const currentDate = getLocalDateKey(now)
+  const currentDate = getLocalDateKey(occurredAt)
   const extensionVersion = browser.runtime.getManifest().version
   const commonParams: AnalyticsParams = {
     extension_version: extensionVersion,
@@ -97,7 +106,11 @@ export async function sendAnalyticsEvent(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: requestController.signal,
-      body: JSON.stringify({ client_id: clientId, events }),
+      body: JSON.stringify({
+        client_id: clientId,
+        timestamp_micros: occurredAt * 1000,
+        events,
+      }),
     })
 
     if (

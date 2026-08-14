@@ -4,6 +4,9 @@ import { handleAnalyticsRequest } from "../../analytics-worker/src/index"
 const extensionOrigin = "chrome-extension://kpbcokcekojhfifjkbglcbaiffegecge"
 const env = {
   ALLOWED_EXTENSION_ORIGIN: extensionOrigin,
+  ANALYTICS_RATE_LIMITER: {
+    limit: vi.fn(async () => ({ success: true })),
+  },
   GA_MEASUREMENT_ID: "G-TEST123456",
   GA_API_SECRET: "test-secret",
 }
@@ -18,6 +21,7 @@ describe("analytics edge proxy", () => {
     const response = await handleAnalyticsRequest(
       createRequest({
         client_id: "123456789.1786716000",
+        timestamp_micros: Date.now() * 1000,
         events: [
           {
             name: "conversion_completed",
@@ -52,6 +56,52 @@ describe("analytics edge proxy", () => {
     const request = createRequest(validPayload(), "https://example.com")
 
     await expect(handleAnalyticsRequest(request, env)).resolves.toMatchObject({ status: 403 })
+  })
+
+  it("rejects requests without Cloudflare-provided client metadata", async () => {
+    const request = new Request("https://analytics.example.workers.dev", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: extensionOrigin,
+      },
+      body: JSON.stringify(validPayload()),
+    })
+
+    await expect(handleAnalyticsRequest(request, env)).resolves.toMatchObject({ status: 403 })
+  })
+
+  it("stops requests rejected by the server-side rate limiter", async () => {
+    const limitedEnv = {
+      ...env,
+      ANALYTICS_RATE_LIMITER: {
+        limit: vi.fn(async () => ({ success: false })),
+      },
+    }
+    const forward = vi.fn(async () => new Response(null, { status: 204 }))
+
+    await expect(
+      handleAnalyticsRequest(
+        createRequest(validPayload()),
+        limitedEnv,
+        forward as unknown as typeof fetch
+      )
+    ).resolves.toMatchObject({ status: 429 })
+    expect(forward).not.toHaveBeenCalled()
+  })
+
+  it("rejects stale or implausibly future event timestamps", async () => {
+    const stale = validPayload()
+    stale.timestamp_micros = (Date.now() - 6 * 60 * 1000) * 1000
+    const future = validPayload()
+    future.timestamp_micros = (Date.now() + 60 * 1000) * 1000
+
+    await expect(handleAnalyticsRequest(createRequest(stale), env)).resolves.toMatchObject({
+      status: 400,
+    })
+    await expect(handleAnalyticsRequest(createRequest(future), env)).resolves.toMatchObject({
+      status: 400,
+    })
   })
 
   it("rejects the legacy UUID client ID", async () => {
@@ -149,6 +199,7 @@ describe("analytics edge proxy", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "CF-Connecting-IP": "203.0.113.7",
         Origin: extensionOrigin,
       },
       body: "x".repeat(20_000),
@@ -224,6 +275,7 @@ function createRequest(payload: unknown, origin = extensionOrigin): Request {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "CF-Connecting-IP": "203.0.113.7",
       Origin: origin,
     },
     body: JSON.stringify(payload),
@@ -233,6 +285,7 @@ function createRequest(payload: unknown, origin = extensionOrigin): Request {
 function validPayload() {
   return {
     client_id: "123456789.1786716000",
+    timestamp_micros: Date.now() * 1000,
     events: [
       {
         name: "popup_opened",
@@ -271,6 +324,7 @@ function validActiveEvent(activitySource: string) {
 function validConversionPayload() {
   return {
     client_id: "123456789.1786716000",
+    timestamp_micros: Date.now() * 1000,
     events: [
       {
         name: "conversion_completed",

@@ -39,5 +39,9 @@ function enqueueAnalyticsEvent(
   name: Parameters<typeof sendAnalyticsEvent>[0],
   params: Parameters<typeof sendAnalyticsEvent>[1]
 ): Promise<boolean> {
-  return analyticsQueue.runIfCurrent(() => sendAnalyticsEvent(name, params), false)
+  const occurredAt = Date.now()
+  return analyticsQueue.runIfCurrent(
+    () => sendAnalyticsEvent(name, params, occurredAt),
+    false
+  )
 }

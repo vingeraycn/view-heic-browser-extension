@@ -4,6 +4,7 @@ const files = Object.fromEntries(
   [
     ".env.example",
     "analytics-worker/src/index.ts",
+    "analytics-worker/wrangler.jsonc",
     "docs/analytics.md",
     "docs/privacy.html",
     "entrypoints/background.ts",
@@ -69,7 +70,10 @@ const checks = [
     pass:
       files["utils/analytics-transport.ts"].includes('name: "extension_active"') &&
       files["utils/analytics-transport.ts"].includes("ANALYTICS_ACTIVE_DATE_STORAGE_KEY") &&
-      files["utils/analytics-transport.ts"].includes("engagement_time_msec"),
+      files["utils/analytics-transport.ts"].includes("engagement_time_msec") &&
+      files["utils/analytics-transport.ts"].includes("timestamp_micros: occurredAt * 1000") &&
+      files["entrypoints/background.ts"].includes("const occurredAt = Date.now()") &&
+      files["entrypoints/background.ts"].includes("sendAnalyticsEvent(name, params, occurredAt)"),
   },
   {
     name: "event calls do not send URL, hostname, source, or file-name fields",
@@ -102,11 +106,14 @@ const checks = [
     pass: [
       "ALLOWED_EXTENSION_ORIGIN",
       "MAX_BODY_BYTES",
+      "ANALYTICS_RATE_LIMITER",
+      "timestamp_micros",
       "client_id",
       "EVENT_PARAMS",
       "REQUIRED_EVENT_PARAMS",
       "ALLOWED_VALUES",
-    ].every((token) => files["analytics-worker/src/index.ts"].includes(token)),
+    ].every((token) => files["analytics-worker/src/index.ts"].includes(token)) &&
+      files["analytics-worker/wrangler.jsonc"].includes('"ratelimits"'),
   },
   {
     name: "privacy copy discloses the pseudonymous ID, processors, exclusions, and opt-out",

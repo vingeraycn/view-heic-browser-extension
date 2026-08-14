@@ -1,7 +1,12 @@
 interface AnalyticsWorkerEnv {
   ALLOWED_EXTENSION_ORIGIN: string
+  ANALYTICS_RATE_LIMITER: AnalyticsRateLimiter
   GA_API_SECRET: string
   GA_MEASUREMENT_ID: string
+}
+
+interface AnalyticsRateLimiter {
+  limit: (options: { key: string }) => Promise<{ success: boolean }>
 }
 
 interface AnalyticsEvent {
@@ -11,11 +16,14 @@ interface AnalyticsEvent {
 
 interface AnalyticsPayload {
   client_id: string
+  timestamp_micros: number
   events: AnalyticsEvent[]
 }
 
 const MAX_BODY_BYTES = 16_384
 const MAX_DURATION_MS = 86_400_000
+const MAX_EVENT_AGE_MICROS = 5 * 60 * 1_000_000
+const MAX_FUTURE_SKEW_MICROS = 10 * 1_000_000
 const COMMON_PARAMS = new Set([
   "analytics_schema_version",
   "extension_version",
@@ -153,6 +161,20 @@ export async function handleAnalyticsRequest(
     return new Response("Unsupported media type", { status: 415, headers: responseHeaders })
   }
 
+  const clientAddress = request.headers.get("CF-Connecting-IP")
+  if (!clientAddress) {
+    return new Response("Forbidden", { status: 403, headers: responseHeaders })
+  }
+
+  try {
+    const { success } = await env.ANALYTICS_RATE_LIMITER.limit({ key: clientAddress })
+    if (!success) {
+      return new Response("Too many requests", { status: 429, headers: responseHeaders })
+    }
+  } catch {
+    return new Response(null, { status: 503, headers: responseHeaders })
+  }
+
   const declaredLength = Number(request.headers.get("Content-Length") ?? 0)
   if (declaredLength > MAX_BODY_BYTES) {
     return new Response("Payload too large", { status: 413, headers: responseHeaders })
@@ -200,16 +222,26 @@ export async function handleAnalyticsRequest(
 
 function isAnalyticsPayload(value: unknown): value is AnalyticsPayload {
   if (!isRecord(value)) return false
-  if (!hasOnlyKeys(value, ["client_id", "events"])) return false
+  if (!hasOnlyKeys(value, ["client_id", "timestamp_micros", "events"])) return false
   if (typeof value.client_id !== "string" || !/^\d+\.\d+$/.test(value.client_id)) {
     return false
   }
+  if (!isRecentEventTimestamp(value.timestamp_micros)) return false
   if (!Array.isArray(value.events) || value.events.length < 1 || value.events.length > 2) {
     return false
   }
 
   if (!value.events.every(isAnalyticsEvent)) return false
   return isValidAnalyticsBatch(value.events)
+}
+
+function isRecentEventTimestamp(value: unknown): value is number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value)) return false
+  const nowMicros = Date.now() * 1000
+  return (
+    value >= nowMicros - MAX_EVENT_AGE_MICROS &&
+    value <= nowMicros + MAX_FUTURE_SKEW_MICROS
+  )
 }
 
 function isAnalyticsEvent(value: unknown): value is AnalyticsEvent {

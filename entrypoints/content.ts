@@ -1792,15 +1792,17 @@ function observeFailedImageLoads(
       const batchGeneration = initialBatchGeneration
       const startedAt = performance.now()
       const results: ConversionResults = []
+      const initialImages = Array.from(pendingImages)
+      initialImages.forEach((image) => pendingImages.delete(image))
+      let nextImageIndex = 0
       const initialDrain = (async () => {
         while (
           contentScriptEnabled &&
           batchGeneration === initialBatchGeneration &&
-          pendingImages.size > 0
+          nextImageIndex < initialImages.length
         ) {
-          const image = pendingImages.values().next().value as HTMLImageElement | undefined
-          if (!image) return
-          pendingImages.delete(image)
+          const image = initialImages[nextImageIndex]
+          nextImageIndex += 1
           const result = await probeImage(image, false)
           if (result) results.push(result)
         }
@@ -1814,6 +1816,7 @@ function observeFailedImageLoads(
       try {
         await drainPromise
       } finally {
+        initialImages.slice(nextImageIndex).forEach(queueImage)
         if (batchGeneration === initialBatchGeneration) {
           initialBatchPending = false
           if (contentScriptEnabled && pendingImages.size > 0) {

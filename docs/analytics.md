@@ -44,6 +44,8 @@ Every event includes:
 - `analytics_schema_version`: currently `2`
 - `session_id`: a numeric session identifier renewed after 30 minutes of inactivity
 
+Each request also includes `timestamp_micros`, the event occurrence time captured before background queueing. Queued events expire after five minutes so delayed work cannot change a later activity day or session.
+
 | Event | Trigger | Product parameters |
 | --- | --- | --- |
 | `extension_active` | Attached once to the first successfully reported user- or conversion-driven event on each local calendar day; install and automatic-update events are excluded | `activity_source`, `engagement_time_msec=1` |
@@ -91,6 +93,6 @@ Custom definitions take effect from their creation time and do not backfill hist
 
 ## Transport and Privacy Boundary
 
-The extension sends allowlisted events only to the first-party proxy configured by `WXT_ANALYTICS_ENDPOINT`. The proxy validates the published extension Origin, request size, GA client identifier format, event names, parameter names, and parameter values before forwarding the request to GA4 with a server-side secret. The extension package must never contain the Measurement ID or API secret.
+The extension sends allowlisted events only to the first-party proxy configured by `WXT_ANALYTICS_ENDPOINT`. The proxy validates the published extension Origin, Cloudflare-provided connection metadata, event age, request size, GA client identifier format, event names, parameter names, and parameter values before forwarding the request to GA4 with a server-side secret. The Origin header is not treated as authentication: a Cloudflare Rate Limiting binding applies a generous per-address abuse limit before the body is processed. The connection address is not added to the analytics payload. The extension package must never contain the Measurement ID or API secret.
 
 Data sharing is enabled by default to preserve the established product behavior, while the popup provides a persistent and visible opt-out. Disabling analytics does not cache or replay events and deletes the local pseudonymous installation identifier, session, and daily-active state. Re-enabling analytics creates a new identifier that cannot be linked to data collected before opt-out.
