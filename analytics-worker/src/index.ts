@@ -101,6 +101,17 @@ const REQUIRED_EVENT_PARAMS: Record<string, readonly string[]> = {
   extension_active: ["activity_source", "engagement_time_msec"],
 }
 
+const ACTIVITY_SOURCE_BY_EVENT: Record<string, string> = {
+  popup_opened: "popup",
+  site_preference_changed: "popup",
+  help_opened: "help",
+  file_converter_opened: "file_converter",
+  conversion_completed: "conversion",
+  file_downloaded: "file_converter",
+  review_prompt_shown: "review_prompt",
+  review_prompt_action: "review_prompt",
+}
+
 export async function handleAnalyticsRequest(
   request: Request,
   env: AnalyticsWorkerEnv,
@@ -180,7 +191,8 @@ function isAnalyticsPayload(value: unknown): value is AnalyticsPayload {
     return false
   }
 
-  return value.events.every(isAnalyticsEvent)
+  if (!value.events.every(isAnalyticsEvent)) return false
+  return isValidAnalyticsBatch(value.events)
 }
 
 function isAnalyticsEvent(value: unknown): value is AnalyticsEvent {
@@ -249,6 +261,22 @@ function isValidConversionResult(params: Record<string, unknown>): boolean {
   if (outcome === "success") return successCount > 0 && failureCount === 0
   if (outcome === "partial") return successCount > 0 && failureCount > 0
   return outcome === "failure" && successCount === 0 && failureCount > 0
+}
+
+function isValidAnalyticsBatch(events: AnalyticsEvent[]): boolean {
+  const [primaryEvent, activeEvent] = events
+  if (primaryEvent.name === "extension_active") return false
+  if (!activeEvent) return true
+  if (activeEvent.name !== "extension_active") return false
+
+  const expectedSource = ACTIVITY_SOURCE_BY_EVENT[primaryEvent.name]
+  return (
+    activeEvent.params.activity_source === expectedSource &&
+    activeEvent.params.analytics_schema_version ===
+      primaryEvent.params.analytics_schema_version &&
+    activeEvent.params.extension_version === primaryEvent.params.extension_version &&
+    activeEvent.params.session_id === primaryEvent.params.session_id
+  )
 }
 
 async function readBoundedBody(

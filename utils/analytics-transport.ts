@@ -127,10 +127,16 @@ export async function updateAnalyticsPreference(enabled: boolean): Promise<boole
   consentGeneration += 1
   activeRequestController?.abort()
 
-  await browser.storage.local.set({ [ANALYTICS_ENABLED_STORAGE_KEY]: enabled })
-  if (!enabled) {
-    await clearAnalyticsState()
+  if (enabled) {
+    if (!(await getAnalyticsEnabled())) {
+      await clearAnalyticsState()
+    }
+    await browser.storage.local.set({ [ANALYTICS_ENABLED_STORAGE_KEY]: true })
+    return true
   }
+
+  await browser.storage.local.set({ [ANALYTICS_ENABLED_STORAGE_KEY]: false })
+  await clearAnalyticsState()
   return true
 }
 

@@ -144,6 +144,45 @@ describe("analytics edge proxy", () => {
       status: 400,
     })
   })
+
+  it.each([
+    ["standalone activity", [validActiveEvent("popup")]],
+    ["duplicate activity", [validActiveEvent("popup"), validActiveEvent("popup")]],
+    [
+      "lifecycle event paired with activity",
+      [
+        {
+          name: "extension_updated",
+          params: commonParams(),
+        },
+        validActiveEvent("popup"),
+      ],
+    ],
+    [
+      "mismatched activity source",
+      [validPayload().events[0], validActiveEvent("help")],
+    ],
+  ])("rejects %s batches", async (_name, events) => {
+    const payload = validPayload()
+    payload.events = events
+    const forward = vi.fn(async () => new Response(null, { status: 204 }))
+
+    await expect(
+      handleAnalyticsRequest(createRequest(payload), env, forward as unknown as typeof fetch)
+    ).resolves.toMatchObject({ status: 400 })
+    expect(forward).not.toHaveBeenCalled()
+  })
+
+  it("accepts one matching daily activity event after a user-driven event", async () => {
+    const payload = validPayload()
+    payload.events.push(validActiveEvent("popup"))
+    const forward = vi.fn(async () => new Response(null, { status: 204 }))
+
+    await expect(
+      handleAnalyticsRequest(createRequest(payload), env, forward as unknown as typeof fetch)
+    ).resolves.toMatchObject({ status: 204 })
+    expect(forward).toHaveBeenCalledOnce()
+  })
 })
 
 function createRequest(payload: unknown, origin = extensionOrigin): Request {
@@ -173,6 +212,25 @@ function validPayload() {
         } as Record<string, unknown>,
       },
     ],
+  }
+}
+
+function commonParams() {
+  return {
+    analytics_schema_version: "2",
+    extension_version: "1.4.0",
+    session_id: 1_786_716_000,
+  }
+}
+
+function validActiveEvent(activitySource: string) {
+  return {
+    name: "extension_active",
+    params: {
+      ...commonParams(),
+      activity_source: activitySource,
+      engagement_time_msec: 1,
+    } as Record<string, unknown>,
   }
 }
 

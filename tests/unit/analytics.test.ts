@@ -112,6 +112,30 @@ describe("analytics preference", () => {
     })
   })
 
+  it("clears stale identifiers before re-enabling after a failed opt-out cleanup", async () => {
+    await fakeBrowser.storage.local.set({
+      [ANALYTICS_CLIENT_ID_STORAGE_KEY]: "123.456",
+      [ANALYTICS_SESSION_STORAGE_KEY]: { id: 123, lastSeenAt: 456 },
+      [ANALYTICS_ACTIVE_DATE_STORAGE_KEY]: "2026-08-14",
+    })
+    const originalRemove = fakeBrowser.storage.local.remove.bind(fakeBrowser.storage.local)
+    vi.spyOn(fakeBrowser.storage.local, "remove")
+      .mockRejectedValueOnce(new Error("storage unavailable"))
+      .mockImplementation(originalRemove)
+
+    await expect(setAnalyticsEnabled(false)).rejects.toThrow("storage unavailable")
+    await expect(fakeBrowser.storage.local.get()).resolves.toMatchObject({
+      [ANALYTICS_ENABLED_STORAGE_KEY]: false,
+      [ANALYTICS_CLIENT_ID_STORAGE_KEY]: "123.456",
+    })
+
+    await setAnalyticsEnabled(true)
+
+    await expect(fakeBrowser.storage.local.get()).resolves.toEqual({
+      [ANALYTICS_ENABLED_STORAGE_KEY]: true,
+    })
+  })
+
   it("aborts in-flight delivery and does not recreate identifiers after opt-out", async () => {
     vi.stubEnv("WXT_ENABLE_EXTENSION_ANALYTICS", "true")
     vi.stubEnv("WXT_ANALYTICS_ENDPOINT", "https://analytics.example.workers.dev")
