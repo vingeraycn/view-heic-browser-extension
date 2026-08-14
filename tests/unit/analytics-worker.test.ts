@@ -149,6 +149,32 @@ describe("analytics edge proxy", () => {
     })
   })
 
+  it.each([
+    ["a successful conversion with an error type", "success", 1, 0, "conversion"],
+    ["a partial conversion without an error type", "partial", 1, 1, undefined],
+    ["a failed conversion without an error type", "failure", 0, 1, undefined],
+  ])(
+    "rejects %s",
+    async (_name, outcome, successCount, failureCount, errorType) => {
+      const payload = validConversionPayload()
+      payload.events[0].params.outcome = outcome
+      payload.events[0].params.attempted_count = successCount + failureCount
+      payload.events[0].params.success_count = successCount
+      payload.events[0].params.failure_count = failureCount
+      if (errorType) payload.events[0].params.error_type = errorType
+      const forward = vi.fn(async () => new Response(null, { status: 204 }))
+
+      await expect(
+        handleAnalyticsRequest(
+          createRequest(payload),
+          env,
+          forward as unknown as typeof fetch
+        )
+      ).resolves.toMatchObject({ status: 400 })
+      expect(forward).not.toHaveBeenCalled()
+    }
+  )
+
   it("accepts completed conversions that take longer than ten minutes", async () => {
     const payload = validConversionPayload()
     payload.events[0].params.duration_ms = 700_000

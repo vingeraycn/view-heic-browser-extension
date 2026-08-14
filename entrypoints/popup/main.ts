@@ -73,14 +73,10 @@ async function initialize(): Promise<void> {
     { once: true }
   )
 
-  const [[tab], storedAnalyticsEnabled] = await Promise.all([
-    browser.tabs.query({ active: true, currentWindow: true }),
-    getAnalyticsEnabled(),
-  ])
+  void loadAnalyticsPreference()
+
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true })
   activeTab = tab
-  analyticsEnabled = storedAnalyticsEnabled
-  analyticsPreferenceLoaded = true
-  renderAnalyticsPreference()
 
   if (typeof tab?.id !== "number") {
     render(getDisconnectedPresentation(tab?.url, locale))
@@ -105,6 +101,16 @@ async function initialize(): Promise<void> {
     render(getDisconnectedPresentation(tab.url, locale))
     trackPopupOpened("disconnected", "unavailable", false)
   }
+}
+
+async function loadAnalyticsPreference(): Promise<void> {
+  try {
+    analyticsEnabled = await getAnalyticsEnabled()
+    analyticsPreferenceLoaded = true
+  } catch {
+    analyticsPreferenceLoaded = false
+  }
+  renderAnalyticsPreference()
 }
 
 function handleRuntimeMessage(message: unknown, sender: Browser.runtime.MessageSender): void {

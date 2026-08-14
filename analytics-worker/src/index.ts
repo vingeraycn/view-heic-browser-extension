@@ -316,6 +316,8 @@ function isValidConversionResult(params: Record<string, unknown>): boolean {
   ) {
     return false
   }
+  const hasErrorType = typeof params.error_type === "string"
+  if ((failureCount > 0) !== hasErrorType) return false
   if (outcome === "success") return successCount > 0 && failureCount === 0
   if (outcome === "partial") return successCount > 0 && failureCount > 0
   return outcome === "failure" && successCount === 0 && failureCount > 0
