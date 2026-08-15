@@ -1,6 +1,6 @@
 # 📖 Documentation
 
-This directory contains the View HEIC website and test fixtures. GitHub Pages is configured to deploy from `/docs`.
+This directory contains the View HEIC website and media samples. GitHub Pages is configured to deploy from `/docs`.
 
 ## 📁 Structure
 
@@ -10,9 +10,8 @@ docs/
 │   └── logo.svg        # Website logo generated from the canonical brand asset
 ├── store-assets/       # Store screenshots rendered as 1280 × 800 PNG files
 ├── index.html          # GitHub Pages landing page
-├── test-improved.html  # Detailed developer test page
 ├── README.md           # This document
-└── samples/            # HEIC / HEIF fixture matrix
+└── samples/            # HEIC / HEIF sample matrix
 ```
 
 ## 🌐 GitHub Pages Setup
@@ -20,9 +19,7 @@ docs/
 1. Open the repository's **Settings → Pages** page.
 2. Set Source to **Deploy from a branch**.
 3. Select the `main` branch and `/docs` directory, then choose **Save**.
-4. Wait approximately one minute, then open:
-   - Website: `https://vingeraycn.github.io/view-heic-browser-extension/`
-   - Test page: `https://vingeraycn.github.io/view-heic-browser-extension/test-improved.html`
+4. Wait approximately one minute, then open `https://vingeraycn.github.io/view-heic-browser-extension/`.
 
 ## 🏠 Landing Page (`index.html`)
 
@@ -64,15 +61,6 @@ Generated files:
 - `docs/store-assets/02-local-private-conversion.png`
 - `docs/store-assets/03-fast-jpeg-rendering.png`
 
-## 🧪 Test Page (`test-improved.html`)
-
-The detailed developer test page includes:
-
-- 📷 Static HEIC image cases covering brands, MIME types, query/hash variants, and invalid files
-- 🔄 Dynamic loading tests for MutationObserver behavior
-- 📈 Live conversion statistics
-- 🚀 A summary of the primary implementation improvements
-
 ## 🖼️ Fixtures
 
 | File | Coverage |
@@ -83,14 +71,6 @@ The detailed developer test page includes:
 | `samples/heix-compatible.heic` | compatible `heix` |
 | `samples/hevx-compatible-sequence.heic` | compatible `hevx` |
 | `samples/heis-multilayer.heic` | major `heis` |
-| `samples/corrupted-test.heic` | error handling and invalid input |
+| `samples/corrupted.heic` | error handling and invalid input |
 
 See `samples/README.md` for complete provenance and coverage gaps.
-
-## 🛠️ Local Preview
-
-```bash
-pnpm run test:server   # Start the local server at http://127.0.0.1:8080
-pnpm run dev:open      # Open the landing page
-pnpm run test:open     # Open the test page
-```

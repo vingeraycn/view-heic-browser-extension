@@ -357,7 +357,7 @@
             ['samples/heic-still.heic', 'Standard HEIC', '1.1 MB', 'HEVC Still'],
             ['samples/msf1-sequence.heic', 'HEIF Sequence', '873 KB', 'First-Frame Preview'],
             ['samples/heix-compatible.heic', 'HEIX Compatible', '301 KB', 'Range Extension'],
-            ['samples/corrupted-test.heic', 'Broken File', '78 B', 'Graceful Fallback'],
+            ['samples/corrupted.heic', 'Broken File', '78 B', 'Graceful Fallback'],
           ],
           dynamicTitle: 'Dynamic Image Test',
           dynamicLead: 'Validate that images inserted by JavaScript are still picked up by the extension through MutationObserver.',
@@ -400,7 +400,6 @@
           footerLinks: 'Links',
           footerProject: 'Project',
           license: 'Open Source under the MIT License.',
-          devTest: 'Developer Test Page',
           privacyPolicy: 'Privacy Policy',
         },
         zh: {
@@ -470,7 +469,7 @@
             ['samples/heic-still.heic', '标准 HEIC', '1.1 MB', 'HEVC 静态图'],
             ['samples/msf1-sequence.heic', 'HEIF 序列图', '873 KB', '首帧预览'],
             ['samples/heix-compatible.heic', 'HEIX 兼容', '301 KB', 'Range Extension'],
-            ['samples/corrupted-test.heic', '错误处理', '78 B', '优雅降级演示'],
+            ['samples/corrupted.heic', '错误处理', '78 B', '优雅降级演示'],
           ],
           dynamicTitle: '动态加载测试',
           dynamicLead: '验证 JavaScript 动态插入的图片也能通过 MutationObserver 被扩展监听处理。',
@@ -513,7 +512,6 @@
           footerLinks: '链接',
           footerProject: '项目',
           license: '基于 MIT 许可证开源。',
-          devTest: '开发者测试页',
           privacyPolicy: '隐私政策',
         },
       }
@@ -658,7 +656,6 @@
           ['install', t.installShort],
           ['faq', t.nav[3][1]],
         ].map(([id, label]) => `<li><a href="#${id}" class="transition hover:text-white">${label}</a></li>`).join('') +
-          `<li><a href="./test-improved.html" class="transition hover:text-white">${t.devTest}</a></li>` +
           `<li><a href="./privacy.html" class="transition hover:text-white">${t.privacyPolicy}</a></li>`
 
         document.getElementById('project-links').innerHTML = [

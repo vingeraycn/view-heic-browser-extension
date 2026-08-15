@@ -14,7 +14,6 @@ const fileSystemPickerInterception = fs.readFileSync(
   "utils/file-system-picker-interception.ts",
   "utf8"
 )
-const testPage = fs.readFileSync("docs/test-improved.html", "utf8")
 const builtManifestPath = ".output/chrome-mv3/manifest.json"
 const builtContentScripts = JSON.parse(
   fs.readFileSync(builtManifestPath, "utf8")
@@ -267,17 +266,4 @@ assert(
     content.includes("Converted to JPG") &&
     content.includes("Couldn't convert this HEIC image"),
   "upload toast copy is localized for Chinese and English states"
-)
-
-assert(
-  testPage.includes("HEIC 上传自动转换 Playground") &&
-    testPage.includes("upload-single") &&
-    testPage.includes("upload-multiple") &&
-    testPage.includes("upload-hidden") &&
-    testPage.includes("最终 input.files") &&
-    testPage.includes("upload-status") &&
-    testPage.includes("__viewHeicEarlyUploadResults") &&
-    testPage.includes("页面最早 capture 监听结果") &&
-    testPage.includes("setUploadStatus"),
-  "local test page covers early upload interception scenarios"
 )

@@ -1847,7 +1847,7 @@ function observeFailedImageLoads(
     if (drainPromise) return drainPromise
 
     drainPromise = (async () => {
-      while (contentScriptEnabled && pendingImages.size > 0) {
+      while (contentScriptEnabled && !initialBatchPending && pendingImages.size > 0) {
         const image = pendingImages.values().next().value as HTMLImageElement | undefined
         if (!image) return
         pendingImages.delete(image)

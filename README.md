@@ -35,7 +35,6 @@ Then open `chrome://extensions/`, enable Developer mode, choose "Load unpacked",
 
 ```bash
 pnpm compile
-pnpm test
 pnpm verify:heif-detection
 pnpm verify:rating-prompt
 pnpm verify:analytics-events
@@ -45,14 +44,6 @@ pnpm verify:src-change
 pnpm build
 pnpm zip
 ```
-
-Run the local demo server:
-
-```bash
-pnpm test:server
-```
-
-Open `http://127.0.0.1:8080/test-improved.html` to test conversion behavior with local HEIC fixtures.
 
 ## Project Structure
 
@@ -72,7 +63,6 @@ view-heic-browser-extension/
 │   └── types.ts
 ├── docs/
 │   ├── index.html
-│   ├── test-improved.html
 │   └── samples/
 ├── scripts/
 └── wxt.config.ts
