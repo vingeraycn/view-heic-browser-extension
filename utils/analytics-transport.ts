@@ -8,6 +8,7 @@ import {
   type AnalyticsEventName,
   type AnalyticsParams,
 } from "./analytics"
+import { SerialTaskQueue } from "./serial-task-queue"
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000
 const ACTIVE_EVENT_ENGAGEMENT_TIME_MS = 1
@@ -17,6 +18,7 @@ const MAX_EVENT_QUEUE_AGE_MS = 5 * 60 * 1000
 let consentGeneration = 0
 let consentUpdateGeneration: number | undefined
 let activeRequestController: AbortController | undefined
+const consentUpdateQueue = new SerialTaskQueue()
 
 interface AnalyticsSession {
   id: number
@@ -138,18 +140,35 @@ export async function sendAnalyticsEvent(
   }
 }
 
-export async function updateAnalyticsPreference(enabled: boolean): Promise<boolean> {
+export function updateAnalyticsPreference(enabled: boolean): Promise<boolean> {
   const updateGeneration = ++consentGeneration
   consentUpdateGeneration = updateGeneration
   activeRequestController?.abort()
+
+  const result = consentUpdateQueue.run(() =>
+    applyAnalyticsPreference(enabled, updateGeneration)
+  )
+  return result.finally(() => {
+    if (consentUpdateGeneration === updateGeneration) {
+      consentUpdateGeneration = undefined
+    }
+  })
+}
+
+async function applyAnalyticsPreference(
+  enabled: boolean,
+  updateGeneration: number
+): Promise<boolean> {
+  if (updateGeneration !== consentGeneration) return false
 
   try {
     if (enabled) {
       if (!(await getAnalyticsEnabled())) {
         await clearAnalyticsState()
       }
+      if (updateGeneration !== consentGeneration) return false
       await browser.storage.local.set({ [ANALYTICS_ENABLED_STORAGE_KEY]: true })
-      return true
+      return updateGeneration === consentGeneration
     }
 
     await browser.storage.local.set({ [ANALYTICS_ENABLED_STORAGE_KEY]: false })
@@ -163,11 +182,10 @@ export async function updateAnalyticsPreference(enabled: boolean): Promise<boole
         return false
       }
     }
-    return true
-  } finally {
-    if (consentUpdateGeneration === updateGeneration) {
-      consentUpdateGeneration = undefined
-    }
+    return updateGeneration === consentGeneration
+  } catch (error) {
+    console.warn("View HEIC analytics preference update failed:", error)
+    return false
   }
 }
 
