@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vitest"
 import { createShowOpenFilePickerInterceptor } from "../../utils/file-system-picker-interception"
 
 describe("File System Access picker interception", () => {
-  it("converts files returned by getFile when interception is enabled", async () => {
+  it("converts files returned by getFile while preserving the native handle", async () => {
+    const createHandle = createHandleFactory()
     const originalFile = { name: "photo.heic" }
     const convertedFile = { name: "photo.jpg" }
     const handle = createHandle(originalFile)
@@ -12,13 +13,29 @@ describe("File System Access picker interception", () => {
       { isEnabled: () => true, interceptFile }
     )
 
-    const [wrappedHandle] = (await showOpenFilePicker()) as Array<typeof handle>
+    const [returnedHandle] = (await showOpenFilePicker()) as Array<typeof handle>
 
-    await expect(wrappedHandle.getFile()).resolves.toBe(convertedFile)
+    expect(returnedHandle).toBe(handle)
+    await expect(returnedHandle.getFile()).resolves.toBe(convertedFile)
     expect(interceptFile).toHaveBeenCalledWith(originalFile)
   })
 
+  it("keeps returned handles structurally cloneable", async () => {
+    const createHandle = createHandleFactory()
+    const handle = createHandle({ name: "photo.heic" })
+    const showOpenFilePicker = createShowOpenFilePickerInterceptor(
+      vi.fn(async () => [handle]),
+      { isEnabled: () => true, interceptFile: async (file) => file }
+    )
+
+    const [returnedHandle] = (await showOpenFilePicker()) as Array<typeof handle>
+
+    expect(returnedHandle).toBe(handle)
+    expect(() => structuredClone(returnedHandle)).not.toThrow()
+  })
+
   it("returns the original file without conversion when interception is disabled", async () => {
+    const createHandle = createHandleFactory()
     const originalFile = { name: "photo.heic" }
     const handle = createHandle(originalFile)
     const interceptFile = vi.fn()
@@ -27,13 +44,15 @@ describe("File System Access picker interception", () => {
       { isEnabled: () => false, interceptFile }
     )
 
-    const [wrappedHandle] = (await showOpenFilePicker()) as Array<typeof handle>
+    const [returnedHandle] = (await showOpenFilePicker()) as Array<typeof handle>
 
-    await expect(wrappedHandle.getFile()).resolves.toBe(originalFile)
+    expect(returnedHandle).toBe(handle)
+    await expect(returnedHandle.getFile()).resolves.toBe(originalFile)
     expect(interceptFile).not.toHaveBeenCalled()
   })
 
   it("falls back to the original file when conversion fails", async () => {
+    const createHandle = createHandleFactory()
     const originalFile = { name: "photo.heic" }
     const handle = createHandle(originalFile)
     const showOpenFilePicker = createShowOpenFilePickerInterceptor(
@@ -46,12 +65,31 @@ describe("File System Access picker interception", () => {
       }
     )
 
-    const [wrappedHandle] = (await showOpenFilePicker()) as Array<typeof handle>
+    const [returnedHandle] = (await showOpenFilePicker()) as Array<typeof handle>
 
-    await expect(wrappedHandle.getFile()).resolves.toBe(originalFile)
+    await expect(returnedHandle.getFile()).resolves.toBe(originalFile)
+  })
+
+  it("does not intercept handles outside the picker result", async () => {
+    const createHandle = createHandleFactory()
+    const selectedFile = { name: "selected.heic" }
+    const unrelatedFile = { name: "unrelated.heic" }
+    const selectedHandle = createHandle(selectedFile)
+    const unrelatedHandle = createHandle(unrelatedFile)
+    const interceptFile = vi.fn(async () => ({ name: "selected.jpg" }))
+    const showOpenFilePicker = createShowOpenFilePickerInterceptor(
+      vi.fn(async () => [selectedHandle]),
+      { isEnabled: () => true, interceptFile }
+    )
+
+    await showOpenFilePicker()
+
+    await expect(unrelatedHandle.getFile()).resolves.toBe(unrelatedFile)
+    expect(interceptFile).not.toHaveBeenCalled()
   })
 
   it("preserves native handle identity behavior for other methods", async () => {
+    const createHandle = createHandleFactory()
     const firstHandle = createHandle({ name: "first.heic" })
     const secondHandle = createHandle({ name: "second.heic" })
     const showOpenFilePicker = createShowOpenFilePickerInterceptor(
@@ -59,15 +97,16 @@ describe("File System Access picker interception", () => {
       { isEnabled: () => true, interceptFile: async (file) => file }
     )
 
-    const [firstWrapped, secondWrapped] = (await showOpenFilePicker()) as Array<
+    const [firstReturned, secondReturned] = (await showOpenFilePicker()) as Array<
       typeof firstHandle
     >
 
-    expect(firstWrapped.kind).toBe("file")
-    expect(firstWrapped.name).toBe("photo.heic")
-    expect(firstWrapped.isSameEntry).toBe(firstWrapped.isSameEntry)
-    expect(firstWrapped.isSameEntry(firstWrapped)).toBe(true)
-    expect(firstWrapped.isSameEntry(secondWrapped)).toBe(false)
+    expect(firstReturned).toBe(firstHandle)
+    expect(secondReturned).toBe(secondHandle)
+    expect(firstReturned.kind).toBe("file")
+    expect(firstReturned.name).toBe("photo.heic")
+    expect(firstReturned.isSameEntry(firstReturned)).toBe(true)
+    expect(firstReturned.isSameEntry(secondReturned)).toBe(false)
   })
 
   it("preserves picker cancellation", async () => {
@@ -83,16 +122,21 @@ describe("File System Access picker interception", () => {
   })
 })
 
-function createHandle(file: { name: string }) {
-  const handle = {
-    kind: "file",
-    name: "photo.heic",
+function createHandleFactory() {
+  class TestFileSystemFileHandle {
+    readonly kind = "file"
+    readonly name = "photo.heic"
+
+    constructor(private readonly file: { name: string }) {}
+
     async getFile() {
-      return file
-    },
+      return this.file
+    }
+
     isSameEntry(other: unknown) {
-      return other === handle
-    },
+      return other === this
+    }
   }
-  return handle
+
+  return (file: { name: string }) => new TestFileSystemFileHandle(file)
 }

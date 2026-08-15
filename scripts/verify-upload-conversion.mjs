@@ -74,14 +74,19 @@ assert(
     interceptor.includes("requestFileSystemPickerConversion") &&
     interceptor.includes("settleAllFileSystemPickerConversions") &&
     interceptor.includes("event.preventDefault()") &&
-    fileSystemPickerInterception.includes('property === "getFile"') &&
+    fileSystemPickerInterception.includes("registeredHandleOptions.set(handle, options)") &&
+    fileSystemPickerInterception.includes("patchGetFileMethod(handle)") &&
+    fileSystemPickerInterception.includes(
+      'Reflect.defineProperty(methodOwner, "getFile"'
+    ) &&
     fileSystemPickerInterception.includes("options.interceptFile(file)") &&
-    fileSystemPickerInterception.includes("Reflect.apply(value, target") &&
+    fileSystemPickerInterception.includes("return handles") &&
+    !fileSystemPickerInterception.includes("new Proxy(handle") &&
     content.includes("handleFileSystemPickerConversion") &&
     content.includes("respondToFileSystemPicker") &&
     content.includes("return responseEvent.defaultPrevented") &&
     content.includes('trackUploadConversion(result, "file_picker"'),
-  "File System Access picker handles convert HEIF files without changing native handle behavior"
+  "File System Access picker handles convert HEIF files without replacing native handles"
 )
 
 assert(

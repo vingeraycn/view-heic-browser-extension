@@ -5,72 +5,75 @@ interface FileSystemPickerInterceptionOptions {
   interceptFile: (file: unknown) => Promise<unknown>
 }
 
+const registeredHandleOptions = new WeakMap<object, FileSystemPickerInterceptionOptions>()
+const patchedGetFileOwners = new WeakSet<object>()
+
 export function createShowOpenFilePickerInterceptor(
   showOpenFilePicker: ShowOpenFilePicker,
   options: FileSystemPickerInterceptionOptions
 ): ShowOpenFilePicker {
-  const wrappedHandles = new WeakMap<object, object>()
-  const originalHandles = new WeakMap<object, object>()
+  const registerHandle = (handle: unknown): void => {
+    if (!isFileSystemFileHandle(handle)) return
 
-  const wrapHandle = (handle: unknown): unknown => {
-    if (!isFileSystemFileHandle(handle)) return handle
+    registeredHandleOptions.set(handle, options)
+    patchGetFileMethod(handle)
+  }
 
-    const cached = wrappedHandles.get(handle)
-    if (cached) return cached
+  return new Proxy(showOpenFilePicker, {
+    async apply(target, thisArg, args): Promise<unknown> {
+      const handles = await Reflect.apply(target, thisArg, args)
+      if (Array.isArray(handles)) handles.forEach(registerHandle)
+      return handles
+    },
+  })
+}
 
-    const boundMethods = new Map<PropertyKey, (...args: unknown[]) => unknown>()
-    const interceptedGetFile = async (): Promise<unknown> => {
-      const getFile = Reflect.get(handle, "getFile", handle)
-      const file = await Reflect.apply(getFile, handle, [])
-      if (!options.isEnabled()) return file
+function patchGetFileMethod(handle: object): void {
+  const methodOwner = findPropertyOwner(handle, "getFile")
+  if (!methodOwner || patchedGetFileOwners.has(methodOwner)) return
+
+  const descriptor = Reflect.getOwnPropertyDescriptor(methodOwner, "getFile")
+  const nativeGetFile = descriptor?.value
+  if (!descriptor || typeof nativeGetFile !== "function") return
+
+  const interceptedGetFile = new Proxy(nativeGetFile, {
+    async apply(target, thisArg, args): Promise<unknown> {
+      const file = await Reflect.apply(target, thisArg, args)
+      const options = isObject(thisArg) ? registeredHandleOptions.get(thisArg) : undefined
+      if (!options?.isEnabled()) return file
 
       try {
         return await options.interceptFile(file)
       } catch {
         return file
       }
-    }
-
-    const proxy = new Proxy(handle, {
-      get(target, property) {
-        if (property === "getFile") return interceptedGetFile
-
-        const value = Reflect.get(target, property, target)
-        if (typeof value !== "function") return value
-
-        const cachedMethod = boundMethods.get(property)
-        if (cachedMethod) return cachedMethod
-
-        const boundMethod = (...args: unknown[]): unknown =>
-          Reflect.apply(value, target, args.map(unwrapHandle))
-        boundMethods.set(property, boundMethod)
-        return boundMethod
-      },
-    })
-
-    wrappedHandles.set(handle, proxy)
-    originalHandles.set(proxy, handle)
-    return proxy
-  }
-
-  const unwrapHandle = (value: unknown): unknown => {
-    if (typeof value !== "object" || value === null) return value
-    return originalHandles.get(value) ?? value
-  }
-
-  return new Proxy(showOpenFilePicker, {
-    async apply(target, thisArg, args): Promise<unknown> {
-      const handles = await Reflect.apply(target, thisArg, args)
-      return Array.isArray(handles) ? handles.map(wrapHandle) : handles
     },
   })
+
+  const patched = Reflect.defineProperty(methodOwner, "getFile", {
+    ...descriptor,
+    value: interceptedGetFile,
+  })
+  if (patched) patchedGetFileOwners.add(methodOwner)
+}
+
+function findPropertyOwner(value: object, property: PropertyKey): object | null {
+  let candidate: object | null = value
+  while (candidate) {
+    if (Object.prototype.hasOwnProperty.call(candidate, property)) return candidate
+    candidate = Reflect.getPrototypeOf(candidate) as object | null
+  }
+  return null
 }
 
 function isFileSystemFileHandle(value: unknown): value is object {
   return (
-    typeof value === "object" &&
-    value !== null &&
+    isObject(value) &&
     Reflect.get(value, "kind") === "file" &&
     typeof Reflect.get(value, "getFile") === "function"
   )
+}
+
+function isObject(value: unknown): value is object {
+  return typeof value === "object" && value !== null
 }
