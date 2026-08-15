@@ -23,7 +23,7 @@
     <p>We do not collect image contents, image or page URLs, hostnames, file names, page contents, browsing history, form contents, account identifiers, advertising identifiers, precise location, or user-authored text.</p>
 
     <h2>Purpose and processors</h2>
-    <p>We use this information only to understand feature adoption, conversion reliability, release health, and product feedback. Events first pass through a View HEIC validation proxy hosted on Cloudflare and are then processed in Google Analytics. Network providers may necessarily process connection metadata such as IP addresses under their own terms; View HEIC does not add IP addresses to its analytics payload.</p>
+    <p>We use this information only to understand feature adoption, conversion reliability, release health, and product feedback. Events first pass through a View HEIC validation proxy hosted on Cloudflare and are then processed in Google Analytics. The Cloudflare proxy receives the request IP for rate limiting but does not add it to the analytics payload. Cloudflare and other network providers may process connection metadata under their own terms.</p>
 
     <h2>Your control</h2>
     <p>Basic usage data is enabled by default. You can turn it off at any time in the extension popup. Once disabled, View HEIC stops sending events, does not cache or later replay them, and deletes the local analytics installation ID and session state. Turning it on again creates a new ID.</p>

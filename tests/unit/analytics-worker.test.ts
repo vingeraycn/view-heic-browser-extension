@@ -240,17 +240,7 @@ describe("analytics edge proxy", () => {
 
   it("rejects lifecycle events as daily activity sources", async () => {
     const payload = validPayload()
-    payload.events.push({
-      name: "extension_active",
-      params: {
-        analytics_schema_version: "2",
-        extension_version: "1.4.0",
-        session_id: 1_786_716_000,
-        activity_source: "extension_updated",
-        activity_date: "2026-08-15",
-        engagement_time_msec: 1,
-      },
-    })
+    payload.events.push(validActiveEvent("extension_updated", payload.timestamp_micros))
 
     await expect(handleAnalyticsRequest(createRequest(payload), env)).resolves.toMatchObject({
       status: 400,
@@ -258,25 +248,25 @@ describe("analytics edge proxy", () => {
   })
 
   it.each([
-    ["standalone activity", [validActiveEvent("popup")]],
-    ["duplicate activity", [validActiveEvent("popup"), validActiveEvent("popup")]],
-    [
-      "lifecycle event paired with activity",
-      [
-        {
-          name: "extension_updated",
-          params: commonParams(),
-        },
-        validActiveEvent("popup"),
-      ],
-    ],
-    [
-      "mismatched activity source",
-      [validPayload().events[0], validActiveEvent("help")],
-    ],
-  ])("rejects %s batches", async (_name, events) => {
+    "standalone activity",
+    "duplicate activity",
+    "lifecycle event paired with activity",
+    "mismatched activity source",
+  ])("rejects %s batches", async (name) => {
     const payload = validPayload()
-    payload.events = events
+    const activeEvent = validActiveEvent("popup", payload.timestamp_micros)
+    if (name === "standalone activity") {
+      payload.events = [activeEvent]
+    } else if (name === "duplicate activity") {
+      payload.events = [activeEvent, validActiveEvent("popup", payload.timestamp_micros)]
+    } else if (name === "lifecycle event paired with activity") {
+      payload.events = [
+        { name: "extension_updated", params: commonParams() },
+        activeEvent,
+      ]
+    } else {
+      payload.events.push(validActiveEvent("help", payload.timestamp_micros))
+    }
     const forward = vi.fn(async () => new Response(null, { status: 204 }))
 
     await expect(
@@ -287,7 +277,7 @@ describe("analytics edge proxy", () => {
 
   it("accepts one matching daily activity event after a user-driven event", async () => {
     const payload = validPayload()
-    payload.events.push(validActiveEvent("popup"))
+    payload.events.push(validActiveEvent("popup", payload.timestamp_micros))
     const forward = vi.fn(async () => new Response(null, { status: 204 }))
 
     await expect(
@@ -300,7 +290,7 @@ describe("analytics edge proxy", () => {
     "rejects invalid local activity date %s",
     async (activityDate) => {
       const payload = validPayload()
-      const activeEvent = validActiveEvent("popup")
+      const activeEvent = validActiveEvent("popup", payload.timestamp_micros)
       activeEvent.params.activity_date = activityDate
       payload.events.push(activeEvent)
       const forward = vi.fn(async () => new Response(null, { status: 204 }))
@@ -316,7 +306,9 @@ describe("analytics edge proxy", () => {
     "rejects local activity date %s when it is incompatible with the event timestamp",
     async (activityDate) => {
       const payload = validPayload()
-      payload.events.push(validActiveEvent("popup", activityDate))
+      payload.events.push(
+        validActiveEvent("popup", payload.timestamp_micros, activityDate)
+      )
       const forward = vi.fn(async () => new Response(null, { status: 204 }))
 
       await expect(
@@ -334,7 +326,9 @@ describe("analytics edge proxy", () => {
       const activityDate = getUtcDateKey(
         timestampMs + timezoneOffsetHours * 60 * 60 * 1000
       )
-      payload.events.push(validActiveEvent("popup", activityDate))
+      payload.events.push(
+        validActiveEvent("popup", payload.timestamp_micros, activityDate)
+      )
       const forward = vi.fn(async () => new Response(null, { status: 204 }))
 
       await expect(
@@ -385,7 +379,11 @@ function commonParams() {
   }
 }
 
-function validActiveEvent(activitySource: string, activityDate = getUtcDateKey(Date.now())) {
+function validActiveEvent(
+  activitySource: string,
+  timestampMicros: number,
+  activityDate = getUtcDateKey(timestampMicros / 1000)
+) {
   return {
     name: "extension_active",
     params: {

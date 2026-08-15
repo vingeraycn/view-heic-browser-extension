@@ -172,6 +172,14 @@ describe("review regression contracts", () => {
     )
   })
 
+  it("captures a persisted site preference before applying the new page state", async () => {
+    const contentScript = await readRepositoryFile("entrypoints/content.ts")
+
+    expect(contentScript).toMatch(
+      /setSiteEnabled\(siteHost,\s*message\.enabled\)\s*\.then\(\(\)\s*=>\s*{\s*void trackAnalyticsEvent\("site_preference_changed",\s*{\s*enabled:\s*message\.enabled\s*}\)\s*return applySiteEnabled\(message\.enabled\)/
+    )
+  })
+
   it("clears converter work before choosing the next site-enabled state", async () => {
     const contentScript = await readRepositoryFile("entrypoints/content.ts")
 

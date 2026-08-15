@@ -237,9 +237,11 @@ export default defineContentScript({
 
       preferenceRevision += 1
       void setSiteEnabled(siteHost, message.enabled)
-        .then(() => applySiteEnabled(message.enabled))
-        .then((state) => {
+        .then(() => {
           void trackAnalyticsEvent("site_preference_changed", { enabled: message.enabled })
+          return applySiteEnabled(message.enabled)
+        })
+        .then((state) => {
           sendResponse({ ok: true, state })
         })
         .catch((error) => {

@@ -123,6 +123,7 @@ const checks = [
       files["docs/privacy.html"].includes("pseudonymous installation ID") &&
       files["docs/privacy.html"].includes("Cloudflare") &&
       files["docs/privacy.html"].includes("Google Analytics") &&
+      files["docs/privacy.html"].includes("receives the request IP for rate limiting") &&
       files["docs/privacy.html"].includes("does not cache or later replay") &&
       files["docs/privacy.html"].includes("We do not collect image contents"),
   },
