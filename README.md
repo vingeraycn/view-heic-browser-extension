@@ -45,6 +45,10 @@ pnpm build
 pnpm zip
 ```
 
+Production builds load the public analytics proxy configuration from `.env.production`.
+The GA4 Measurement ID and API secret remain server-side and are never included in the
+repository or extension bundle.
+
 ## Project Structure
 
 ```text

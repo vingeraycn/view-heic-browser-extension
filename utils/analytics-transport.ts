@@ -15,6 +15,7 @@ const REQUEST_TIMEOUT_MS = 5_000
 const MAX_EVENT_QUEUE_AGE_MS = 5 * 60 * 1000
 
 let consentGeneration = 0
+let consentUpdateGeneration: number | undefined
 let activeRequestController: AbortController | undefined
 
 interface AnalyticsSession {
@@ -138,28 +139,36 @@ export async function sendAnalyticsEvent(
 }
 
 export async function updateAnalyticsPreference(enabled: boolean): Promise<boolean> {
-  consentGeneration += 1
+  const updateGeneration = ++consentGeneration
+  consentUpdateGeneration = updateGeneration
   activeRequestController?.abort()
 
-  if (enabled) {
-    if (!(await getAnalyticsEnabled())) {
-      await clearAnalyticsState()
-    }
-    await browser.storage.local.set({ [ANALYTICS_ENABLED_STORAGE_KEY]: true })
-    return true
-  }
-
-  await browser.storage.local.set({ [ANALYTICS_ENABLED_STORAGE_KEY]: false })
   try {
-    await clearAnalyticsState()
-  } catch {
+    if (enabled) {
+      if (!(await getAnalyticsEnabled())) {
+        await clearAnalyticsState()
+      }
+      await browser.storage.local.set({ [ANALYTICS_ENABLED_STORAGE_KEY]: true })
+      return true
+    }
+
+    await browser.storage.local.set({ [ANALYTICS_ENABLED_STORAGE_KEY]: false })
     try {
       await clearAnalyticsState()
-    } catch (error) {
-      console.warn("View HEIC analytics state cleanup failed after retry:", error)
+    } catch {
+      try {
+        await clearAnalyticsState()
+      } catch (error) {
+        console.warn("View HEIC analytics state cleanup failed after retry:", error)
+        return false
+      }
+    }
+    return true
+  } finally {
+    if (consentUpdateGeneration === updateGeneration) {
+      consentUpdateGeneration = undefined
     }
   }
-  return true
 }
 
 async function clearAnalyticsState(): Promise<void> {
@@ -216,9 +225,13 @@ function isUserDrivenActivity(name: AnalyticsEventName): boolean {
 }
 
 async function isAnalyticsDeliveryAllowed(generation: number): Promise<boolean> {
-  if (generation !== consentGeneration) return false
+  if (generation !== consentGeneration || consentUpdateGeneration === generation) return false
   const enabled = await getAnalyticsEnabled()
-  return enabled && generation === consentGeneration
+  return (
+    enabled &&
+    generation === consentGeneration &&
+    consentUpdateGeneration !== generation
+  )
 }
 
 function isAnalyticsSession(value: unknown): value is AnalyticsSession {
