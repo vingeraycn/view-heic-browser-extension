@@ -1,59 +1,56 @@
-# 📖 Documentation / 文档
+# 📖 Documentation
 
-这个目录包含了 View HEIC 浏览器扩展的官网页面和测试文件，配置为从 `/docs` 目录部署 GitHub Pages。
+This directory contains the View HEIC website and media samples. GitHub Pages is configured to deploy from `/docs`.
 
-## 📁 文件结构
+## 📁 Structure
 
-```
+```text
 docs/
 ├── assets/
-│   └── logo.svg        # 🎨 由品牌源图生成的官网 Logo
-├── store-assets/       # 🛍️ 应用市场截图产物（1280×800 PNG）
-├── index.html          # 🏠 官网首页（GitHub Pages 主页）
-├── test-improved.html  # 🧪 开发者详细测试页面
-├── README.md          # 📋 本说明文件
-└── samples/           # 🖼️ 测试用的 HEIC / HEIF 样本矩阵
+│   └── logo.svg        # Website logo generated from the canonical brand asset
+├── store-assets/       # Store screenshots rendered as 1280 × 800 PNG files
+├── index.html          # GitHub Pages landing page
+├── README.md           # This document
+└── samples/            # HEIC / HEIF sample matrix
 ```
 
-## 🌐 GitHub Pages 配置
+## 🌐 GitHub Pages Setup
 
-1. 进入仓库 **Settings → Pages**
-2. Source 选择 **Deploy from a branch**
-3. 选择 `main` 分支和 `/docs` 文件夹，点击 **Save**
-4. 等待约 1 分钟，访问：
-   - 官网：`https://vingeraycn.github.io/view-heic-browser-extension/`
-   - 测试页：`https://vingeraycn.github.io/view-heic-browser-extension/test-improved.html`
+1. Open the repository's **Settings → Pages** page.
+2. Set Source to **Deploy from a branch**.
+3. Select the `main` branch and `/docs` directory, then choose **Save**.
+4. Wait approximately one minute, then open `https://vingeraycn.github.io/view-heic-browser-extension/`.
 
-## 🏠 官网首页 (index.html)
+## 🏠 Landing Page (`index.html`)
 
-完整的中英双语产品落地页，默认英文，可通过右上角语言切换入口在英文和中文之间切换：
+The landing page is a complete bilingual product page. English is the default, and the language switch in the upper-right corner changes between English and Chinese.
 
-- 🎯 Hero 区域：标题、CTA 按钮、信任标语
-- 📊 数据亮点栏：50MB 上限、HEIC/HEIF brand 覆盖、默认 JPEG 预览、0 数据上传
-- ✨ 核心特性：6 张特性卡片
-- 🚀 工作原理：三步流程 + 内部转换流程图
-- 🎬 实时演示：4 张真实 HEIC 文件 + 动态注入测试 + 转换统计
-- 📦 安装指南：应用商店 vs 手动安装对比
-- 🔧 技术栈 & 项目结构说明
-- ❓ FAQ 折叠面板
-- 📣 CTA Banner + 完整页脚
+- 🎯 Hero: headline, calls to action, and trust statement
+- 📊 Product facts: 50 MB limit, HEIC/HEIF brand coverage, JPEG preview default, and zero image uploads
+- ✨ Core features: six feature cards
+- 🚀 How it works: three-step flow and an internal conversion diagram
+- 🎬 Live demo: four real HEIC files, dynamic injection, and conversion statistics
+- 📦 Installation: Chrome Web Store and manual installation paths
+- 🔧 Technology stack and project structure
+- ❓ Collapsible FAQ
+- 📣 Closing call to action and full footer
 
-SEO meta 标签（description、OpenGraph、Twitter Card）和 `hreflang` 均已配置，语言 URL 使用：
+SEO metadata includes description, Open Graph, Twitter Card, and `hreflang`. Language URLs are:
 
-- 英文：`https://vingeraycn.github.io/view-heic-browser-extension/?lang=en`
-- 中文：`https://vingeraycn.github.io/view-heic-browser-extension/?lang=zh`
+- English: `https://vingeraycn.github.io/view-heic-browser-extension/?lang=en`
+- Chinese: `https://vingeraycn.github.io/view-heic-browser-extension/?lang=zh`
 
-## 🛍️ 应用市场素材
+## 🛍️ Store Assets
 
-市场素材由项目脚本统一生成，避免 Logo、扩展图标和截图风格漂移：
+The project generates store assets through one script so the logo, extension icon, and screenshot styles stay aligned:
 
 ```bash
 pnpm assets:market
 ```
 
-品牌与市场素材的唯一源文件位于 `assets/brand/` 和 `assets/market/`。生成脚本会据此更新官网 Logo、扩展图标、商店宣传图和小型宣传封面，避免产物与源文件出现两套视觉版本。
+The canonical brand and store source files live in `assets/brand/` and `assets/market/`. The generation script updates the website logo, extension icons, store screenshots, and promotional tile from those sources so generated artifacts do not drift from the originals.
 
-生成内容：
+Generated files:
 
 - `docs/assets/logo.svg`
 - `public/icon/32.png`
@@ -64,18 +61,9 @@ pnpm assets:market
 - `docs/store-assets/02-local-private-conversion.png`
 - `docs/store-assets/03-fast-jpeg-rendering.png`
 
-## 🧪 测试页面 (test-improved.html)
+## 🖼️ Fixtures
 
-面向开发者的详细测试页面，包含：
-
-- 📷 静态 HEIC 图片测试（brand、MIME、query/hash、错误文件等场景）
-- 🔄 动态加载测试（MutationObserver 验证）
-- 📈 实时转换统计
-- 🚀 主要改进点说明
-
-## 🖼️ 测试文件
-
-| 文件名 | 覆盖点 |
+| File | Coverage |
 | --- | --- |
 | `samples/heic-still.heic` | major `heic` |
 | `samples/mif1-still.heic` | major `mif1` |
@@ -83,14 +71,6 @@ pnpm assets:market
 | `samples/heix-compatible.heic` | compatible `heix` |
 | `samples/hevx-compatible-sequence.heic` | compatible `hevx` |
 | `samples/heis-multilayer.heic` | major `heis` |
-| `samples/corrupted-test.heic` | 错误处理和异常测试 |
+| `samples/corrupted.heic` | error handling and invalid input |
 
-完整来源和缺口见 `samples/README.md`。
-
-## 🛠️ 本地预览
-
-```bash
-pnpm run test:server   # 启动本地服务器（http://127.0.0.1:8080）
-pnpm run dev:open      # 打开官网首页
-pnpm run test:open     # 打开测试页面
-```
+See `samples/README.md` for complete provenance and coverage gaps.

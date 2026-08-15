@@ -1,68 +1,138 @@
 import { readFileSync } from "node:fs"
 
-const analytics = readFileSync("utils/analytics.ts", "utf8")
-const background = readFileSync("entrypoints/background.ts", "utf8")
-const content = readFileSync("entrypoints/content.ts", "utf8")
-const config = readFileSync("wxt.config.ts", "utf8")
-const readme = readFileSync("README.md", "utf8")
-const readmeZh = readFileSync("README.zh-CN.md", "utf8")
+const files = Object.fromEntries(
+  [
+    ".env.example",
+    "analytics-worker/src/index.ts",
+    "analytics-worker/wrangler.jsonc",
+    "docs/analytics.md",
+    "docs/privacy.html",
+    "entrypoints/background.ts",
+    "entrypoints/content.ts",
+    "entrypoints/converter/main.ts",
+    "entrypoints/popup/main.ts",
+    "utils/analytics-transport.ts",
+    "utils/analytics.ts",
+    "wxt.config.ts",
+  ].map((path) => [path, readFileSync(path, "utf8")])
+)
 
-const eventNames = [
-  "heic_detected",
-  "conversion_success",
-  "conversion_failed",
-  "review_prompt_shown",
-  "review_prompt_clicked",
-  "review_prompt_dismissed",
-  "feedback_clicked",
+const eventPlacements = {
+  extension_installed: ["entrypoints/background.ts"],
+  extension_updated: ["entrypoints/background.ts"],
+  popup_opened: ["entrypoints/popup/main.ts"],
+  site_preference_changed: ["entrypoints/content.ts"],
+  help_opened: ["entrypoints/popup/main.ts", "entrypoints/converter/main.ts"],
+  file_converter_opened: ["entrypoints/converter/main.ts"],
+  conversion_completed: ["entrypoints/content.ts", "entrypoints/converter/main.ts"],
+  file_downloaded: ["entrypoints/converter/main.ts"],
+  review_prompt_shown: ["entrypoints/content.ts"],
+  review_prompt_action: ["entrypoints/content.ts"],
+}
+
+const productSources = [
+  files["entrypoints/background.ts"],
+  files["entrypoints/content.ts"],
+  files["entrypoints/converter/main.ts"],
+  files["entrypoints/popup/main.ts"],
 ]
-
-const analyticsCallBlocks = findCalls(content, "sendAnalyticsEvent")
-const forbiddenParamPatterns = [/\bpage_url\s*:/, /\burl\s*:/, /\bimage_url\s*:/, /\bfile_name\s*:/, /\bfilename\s*:/, /\bsrc\s*:/]
+const analyticsCallBlocks = productSources.flatMap((source) =>
+  findCalls(source, "trackAnalyticsEvent")
+)
+const forbiddenParamPatterns = [
+  /\bpage_url\s*:/,
+  /\burl\s*:/,
+  /\bhostname\s*:/,
+  /\bimage_url\s*:/,
+  /\bfile_name\s*:/,
+  /\bfilename\s*:/,
+  /\bsrc\s*:/,
+]
 
 const checks = [
   {
-    name: "GA events are declared in one contract",
-    pass: eventNames.every((event) => analytics.includes(`"${event}"`)),
-  },
-  {
-    name: "background service worker sends analytics events",
+    name: "event names and parameters live in one typed client contract",
     pass:
-      background.includes('type: "analytics:event"') &&
-      background.includes("sendAnalyticsEvent(message.name, message.params)"),
+      files["utils/analytics.ts"].includes("AnalyticsEventParamsByName") &&
+      files["utils/analytics.ts"].includes("EVENT_PARAM_ALLOWLIST") &&
+      Object.keys(eventPlacements).every((event) =>
+        files["utils/analytics.ts"].includes(`${event}:`)
+      ),
   },
   {
-    name: "analytics sender allowlists event params",
+    name: "all product surfaces emit their declared events",
+    pass: Object.entries(eventPlacements).every(([event, paths]) =>
+      paths.every((path) => files[path].includes(`"${event}"`))
+    ),
+  },
+  {
+    name: "one daily extension_active event is attached by the transport",
     pass:
-      analytics.includes("EVENT_PARAM_ALLOWLIST") &&
-      eventNames.every((event) => analytics.includes(`${event}: [`)) &&
-      analytics.includes("allowed.has(key)") &&
-      analytics.includes("if (!allowedParams) return false"),
+      files["utils/analytics-transport.ts"].includes('name: "extension_active"') &&
+      files["utils/analytics-transport.ts"].includes("ANALYTICS_ACTIVE_DATE_STORAGE_KEY") &&
+      /activity_date\s*:\s*currentDate/.test(files["utils/analytics-transport.ts"]) &&
+      files["utils/analytics-transport.ts"].includes("engagement_time_msec") &&
+      files["utils/analytics-transport.ts"].includes("timestamp_micros: occurredAt * 1000") &&
+      files["entrypoints/background.ts"].includes("const occurredAt = Date.now()") &&
+      files["entrypoints/background.ts"].includes("sendAnalyticsEvent(name, params, occurredAt)"),
   },
   {
-    name: "content script records conversion and review funnel events",
+    name: "event calls do not send URL, hostname, source, or file-name fields",
+    pass: analyticsCallBlocks.every((block) =>
+      forbiddenParamPatterns.every((pattern) => !pattern.test(block))
+    ),
+  },
+  {
+    name: "product behavior never waits for analytics delivery",
+    pass: productSources.every((source) => !source.includes("await trackAnalyticsEvent")),
+  },
+  {
+    name: "the extension sends only to a configured first-party endpoint",
     pass:
-      eventNames.every((event) => content.includes(`"${event}"`)) &&
-      content.includes("recordConversionResults([result], \"mutation\")"),
+      files["utils/analytics-transport.ts"].includes("WXT_ANALYTICS_ENDPOINT") &&
+      files["wxt.config.ts"].includes("getAnalyticsHostPermissions") &&
+      !files["utils/analytics-transport.ts"].includes("google-analytics.com") &&
+      !files["wxt.config.ts"].includes("https://www.google-analytics.com"),
   },
   {
-    name: "event payload avoids URLs and file names",
-    pass: analyticsCallBlocks.every((block) => forbiddenParamPatterns.every((pattern) => !pattern.test(block))),
-  },
-  {
-    name: "GA host permission is gated by WXT env",
+    name: "GA credentials are absent from the client configuration",
     pass:
-      config.includes("manifest: () =>") &&
-      config.includes("WXT_ENABLE_EXTENSION_ANALYTICS") &&
-      config.includes("https://www.google-analytics.com/*"),
+      !files[".env.example"].includes("GA_API_SECRET") &&
+      !files[".env.example"].includes("GA_MEASUREMENT_ID") &&
+      !files["utils/analytics-transport.ts"].includes("GA_API_SECRET") &&
+      !files["utils/analytics-transport.ts"].includes("GA_MEASUREMENT_ID"),
   },
   {
-    name: "privacy copy says analytics is anonymous and excludes image/page data",
+    name: "the edge proxy validates origin, payload size, client ID, events, and params",
+    pass: [
+      "ALLOWED_EXTENSION_ORIGIN",
+      "MAX_BODY_BYTES",
+      "ANALYTICS_RATE_LIMITER",
+      "timestamp_micros",
+      "client_id",
+      "activity_date",
+      "EVENT_PARAMS",
+      "REQUIRED_EVENT_PARAMS",
+      "ALLOWED_VALUES",
+    ].every((token) => files["analytics-worker/src/index.ts"].includes(token)) &&
+      files["analytics-worker/wrangler.jsonc"].includes('"ratelimits"'),
+  },
+  {
+    name: "privacy copy discloses the pseudonymous ID, processors, exclusions, and opt-out",
     pass:
-      readme.includes("anonymous product events") &&
-      readme.includes("does not upload image contents, image URLs, page URLs, file names") &&
-      readmeZh.includes("匿名产品事件") &&
-      readmeZh.includes("不会上传图片内容、图片地址、页面地址、文件名"),
+      files["docs/privacy.html"].includes("pseudonymous installation ID") &&
+      files["docs/privacy.html"].includes("Cloudflare") &&
+      files["docs/privacy.html"].includes("Google Analytics") &&
+      files["docs/privacy.html"].includes("receives the request IP for rate limiting") &&
+      files["docs/privacy.html"].includes("does not cache or later replay") &&
+      files["docs/privacy.html"].includes("We do not collect image contents"),
+  },
+  {
+    name: "the analytics specification defines KPIs, events, and GA4 custom definitions",
+    pass:
+      files["docs/analytics.md"].includes("Daily active installations") &&
+      files["docs/analytics.md"].includes("## Event Contract") &&
+      files["docs/analytics.md"].includes("## GA4 Custom Definitions"),
   },
 ]
 
@@ -72,9 +142,7 @@ for (const check of checks) {
   console.log(`${check.pass ? "PASS" : "FAIL"} ${check.name}`)
 }
 
-if (failed.length > 0) {
-  process.exit(1)
-}
+if (failed.length > 0) process.exit(1)
 
 function findCalls(source, name) {
   const calls = []

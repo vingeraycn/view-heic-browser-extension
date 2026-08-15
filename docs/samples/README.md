@@ -10,7 +10,7 @@ These files are used to verify HEIF file-type detection and browser conversion b
 | `heix-compatible.heic` | compatible `heix` | Nokia HEIF conformance `C045.heic` | Range-extension still-image coverage. |
 | `hevx-compatible-sequence.heic` | compatible `hevx` | Nokia HEIF conformance `C048.heic` | Range-extension sequence coverage. |
 | `heis-multilayer.heic` | major `heis` | Nokia HEIF conformance `multilayer001.heic` | Multilayer HEVC still-image coverage. |
-| `corrupted-test.heic` | invalid | Existing project fixture | Negative test. |
+| `corrupted.heic` | invalid | Existing project sample | Graceful invalid-input handling. |
 
 Known gaps:
 

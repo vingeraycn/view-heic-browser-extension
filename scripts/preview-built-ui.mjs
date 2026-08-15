@@ -40,7 +40,7 @@ const popupPreviewShim = `
           : { detected: 0, converted: 0, failed: 0 };
     let state = {
       protocol: 1,
-      extensionVersion: "1.2.0",
+      extensionVersion: "1.4.0",
       pageInstanceId: "popup-preview",
       siteHost: "example.com",
       siteEnabled: phase !== "disabled",
@@ -52,6 +52,7 @@ const popupPreviewShim = `
       runtime: {
         id: "view-heic-preview",
         getURL: (path) => path,
+        sendMessage: async () => false,
         onMessage: {
           addListener: (listener) => listeners.add(listener),
           removeListener: (listener) => listeners.delete(listener),
@@ -75,6 +76,13 @@ const popupPreviewShim = `
         },
         reload: async () => {},
         create: async () => {},
+      },
+      storage: {
+        local: {
+          get: async () => ({}),
+          set: async () => {},
+          remove: async () => {},
+        },
       },
     };
   })();
@@ -150,7 +158,7 @@ createServer((request, response) => {
             .frame {
               display: block;
               width: 360px;
-              height: 392px;
+              height: 448px;
               overflow: hidden;
               border: 0;
               border-radius: 0;

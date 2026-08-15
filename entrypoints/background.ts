@@ -1,15 +1,12 @@
-import { sendAnalyticsEvent, type AnalyticsEventName, type AnalyticsParams } from "../utils/analytics"
+import { isAnalyticsMessage, isAnalyticsPreferenceMessage } from "../utils/analytics"
+import {
+  sendAnalyticsEvent,
+  updateAnalyticsPreference,
+} from "../utils/analytics-transport"
 import { WELCOME_URL } from "../utils/links"
+import { SerialTaskQueue } from "../utils/serial-task-queue"
 
-const ANALYTICS_EVENT_NAMES = new Set<AnalyticsEventName>([
-  "heic_detected",
-  "conversion_success",
-  "conversion_failed",
-  "review_prompt_shown",
-  "review_prompt_clicked",
-  "review_prompt_dismissed",
-  "feedback_clicked",
-])
+const analyticsQueue = new SerialTaskQueue()
 
 export default defineBackground(() => {
   console.log("🚀 View HEIC Extension Background Loaded")
@@ -17,45 +14,34 @@ export default defineBackground(() => {
   browser.runtime.onInstalled.addListener((details) => {
     if (details.reason === "install") {
       console.log("🎉 View HEIC Extension 安装成功！")
+      void enqueueAnalyticsEvent("extension_installed", {})
       browser.tabs.create({ url: WELCOME_URL })
     } else if (details.reason === "update") {
       console.log("🔄 View HEIC Extension 已更新到新版本")
+      void enqueueAnalyticsEvent(
+        "extension_updated",
+        details.previousVersion ? { previous_version: details.previousVersion } : {}
+      )
     }
   })
 
   browser.runtime.onMessage.addListener((message) => {
+    if (isAnalyticsPreferenceMessage(message)) {
+      analyticsQueue.invalidatePending()
+      return updateAnalyticsPreference(message.enabled)
+    }
     if (!isAnalyticsMessage(message)) return
-    return sendAnalyticsEvent(message.name, message.params)
+    return enqueueAnalyticsEvent(message.name, message.params)
   })
 })
 
-function isAnalyticsMessage(message: unknown): message is {
-  type: "analytics:event"
-  name: AnalyticsEventName
-  params?: AnalyticsParams
-} {
-  const name = (message as { name?: unknown } | null)?.name
-  const params = (message as { params?: unknown } | null)?.params
-
-  return (
-    typeof message === "object" &&
-    message !== null &&
-    (message as { type?: unknown }).type === "analytics:event" &&
-    typeof name === "string" &&
-    ANALYTICS_EVENT_NAMES.has(name as AnalyticsEventName) &&
-    isAnalyticsParams(params)
-  )
-}
-
-function isAnalyticsParams(params: unknown): params is AnalyticsParams | undefined {
-  if (params === undefined) return true
-  if (typeof params !== "object" || params === null || Array.isArray(params)) return false
-
-  return Object.values(params).every(
-    (value) =>
-      value === undefined ||
-      typeof value === "string" ||
-      typeof value === "number" ||
-      typeof value === "boolean"
+function enqueueAnalyticsEvent(
+  name: Parameters<typeof sendAnalyticsEvent>[0],
+  params: Parameters<typeof sendAnalyticsEvent>[1]
+): Promise<boolean> {
+  const occurredAt = Date.now()
+  return analyticsQueue.runIfCurrent(
+    () => sendAnalyticsEvent(name, params, occurredAt),
+    false
   )
 }

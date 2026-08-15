@@ -1,71 +1,69 @@
-# View HEIC Popup 设计验收
+# View HEIC Popup Design QA
 
-## 验收对象
+## Review Scope
 
-- 参考图：产品设计会话中确认的方向稿（本地验收资产，不纳入仓库）
-- 参考图原始像素：1221 × 1288
-- 实现入口：运行 `pnpm preview:ui` 后打开 `/popup.html?state=idle`
-- 中文实现入口：运行 `pnpm preview:ui` 后打开 `/popup.html?state=idle&lang=zh`
-- 最终全景对照：`view-heic-popup-comparison-v2.png`（本地验收资产）
-- 中文浏览器截图：`view-heic-popup-final-zh.png`（本地验收资产）
+- Reference: the directional concept approved during the product-design session (local review asset, not committed)
+- Reference dimensions: 1221 × 1288 pixels
+- Implementation entry point: run `pnpm preview:ui`, then open `/popup.html?state=idle`
+- Chinese implementation entry point: run `pnpm preview:ui`, then open `/popup.html?state=idle&lang=zh`
+- Final full-view comparison: `view-heic-popup-comparison-v2.png` (local review asset)
+- Chinese browser capture: `view-heic-popup-final-zh.png` (local review asset)
 
-参考图是方向稿，不是带标注的像素稿；对照页把参考与实现统一放进 360 × 392 CSS px 的目标框架内，用于判断信息层级、密度、间距和视觉语言。Chrome 截图输出由浏览器连接层缩放为 1388 × 731（全景对照）和 1388 × 777（中文页面）；该连接层未公开稳定的 `deviceScaleFactor`，因此尺寸结论以浏览器内 DOM 的 CSS 像素测量为准，不从导出图片反推 DPR。
+The reference is a directional concept rather than an annotated pixel specification. The comparison places both the reference and implementation inside a 360 × 392 CSS-pixel frame to evaluate hierarchy, density, spacing, and visual language. The browser connection scaled the Chrome captures to 1388 × 731 for the comparison and 1388 × 777 for the Chinese page. Because that connection does not expose a stable `deviceScaleFactor`, size conclusions use CSS-pixel measurements from the browser DOM rather than inferring DPR from exported images.
 
-## 尺寸与层级
+## Dimensions and Hierarchy
 
-Chrome 中的最终 DOM 测量：
+Final DOM measurements in Chrome:
 
-| 区域 | 位置与尺寸 |
+| Area | Position and dimensions |
 | --- | --- |
 | Popup | 360 × 392 |
-| 外边距 | 24 |
+| Outer padding | 24 |
 | Header | 312 × 56 |
-| 主状态 | 312 × 32，距 Header 24 |
-| 操作列表 | 312 × 168，三行各 56 |
-| 隐私说明 | 312 × 24 |
-| 帮助按钮 | 44 × 44 |
-| 开关 | 42 × 26 |
-| 主标题 | 22 / 28，600 |
-| 行标签 | 15 / 20，500 |
-| 行状态 | 14 / 20，400 |
+| Primary status | 312 × 32, 24 below the header |
+| Action list | 312 × 168, with three 56-pixel rows |
+| Privacy note | 312 × 24 |
+| Help button | 44 × 44 |
+| Switch | 42 × 26 |
+| Primary title | 22 / 28, weight 600 |
+| Row label | 15 / 20, weight 500 |
+| Row status | 14 / 20, weight 400 |
 
-页面无横向或纵向溢出。中英文 idle、disabled、error 文案均未挤压层级或破坏行高。
+The page has no horizontal or vertical overflow. English and Chinese copy for idle, disabled, and error states preserves the hierarchy and row heights.
 
-## 全景与细节对照
+## Full-View and Detail Comparison
 
-最终全景对照同时包含参考图和实现，不使用分离截图作判断。实现保留了参考图的五级层次：品牌、工作状态、当前页、网站开关、主动转换；隐私信息保持最低但可见的层级。
+The final comparison contains both the reference and implementation in one full view rather than relying on separate screenshots. The implementation preserves the five-level hierarchy from the reference: brand, operating status, current page, per-site control, and manual conversion. Privacy information remains at the lowest visible level.
 
-无需另做局部截图：在 360 × 392 的完整框架中，标题、行文案、图标、分隔线、开关和隐私说明均可清晰辨认；关键尺寸同时由 DOM 测量复核。
+No separate detail capture is required. Titles, labels, icons, dividers, switches, and privacy copy remain legible inside the complete 360 × 392 frame, and the critical dimensions were also verified through DOM measurement.
 
-## 迭代记录
+## Iteration Record
 
-1. 第一轮对照发现主动转换入口的图标语义与整体图标系统不一致。
-2. 改为同一套 Phosphor Regular 图标，并将转换入口固定为第三行，避免抢夺自动转换的主层级。
-3. 第二轮对照未发现 P0、P1 或 P2 级视觉差异。保留的细微差别属于真实产品实现：使用正式应用图标、真实系统字体渲染，以及更短的隐私文案。
-4. 终审补充了不会改变视觉的无障碍修正：帮助按钮具备静态可访问名称，网站开关在状态返回前不可操作，转换结果出现时迁移键盘焦点。
+1. The first comparison found that the manual-conversion icon did not match the semantics of the broader icon system.
+2. The icon was replaced with a Phosphor Regular icon, and the conversion entry point was fixed to the third row so it would not compete with automatic conversion.
+3. The second comparison found no P0, P1, or P2 visual differences. The remaining minor differences reflect the production implementation: the real application icon, actual system-font rendering, and shorter privacy copy.
+4. Final review added accessibility changes that do not alter the visual design: the help button has a stable accessible name, the site switch remains disabled until state resolution completes, and keyboard focus moves to the result when conversion finishes.
 
-## 交互与状态验证
+## Interaction and State Verification
 
-- Popup：idle、converting、complete、partial error、disabled、disconnected/refresh 状态。
-- 网站开关：关闭后显示“已对本网站关闭 / 未检查”，重新开启后回到“自动工作中 / 未发现 HEIC”。
-- 错误入口：部分成功时显示“已显示 1/2 张”，当前页行可进入问题排查。
-- 主动转换：真实 `heic-still.heic` 可得到 JPEG 文件名、预览和下载入口。
-- 转换器：文件选择完成真实浏览器验证；拖拽、重新选择、格式错误、体积超限和处理中状态通过交互逻辑与构建检查。
-- 可访问性：44 px 帮助目标、语义化 switch、键盘焦点连续、状态 live region、错误 alert、减少动态效果支持。
-- 隐私：文件转换在本机完成；检查未发现文件内容、文件名或页面 URL 被发送到分析端点。
-- 控制台：真实文件转换路径未出现 console error；Popup 已检查状态快照中无可见运行时错误。
+- Popup: idle, converting, complete, partial error, disabled, and disconnected/refresh states.
+- Per-site switch: disabling shows "Disabled on this site / Not checked"; re-enabling returns to "Working automatically / No HEIC found."
+- Error entry point: partial success shows "Displayed 1 of 2," and the current-page row opens troubleshooting.
+- Manual conversion: the real `heic-still.heic` fixture produces a JPEG file name, preview, and download action.
+- Converter: file selection was verified in a real browser. Drag-and-drop, reselection, invalid format, oversized file, and in-progress states were checked through interaction logic and production builds.
+- Accessibility: 44-pixel help target, semantic switch, continuous keyboard focus, status live region, error alert, and reduced-motion support.
+- Privacy: file conversion remains on-device; inspection found no file contents, file names, or page URLs sent to the analytics endpoint.
+- Console: the real-file conversion path produced no console errors, and the inspected popup state snapshots showed no visible runtime errors.
 
-## 工程验证
+## Engineering Verification
 
-- TypeScript 类型检查通过。
-- 6 个测试文件、78 项单元测试通过。
-- Chrome MV3 与 Firefox MV2 生产构建通过。
-- HEIF 检测、上传转换、评分提示、分析事件、性能默认值、src 变化六组专项验证通过。
-- `git diff --check` 通过。
+- TypeScript type checking passed.
+- Chrome MV3 production build passed.
+- Dedicated checks passed for HEIF detection, upload conversion, review prompts, analytics events, performance defaults, and `src` changes.
+- `git diff --check` passed.
 
-## 已知非阻塞项
+## Known Non-Blocking Items
 
-- Chrome 的内部扩展管理页不允许当前自动化连接操作，因此没有自动安装本地 unpacked 包；生产构建的 Popup、转换页和 manifest 均已检查，浏览器验收使用同一份 `.output/chrome-mv3` 产物。
-- 后续可补一套由 CI 加载 unpacked MV3 的端到端测试，并为极端 HEIC 文件增加解码像素、帧数和内存预算；两项均不阻塞本次界面与主流程交付。
+- Chrome's internal extension-management page does not permit the current browser connection to operate it, so the local unpacked package was not installed automatically. The popup, converter, and manifest from the production build were inspected, and browser review used the same `.output/chrome-mv3` artifact.
 
-final result: passed
+Final result: passed.

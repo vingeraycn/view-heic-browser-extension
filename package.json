@@ -2,7 +2,7 @@
   "name": "view-heic",
   "description": "View HEIC Image as Normal Image in Your Browser",
   "private": true,
-  "version": "1.3.0",
+  "version": "1.4.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -13,7 +13,6 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",
-    "test": "vitest run --config vitest.config.ts",
     "verify:heif-detection": "node scripts/verify-heif-detection.mjs",
     "verify:rating-prompt": "node scripts/verify-rating-prompt.mjs",
     "verify:upload-conversion": "wxt build && node scripts/verify-upload-conversion.mjs",
@@ -22,11 +21,7 @@
     "verify:src-change": "node scripts/verify-src-change-handling.mjs",
     "assets:market": "node scripts/generate-market-assets.mjs",
     "postinstall": "wxt prepare",
-    "postversion": "git push origin HEAD && git push --tags origin HEAD && pnpm zip && open .output",
-    "test:server": "node test-server.js",
-    "test:open": "open http://127.0.0.1:8080/test-improved.html",
-    "dev:open": "open http://127.0.0.1:8080/",
-    "dev:test": "npm run build && npm run test:server"
+    "postversion": "git push origin HEAD && git push --tags origin HEAD && pnpm zip && open .output"
   },
   "dependencies": {
     "@phosphor-icons/web": "^2.1.2",
@@ -39,7 +34,6 @@
     "@types/heic-decode": "^2.0.0",
     "@types/lodash-es": "^4.17.12",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.10",
     "wxt": "^0.20.26"
   }
 }

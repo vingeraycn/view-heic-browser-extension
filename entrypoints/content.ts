@@ -31,6 +31,8 @@ import {
 import {
   DROP_REPLAY_EVENT,
   DROP_REQUEST_EVENT,
+  FILE_SYSTEM_PICKER_REQUEST_EVENT,
+  FILE_SYSTEM_PICKER_RESPONSE_EVENT,
   PASTE_REPLAY_EVENT,
   PASTE_REQUEST_EVENT,
   UPLOAD_REPLAY_ATTRIBUTE,
@@ -38,7 +40,16 @@ import {
 } from "../utils/upload-constants"
 import type { UploadDropReplaySource } from "../utils/upload-drop-replay"
 import { convertHeifUploadFileToJpegFile } from "../utils/upload-heif-converter"
-import type { AnalyticsEventName, AnalyticsParams } from "../utils/analytics"
+import { withUploadReplayMarker } from "../utils/upload-input-interception"
+import {
+  getAggregateAnalyticsErrorType,
+  getAnalyticsDurationMs,
+  getAnalyticsErrorType,
+  getConversionOutcome,
+  trackAnalyticsEvent,
+  type AnalyticsErrorType,
+  type ConversionTrigger,
+} from "../utils/analytics"
 import type { ConversionError } from "../utils/types"
 
 const RATING_PROMPT_STORAGE_KEY = "viewHeicRatingPrompt"
@@ -46,8 +57,6 @@ const MIN_SUCCESSFUL_IMAGES_FOR_PROMPT = 11
 const RATING_PROMPT_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000
 const mimeOnlyProbeCache = new Map<string, "heif" | "not-heif">()
 
-type ConversionTrigger = "initial" | "mutation"
-type ConversionErrorType = ConversionError["type"] | "mixed"
 type ConversionResults = Awaited<ReturnType<HEICConverter["convertAllImages"]>>
 type UploadToastType = "loading" | "success" | "error"
 
@@ -55,6 +64,7 @@ interface UploadConversionResult {
   files: File[]
   convertedCount: number
   failedCount: number
+  errorTypes: AnalyticsErrorType[]
 }
 
 interface ConversionSummary {
@@ -63,7 +73,8 @@ interface ConversionSummary {
 }
 
 interface FailedImageObserver {
-  flush: () => Promise<void>
+  prepareInitialBatch: () => void
+  flushInitialBatch: () => Promise<void>
   dispose: () => void
 }
 
@@ -88,6 +99,11 @@ interface DropConversionDetail {
   requestId: string
   files: File[]
   source: UploadDropReplaySource
+}
+
+interface FileSystemPickerConversionDetail {
+  requestId: string
+  file: File
 }
 
 let uploadToastContainer: HTMLElement | undefined
@@ -163,6 +179,7 @@ export default defineContentScript({
 
       sitePreferenceInitialized = true
       const applyGeneration = ++siteOperationGeneration
+      if (enabled) failedImageObserver.prepareInitialBatch()
       contentScriptEnabled = enabled
       pageConversionController.abort()
       pageConversionLedger.reset()
@@ -194,7 +211,7 @@ export default defineContentScript({
         return currentPageState
       }
 
-      await failedImageObserver.flush()
+      await failedImageObserver.flushInitialBatch()
       return currentPageState
     }
 
@@ -220,8 +237,13 @@ export default defineContentScript({
 
       preferenceRevision += 1
       void setSiteEnabled(siteHost, message.enabled)
-        .then(() => applySiteEnabled(message.enabled))
-        .then((state) => sendResponse({ ok: true, state }))
+        .then(() => {
+          void trackAnalyticsEvent("site_preference_changed", { enabled: message.enabled })
+          return applySiteEnabled(message.enabled)
+        })
+        .then((state) => {
+          sendResponse({ ok: true, state })
+        })
         .catch((error) => {
           console.warn("View HEIC site preference update failed:", error)
           sendResponse({
@@ -482,7 +504,7 @@ async function processHEICImages(converter: HEICConverter, trigger: ConversionTr
     }
 
     console.log(`📷 发现 ${images.length} 张HEIC图片，开始转换...`)
-    sendAnalyticsEvent("heic_detected", { image_count: images.length })
+    const conversionStartedAt = performance.now()
     const entries = images.map((image) => ({ item: image, version: getImageSrc(image) }))
     const started = pageConversionLedger.begin(entries)
     updatePageState({
@@ -510,7 +532,7 @@ async function processHEICImages(converter: HEICConverter, trigger: ConversionTr
     })
     pageConversionLedger.discard(discardedEntries)
 
-    await recordConversionResults(completedResults, trigger)
+    await recordConversionResults(completedResults, trigger, conversionStartedAt)
     if (signal.aborted || !contentScriptEnabled) return
 
     const settled = pageConversionLedger.settle(
@@ -529,8 +551,13 @@ async function processHEICImages(converter: HEICConverter, trigger: ConversionTr
 
 async function recordConversionResults(
   results: ConversionResults,
-  trigger: ConversionTrigger
+  trigger: ConversionTrigger,
+  startedAt: number
 ): Promise<ConversionSummary> {
+  if (results.length === 0) {
+    return { successCount: 0, failureCount: 0 }
+  }
+
   // 统计转换结果
   const successCount = results.filter((r) => r.success).length
   const failureCount = results.length - successCount
@@ -542,17 +569,18 @@ async function recordConversionResults(
   )
 
   console.log(`✅ 转换完成: ${successCount} 成功, ${failureCount} 失败`)
-
-  if (successCount > 0) {
-    sendAnalyticsEvent("conversion_success", { success_count: successCount, trigger })
-  }
+  void trackAnalyticsEvent("conversion_completed", {
+    surface: "page_image",
+    trigger,
+    outcome: getConversionOutcome(successCount, failureCount),
+    attempted_count: results.length,
+    success_count: successCount,
+    failure_count: failureCount,
+    duration_ms: getAnalyticsDurationMs(performance.now() - startedAt),
+    error_type: errorType ?? (failureCount > 0 ? "unknown" : undefined),
+  })
 
   if (failureCount > 0) {
-    sendAnalyticsEvent("conversion_failed", {
-      failure_count: failureCount,
-      error_type: errorType ?? "unknown",
-      trigger,
-    })
     console.warn("⚠️ 部分图片转换失败，可能是由于CORS限制或格式问题")
   }
 
@@ -594,12 +622,22 @@ function observeHEICUploads(): () => void {
   window.addEventListener(UPLOAD_REQUEST_EVENT, handleUploadChange, true)
   window.addEventListener(DROP_REQUEST_EVENT, handleUploadDrop, true)
   window.addEventListener(PASTE_REQUEST_EVENT, handleUploadPaste, true)
+  window.addEventListener(
+    FILE_SYSTEM_PICKER_REQUEST_EVENT,
+    handleFileSystemPickerConversion,
+    true
+  )
 
   return () => {
     window.removeEventListener("change", rememberFileInputSelection, true)
     window.removeEventListener(UPLOAD_REQUEST_EVENT, handleUploadChange, true)
     window.removeEventListener(DROP_REQUEST_EVENT, handleUploadDrop, true)
     window.removeEventListener(PASTE_REQUEST_EVENT, handleUploadPaste, true)
+    window.removeEventListener(
+      FILE_SYSTEM_PICKER_REQUEST_EVENT,
+      handleFileSystemPickerConversion,
+      true
+    )
   }
 }
 
@@ -631,6 +669,7 @@ async function handleUploadChange(event: Event): Promise<void> {
   const generation = nextUploadGeneration(input)
   const operationGeneration = siteOperationGeneration
   const loadingToast = showUploadToast("loading", getUploadLoadingMessage(heifCount))
+  const conversionStartedAt = performance.now()
 
   try {
     const result = await convertUploadFiles(files, operationGeneration)
@@ -644,7 +683,9 @@ async function handleUploadChange(event: Event): Promise<void> {
       return
     }
 
-    if (replayInputFilesSafely(input, result.files)) {
+    const replayed = replayInputFilesSafely(input, result.files)
+    trackUploadConversion(result, "file_picker", conversionStartedAt, replayed)
+    if (replayed) {
       updateUploadToastForResult(loadingToast, result)
     } else {
       updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
@@ -657,7 +698,74 @@ async function handleUploadChange(event: Event): Promise<void> {
 
     console.warn("View HEIC upload conversion failed:", error)
     replayInputFilesSafely(input, files)
+    trackUploadFailure(heifCount, "file_picker", conversionStartedAt)
     updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
+  }
+}
+
+async function handleFileSystemPickerConversion(event: Event): Promise<void> {
+  if (!(event instanceof CustomEvent)) return
+
+  const detail = event.detail as FileSystemPickerConversionDetail | undefined
+  if (
+    !detail ||
+    typeof detail.requestId !== "string" ||
+    !(detail.file instanceof File)
+  ) {
+    return
+  }
+
+  event.stopImmediatePropagation()
+  const file = detail.file
+  if (!contentScriptEnabled || !isHEIFUploadCandidate(file)) {
+    respondToFileSystemPicker(detail.requestId, file)
+    return
+  }
+
+  const operationGeneration = siteOperationGeneration
+  const loadingToast = showUploadToast("loading", getUploadLoadingMessage(1))
+  const conversionStartedAt = performance.now()
+
+  try {
+    const result = await convertUploadFiles([file], operationGeneration)
+    if (!contentScriptEnabled || operationGeneration !== siteOperationGeneration) {
+      respondToFileSystemPicker(detail.requestId, file)
+      dismissUploadToast(loadingToast)
+      return
+    }
+
+    const convertedFile = result.files[0] ?? file
+    const delivered = respondToFileSystemPicker(detail.requestId, convertedFile)
+    trackUploadConversion(result, "file_picker", conversionStartedAt, delivered)
+    if (delivered) {
+      updateUploadToastForResult(loadingToast, result)
+    } else {
+      updateUploadToast(loadingToast, "error", getUploadErrorMessage(1), {
+        durationMs: 5000,
+      })
+    }
+  } catch (error) {
+    console.warn("View HEIC file picker conversion failed:", error)
+    respondToFileSystemPicker(detail.requestId, file)
+    trackUploadFailure(1, "file_picker", conversionStartedAt)
+    updateUploadToast(loadingToast, "error", getUploadErrorMessage(1), {
+      durationMs: 5000,
+    })
+  }
+}
+
+function respondToFileSystemPicker(requestId: string, file: File): boolean {
+  try {
+    const responseEvent = new CustomEvent(FILE_SYSTEM_PICKER_RESPONSE_EVENT, {
+      cancelable: true,
+      composed: true,
+      detail: { requestId, file },
+    })
+    window.dispatchEvent(responseEvent)
+    return responseEvent.defaultPrevented
+  } catch (error) {
+    console.warn("View HEIC file picker response failed:", error)
+    return false
   }
 }
 
@@ -682,6 +790,7 @@ async function handleUploadDrop(event: Event): Promise<void> {
   const generation = input ? nextUploadGeneration(input) : undefined
   const operationGeneration = siteOperationGeneration
   const loadingToast = showUploadToast("loading", getUploadLoadingMessage(heifCount))
+  const conversionStartedAt = performance.now()
 
   try {
     const result = await convertUploadFiles(files, operationGeneration)
@@ -699,23 +808,29 @@ async function handleUploadDrop(event: Event): Promise<void> {
       return
     }
 
+    let replayed: boolean
     if (input) {
       if (!isCurrentUploadGeneration(input, generation)) {
         dismissUploadToast(loadingToast)
         return
       }
 
-      if (!replayInputFilesSafely(input, result.files)) {
+      replayed = replayInputFilesSafely(input, result.files)
+      if (!replayed) {
+        trackUploadConversion(result, "drop", conversionStartedAt, false)
         updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
         return
       }
     } else {
-      if (!replayDropEventSafely(detail, result.files)) {
+      replayed = replayDropEventSafely(detail, result.files)
+      if (!replayed) {
+        trackUploadConversion(result, "drop", conversionStartedAt, false)
         updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
         return
       }
     }
 
+    trackUploadConversion(result, "drop", conversionStartedAt, replayed)
     updateUploadToastForResult(loadingToast, result)
   } catch (error) {
     if (input && !isCurrentUploadGeneration(input, generation)) {
@@ -729,6 +844,7 @@ async function handleUploadDrop(event: Event): Promise<void> {
     } else {
       replayDropEventSafely(detail, files)
     }
+    trackUploadFailure(heifCount, "drop", conversionStartedAt)
     updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
   }
 }
@@ -786,6 +902,7 @@ async function handleUploadPaste(event: Event): Promise<void> {
 
   const loadingToast = showUploadToast("loading", getUploadLoadingMessage(heifCount))
   const operationGeneration = siteOperationGeneration
+  const conversionStartedAt = performance.now()
 
   try {
     const result = await convertUploadFiles(detail.files, operationGeneration)
@@ -794,7 +911,9 @@ async function handleUploadPaste(event: Event): Promise<void> {
       dismissUploadToast(loadingToast)
       return
     }
-    if (replayPasteEventSafely(target, detail, result.files)) {
+    const replayed = replayPasteEventSafely(target, detail, result.files)
+    trackUploadConversion(result, "paste", conversionStartedAt, replayed)
+    if (replayed) {
       updateUploadToastForResult(loadingToast, result)
     } else {
       updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
@@ -802,6 +921,7 @@ async function handleUploadPaste(event: Event): Promise<void> {
   } catch (error) {
     console.warn("View HEIC paste conversion failed:", error)
     replayPasteEventSafely(target, detail, detail.files)
+    trackUploadFailure(heifCount, "paste", conversionStartedAt)
     updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
   }
 }
@@ -813,6 +933,7 @@ async function convertUploadFiles(
   const convertedFiles: File[] = []
   let convertedCount = 0
   let failedCount = 0
+  const errorTypes: AnalyticsErrorType[] = []
 
   for (let index = 0; index < files.length; index += 1) {
     const file = files[index]
@@ -831,12 +952,53 @@ async function convertUploadFiles(
       convertedCount += 1
     } catch (error) {
       failedCount += 1
+      errorTypes.push(getAnalyticsErrorType(error))
       convertedFiles.push(file)
       console.warn("View HEIC upload file conversion failed:", file.name, error)
     }
   }
 
-  return { files: convertedFiles, convertedCount, failedCount }
+  return { files: convertedFiles, convertedCount, failedCount, errorTypes }
+}
+
+function trackUploadConversion(
+  result: UploadConversionResult,
+  trigger: Extract<ConversionTrigger, "file_picker" | "drop" | "paste">,
+  startedAt: number,
+  replayed: boolean
+): void {
+  const attemptedCount = result.convertedCount + result.failedCount
+  const successCount = replayed ? result.convertedCount : 0
+  const failureCount = replayed ? result.failedCount : attemptedCount
+  void trackAnalyticsEvent("conversion_completed", {
+    surface: "web_upload",
+    trigger,
+    outcome: getConversionOutcome(successCount, failureCount),
+    attempted_count: attemptedCount,
+    success_count: successCount,
+    failure_count: failureCount,
+    duration_ms: getAnalyticsDurationMs(performance.now() - startedAt),
+    error_type: replayed
+      ? getAggregateAnalyticsErrorType(result.errorTypes)
+      : "replay",
+  })
+}
+
+function trackUploadFailure(
+  attemptedCount: number,
+  trigger: Extract<ConversionTrigger, "file_picker" | "drop" | "paste">,
+  startedAt: number
+): void {
+  void trackAnalyticsEvent("conversion_completed", {
+    surface: "web_upload",
+    trigger,
+    outcome: "failure",
+    attempted_count: attemptedCount,
+    success_count: 0,
+    failure_count: attemptedCount,
+    duration_ms: getAnalyticsDurationMs(performance.now() - startedAt),
+    error_type: "unknown",
+  })
 }
 
 function replayInputFiles(input: HTMLInputElement, files: File[]): void {
@@ -844,9 +1006,10 @@ function replayInputFiles(input: HTMLInputElement, files: File[]): void {
   files.forEach((file) => dataTransfer.items.add(file))
   input.files = dataTransfer.files
 
-  input.setAttribute(UPLOAD_REPLAY_ATTRIBUTE, "true")
-  input.dispatchEvent(new Event("input", { bubbles: true }))
-  input.dispatchEvent(new Event("change", { bubbles: true }))
+  withUploadReplayMarker(input, UPLOAD_REPLAY_ATTRIBUTE, () => {
+    input.dispatchEvent(new Event("input", { bubbles: true }))
+    input.dispatchEvent(new Event("change", { bubbles: true }))
+  })
 }
 
 function replayInputFilesSafely(input: HTMLInputElement, files: File[]): boolean {
@@ -1333,7 +1496,7 @@ async function maybeShowRatingPrompt(successCount: number, failureCount: number)
         lastPromptedAt: now,
       },
     })
-    sendAnalyticsEvent("review_prompt_shown", { success_total: nextSuccessCount })
+    void trackAnalyticsEvent("review_prompt_shown", { success_total: nextSuccessCount })
     showRatingPrompt(nextSuccessCount, nextFailureCount)
   } catch (error) {
     console.warn("View HEIC rating prompt skipped:", error)
@@ -1361,7 +1524,11 @@ function showRatingPrompt(successCount: number, failureCount: number): void {
   reviewButton.textContent = copy.review
   reviewButton.addEventListener("click", async () => {
     window.open(STORE_REVIEW_URL, "_blank", "noopener")
-    sendAnalyticsEvent("review_prompt_clicked", { success_total: successCount })
+    void trackAnalyticsEvent("review_prompt_action", {
+      action: "review",
+      success_total: successCount,
+      failure_total: failureCount,
+    })
     await browser.storage.local.set({
       [RATING_PROMPT_STORAGE_KEY]: {
         successCount,
@@ -1379,7 +1546,11 @@ function showRatingPrompt(successCount: number, failureCount: number): void {
   feedbackButton.textContent = copy.feedback
   feedbackButton.addEventListener("click", async () => {
     window.open(ISSUE_URL, "_blank", "noopener")
-    sendAnalyticsEvent("feedback_clicked", { failure_total: failureCount })
+    void trackAnalyticsEvent("review_prompt_action", {
+      action: "feedback",
+      success_total: successCount,
+      failure_total: failureCount,
+    })
     dismissRatingPrompt(prompt)
   })
 
@@ -1389,7 +1560,11 @@ function showRatingPrompt(successCount: number, failureCount: number): void {
   closeButton.setAttribute("aria-label", copy.close)
   closeButton.textContent = "×"
   closeButton.addEventListener("click", async () => {
-    sendAnalyticsEvent("review_prompt_dismissed", { success_total: successCount })
+    void trackAnalyticsEvent("review_prompt_action", {
+      action: "dismissed",
+      success_total: successCount,
+      failure_total: failureCount,
+    })
     dismissRatingPrompt(prompt)
   })
 
@@ -1423,20 +1598,10 @@ function getRatingPromptCopy(successCount: number): { text: string; review: stri
   }
 }
 
-function getAggregateErrorType(errorTypes: ConversionError["type"][]): ConversionErrorType | undefined {
-  if (errorTypes.length === 0) return undefined
-  const normalized = errorTypes.map((type) => (type === "unsupported" ? "conversion" : type))
-  const first = normalized[0]
-  return normalized.every((type) => type === first) ? first : "mixed"
-}
-
-async function sendAnalyticsEvent(name: AnalyticsEventName, params: AnalyticsParams = {}): Promise<boolean> {
-  try {
-    return Boolean(await browser.runtime.sendMessage({ type: "analytics:event", name, params }))
-  } catch (error) {
-    console.warn("View HEIC analytics message failed:", error)
-    return false
-  }
+function getAggregateErrorType(errorTypes: ConversionError["type"][]): AnalyticsErrorType | undefined {
+  return getAggregateAnalyticsErrorType(
+    errorTypes.map((type) => (type === "unsupported" ? "conversion" : type))
+  )
 }
 
 /**
@@ -1534,11 +1699,13 @@ function observeFailedImageLoads(
   const pendingImages = new Set<HTMLImageElement>()
   let observerDisposed = false
   let drainPromise: Promise<void> | undefined
+  let initialBatchPending = true
+  let initialBatchGeneration = 0
 
   const queueImage = (img: HTMLImageElement): void => {
     if (observerDisposed || !img.isConnected || pendingImages.size >= 50) return
     pendingImages.add(img)
-    if (contentScriptEnabled) {
+    if (contentScriptEnabled && !initialBatchPending) {
       void drainPendingImages()
     }
   }
@@ -1547,8 +1714,9 @@ function observeFailedImageLoads(
     img: HTMLImageElement,
     src: string,
     operationGeneration: number,
-    signal: AbortSignal
-  ): Promise<void> => {
+    signal: AbortSignal,
+    reportImmediately: boolean
+  ): Promise<ConversionResults[number] | undefined> => {
     if (
       signal.aborted ||
       observerDisposed ||
@@ -1565,7 +1733,7 @@ function observeFailedImageLoads(
     const entry = { item: img, version: src }
     if (pageConversionLedger.hasFailed(entry)) return
 
-    sendAnalyticsEvent("heic_detected", { image_count: 1 })
+    const conversionStartedAt = performance.now()
     const started = pageConversionLedger.begin([entry])
     updatePageState({
       siteEnabled: true,
@@ -1602,7 +1770,9 @@ function observeFailedImageLoads(
       return
     }
 
-    await recordConversionResults([result], "mutation")
+    if (reportImmediately) {
+      await recordConversionResults([result], "mutation", conversionStartedAt)
+    }
     if (
       signal.aborted ||
       !contentScriptEnabled ||
@@ -1619,9 +1789,13 @@ function observeFailedImageLoads(
       converted: settled.converted,
       failed: settled.failed,
     })
+    return result
   }
 
-  const probeImage = async (img: HTMLImageElement): Promise<void> => {
+  const probeImage = async (
+    img: HTMLImageElement,
+    reportImmediately: boolean
+  ): Promise<ConversionResults[number] | undefined> => {
     if (observerDisposed || !img.isConnected) return
     if (!contentScriptEnabled) {
       pendingImages.add(img)
@@ -1655,8 +1829,8 @@ function observeFailedImageLoads(
         if (!isHeif) return
       }
 
-      await pageWorkQueue.run(() =>
-        convertProbedImage(img, src, operationGeneration, signal)
+      return await pageWorkQueue.run(() =>
+        convertProbedImage(img, src, operationGeneration, signal, reportImmediately)
       )
     } catch {
       if (signal.aborted) {
@@ -1673,15 +1847,15 @@ function observeFailedImageLoads(
     if (drainPromise) return drainPromise
 
     drainPromise = (async () => {
-      while (contentScriptEnabled && pendingImages.size > 0) {
+      while (contentScriptEnabled && !initialBatchPending && pendingImages.size > 0) {
         const image = pendingImages.values().next().value as HTMLImageElement | undefined
         if (!image) return
         pendingImages.delete(image)
-        await probeImage(image)
+        await probeImage(image, true)
       }
     })().finally(() => {
       drainPromise = undefined
-      if (contentScriptEnabled && pendingImages.size > 0) {
+      if (contentScriptEnabled && !initialBatchPending && pendingImages.size > 0) {
         void drainPendingImages()
       }
     })
@@ -1696,8 +1870,47 @@ function observeFailedImageLoads(
 
   document.addEventListener("error", handleImageError, true)
   return {
-    async flush() {
-      await drainPendingImages()
+    prepareInitialBatch() {
+      initialBatchPending = true
+      initialBatchGeneration += 1
+    },
+    async flushInitialBatch() {
+      await drainPromise
+      const batchGeneration = initialBatchGeneration
+      const startedAt = performance.now()
+      const results: ConversionResults = []
+      const initialImages = Array.from(pendingImages)
+      initialImages.forEach((image) => pendingImages.delete(image))
+      let nextImageIndex = 0
+      const initialDrain = (async () => {
+        while (
+          contentScriptEnabled &&
+          batchGeneration === initialBatchGeneration &&
+          nextImageIndex < initialImages.length
+        ) {
+          const image = initialImages[nextImageIndex]
+          nextImageIndex += 1
+          const result = await probeImage(image, false)
+          if (result) results.push(result)
+        }
+        if (contentScriptEnabled && batchGeneration === initialBatchGeneration) {
+          await recordConversionResults(results, "initial", startedAt)
+        }
+      })()
+      drainPromise = initialDrain.finally(() => {
+        drainPromise = undefined
+      })
+      try {
+        await drainPromise
+      } finally {
+        initialImages.slice(nextImageIndex).forEach(queueImage)
+        if (batchGeneration === initialBatchGeneration) {
+          initialBatchPending = false
+          if (contentScriptEnabled && pendingImages.size > 0) {
+            void drainPendingImages()
+          }
+        }
+      }
     },
     dispose() {
       observerDisposed = true

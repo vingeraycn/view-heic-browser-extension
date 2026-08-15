@@ -11,6 +11,11 @@ import {
 } from "../../utils/extension-messages"
 import { getLocalizedFaqUrl, getLocalizedHelpUrl } from "../../utils/links"
 import {
+  getAnalyticsEnabled,
+  setAnalyticsEnabled,
+  trackAnalyticsEvent,
+} from "../../utils/analytics"
+import {
   getConnectedPresentation,
   getDisconnectedPresentation,
   getPopupLocale,
@@ -30,6 +35,8 @@ const pageValue = getElement<HTMLElement>("page-value")
 const pageChevron = getElement<HTMLElement>("page-chevron")
 const siteToggle = getElement<HTMLButtonElement>("site-toggle")
 const siteToggleLabel = getElement<HTMLElement>("site-toggle-label")
+const analyticsToggle = getElement<HTMLButtonElement>("analytics-toggle")
+const analyticsToggleLabel = getElement<HTMLElement>("analytics-toggle-label")
 const converterButton = getElement<HTMLButtonElement>("converter-button")
 const converterLabel = getElement<HTMLElement>("converter-label")
 const privacyLabel = getElement<HTMLElement>("privacy-label")
@@ -41,6 +48,9 @@ let pageState: PageState | undefined
 let pageAction: PopupPageAction | undefined
 let currentPresentation: PopupPresentation
 let togglePending = false
+let analyticsEnabled = false
+let analyticsPreferenceLoaded = false
+let analyticsTogglePending = false
 
 void initialize()
 
@@ -51,10 +61,11 @@ async function initialize(): Promise<void> {
     locale === "zh" ? "View HEIC 控制" : "View HEIC controls"
   )
 
-  helpButton.addEventListener("click", () => openExternalPage(getLocalizedHelpUrl(locale)))
+  helpButton.addEventListener("click", () => openHelpPage(getLocalizedHelpUrl(locale)))
   converterButton.addEventListener("click", openConverter)
   pageRow.addEventListener("click", handlePageAction)
   siteToggle.addEventListener("click", toggleSite)
+  analyticsToggle.addEventListener("click", toggleAnalytics)
   browser.runtime.onMessage.addListener(handleRuntimeMessage)
   window.addEventListener(
     "unload",
@@ -62,11 +73,14 @@ async function initialize(): Promise<void> {
     { once: true }
   )
 
+  void loadAnalyticsPreference()
+
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true })
   activeTab = tab
 
   if (typeof tab?.id !== "number") {
     render(getDisconnectedPresentation(tab?.url, locale))
+    trackPopupOpened("disconnected", "unavailable", false)
     return
   }
 
@@ -82,9 +96,21 @@ async function initialize(): Promise<void> {
 
     pageState = response
     render(getConnectedPresentation(response, locale))
+    trackPopupOpened("connected", response.phase, response.siteEnabled)
   } catch {
     render(getDisconnectedPresentation(tab.url, locale))
+    trackPopupOpened("disconnected", "unavailable", false)
   }
+}
+
+async function loadAnalyticsPreference(): Promise<void> {
+  try {
+    analyticsEnabled = await getAnalyticsEnabled()
+    analyticsPreferenceLoaded = true
+  } catch {
+    analyticsPreferenceLoaded = false
+  }
+  renderAnalyticsPreference()
 }
 
 function handleRuntimeMessage(message: unknown, sender: Browser.runtime.MessageSender): void {
@@ -128,8 +154,37 @@ async function handlePageAction(): Promise<void> {
   }
 
   if (pageAction === "troubleshoot") {
-    await openExternalPage(getLocalizedFaqUrl(locale))
+    await openHelpPage(getLocalizedFaqUrl(locale))
   }
+}
+
+async function toggleAnalytics(): Promise<void> {
+  if (!analyticsPreferenceLoaded || analyticsTogglePending) return
+
+  const previousAnalyticsEnabled = analyticsEnabled
+  analyticsTogglePending = true
+  analyticsToggle.disabled = true
+  actionFeedback.textContent = ""
+  try {
+    analyticsEnabled = !previousAnalyticsEnabled
+    await setAnalyticsEnabled(analyticsEnabled)
+    renderAnalyticsPreference()
+  } catch {
+    analyticsEnabled = await getAnalyticsEnabled().catch(() => previousAnalyticsEnabled)
+    renderAnalyticsPreference()
+    actionFeedback.textContent =
+      locale === "zh" ? "无法更新使用数据设置。" : "Couldn’t update the usage data setting."
+  } finally {
+    analyticsTogglePending = false
+    renderAnalyticsPreference()
+  }
+}
+
+function renderAnalyticsPreference(): void {
+  analyticsToggleLabel.textContent =
+    locale === "zh" ? "共享基本使用数据" : "Share basic usage data"
+  analyticsToggle.setAttribute("aria-checked", String(analyticsEnabled))
+  analyticsToggle.disabled = !analyticsPreferenceLoaded || analyticsTogglePending
 }
 
 async function toggleSite(): Promise<void> {
@@ -190,6 +245,23 @@ async function openConverter(): Promise<void> {
 async function openExternalPage(url: string): Promise<void> {
   await browser.tabs.create({ url })
   window.close()
+}
+
+async function openHelpPage(url: string): Promise<void> {
+  void trackAnalyticsEvent("help_opened", { surface: "popup" })
+  await openExternalPage(url)
+}
+
+function trackPopupOpened(
+  connectionState: "connected" | "disconnected",
+  pagePhase: string,
+  siteEnabled: boolean
+): void {
+  void trackAnalyticsEvent("popup_opened", {
+    connection_state: connectionState,
+    page_phase: pagePhase,
+    site_enabled: siteEnabled,
+  })
 }
 
 function getStatusIcon(presentation: PopupPresentation): string {

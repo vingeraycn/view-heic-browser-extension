@@ -9,7 +9,11 @@ const uploadConverter = fs.readFileSync("utils/upload-heif-converter.ts", "utf8"
 const directConverter = fs.readFileSync("utils/direct-heif-converter.ts", "utf8")
 const geminiDecoder = fs.readFileSync("entrypoints/gemini-decoder.content.ts", "utf8")
 const dropReplay = fs.readFileSync("utils/upload-drop-replay.ts", "utf8")
-const testPage = fs.readFileSync("docs/test-improved.html", "utf8")
+const inputInterception = fs.readFileSync("utils/upload-input-interception.ts", "utf8")
+const fileSystemPickerInterception = fs.readFileSync(
+  "utils/file-system-picker-interception.ts",
+  "utf8"
+)
 const builtManifestPath = ".output/chrome-mv3/manifest.json"
 const builtContentScripts = JSON.parse(
   fs.readFileSync(builtManifestPath, "utf8")
@@ -34,19 +38,54 @@ function assert(condition, message) {
 assert(
   interceptor.includes('world: "MAIN"') &&
     interceptor.includes('runAt: "document_start"') &&
+    interceptor.includes('window.addEventListener("input", interceptHeifUpload, true)') &&
     interceptor.includes('window.addEventListener("change", interceptHeifUpload, true)') &&
+    interceptor.includes("uploadInputInterceptionGate.decide(") &&
+    interceptor.includes('action === "suppress"') &&
+    inputInterception.includes('eventType === "input"') &&
+    inputInterception.includes('eventType === "change"') &&
+    inputInterception.includes('return "suppress"') &&
+    inputInterception.includes("snapshotSelection(files)") &&
+    inputInterception.includes("file.name === candidate.name") &&
+    inputInterception.includes("file.size === candidate.size") &&
+    inputInterception.includes("file.lastModified === candidate.lastModified") &&
+    !inputInterception.includes("file === right[index]") &&
     interceptor.includes("event.stopImmediatePropagation()") &&
     content.includes("event.preventDefault()"),
-  "upload HEIF files are intercepted in the page world before page handlers consume them"
+  "file-picker HEIF inputs are intercepted once before page input and change handlers consume them"
 )
 
 assert(
   interceptor.includes("UPLOAD_REPLAY_ATTRIBUTE") &&
-    interceptor.includes("input.removeAttribute(UPLOAD_REPLAY_ATTRIBUTE)") &&
+    interceptor.includes("isUploadReplayEvent(input, UPLOAD_REPLAY_ATTRIBUTE)") &&
     interceptor.includes('../utils/upload-constants') &&
     content.includes('../utils/upload-constants') &&
-    content.includes("input.setAttribute(UPLOAD_REPLAY_ATTRIBUTE"),
-  "replayed upload events are guarded against recursive conversion"
+    content.includes("withUploadReplayMarker(input, UPLOAD_REPLAY_ATTRIBUTE") &&
+    inputInterception.includes("input.setAttribute(attributeName") &&
+    inputInterception.includes("input.removeAttribute(attributeName)"),
+  "the complete input-and-change replay sequence is guarded against recursive conversion"
+)
+
+assert(
+  interceptor.includes("createShowOpenFilePickerInterceptor") &&
+    interceptor.includes("FILE_SYSTEM_PICKER_REQUEST_EVENT") &&
+    interceptor.includes("FILE_SYSTEM_PICKER_RESPONSE_EVENT") &&
+    interceptor.includes("requestFileSystemPickerConversion") &&
+    interceptor.includes("settleAllFileSystemPickerConversions") &&
+    interceptor.includes("event.preventDefault()") &&
+    fileSystemPickerInterception.includes("registeredHandleOptions.set(handle, options)") &&
+    fileSystemPickerInterception.includes("patchGetFileMethod(handle)") &&
+    fileSystemPickerInterception.includes(
+      'Reflect.defineProperty(methodOwner, "getFile"'
+    ) &&
+    fileSystemPickerInterception.includes("options.interceptFile(file)") &&
+    fileSystemPickerInterception.includes("return handles") &&
+    !fileSystemPickerInterception.includes("new Proxy(handle") &&
+    content.includes("handleFileSystemPickerConversion") &&
+    content.includes("respondToFileSystemPicker") &&
+    content.includes("return responseEvent.defaultPrevented") &&
+    content.includes('trackUploadConversion(result, "file_picker"'),
+  "File System Access picker handles convert HEIF files without replacing native handles"
 )
 
 assert(
@@ -125,9 +164,23 @@ assert(
   content.includes("interface UploadConversionResult") &&
     content.includes("convertedCount") &&
     content.includes("failedCount") &&
+    content.includes("errorTypes") &&
+    content.includes("errorTypes.push(getAnalyticsErrorType(error))") &&
+    content.includes("getAggregateAnalyticsErrorType(result.errorTypes)") &&
     content.includes("convertedFiles.push(file)") &&
     content.includes("View HEIC upload file conversion failed"),
   "per-file conversion failures keep the original file instead of dropping the whole selection"
+)
+
+assert(
+  content.includes("failedImageObserver.prepareInitialBatch()") &&
+    content.includes("failedImageObserver.flushInitialBatch()") &&
+    content.includes("const initialImages = Array.from(pendingImages)") &&
+    content.includes("nextImageIndex < initialImages.length") &&
+    content.includes("const result = await probeImage(image, false)") &&
+    content.includes('recordConversionResults(results, "initial", startedAt)') &&
+    content.includes("contentScriptEnabled && !initialBatchPending"),
+  "MIME-only images queued before initial processing report as one initial conversion batch"
 )
 
 assert(
@@ -213,17 +266,4 @@ assert(
     content.includes("Converted to JPG") &&
     content.includes("Couldn't convert this HEIC image"),
   "upload toast copy is localized for Chinese and English states"
-)
-
-assert(
-  testPage.includes("HEIC 上传自动转换 Playground") &&
-    testPage.includes("upload-single") &&
-    testPage.includes("upload-multiple") &&
-    testPage.includes("upload-hidden") &&
-    testPage.includes("最终 input.files") &&
-    testPage.includes("upload-status") &&
-    testPage.includes("__viewHeicEarlyUploadResults") &&
-    testPage.includes("页面最早 capture 监听结果") &&
-    testPage.includes("setUploadStatus"),
-  "local test page covers early upload interception scenarios"
 )

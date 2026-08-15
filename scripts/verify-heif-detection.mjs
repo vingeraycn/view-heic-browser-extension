@@ -78,7 +78,7 @@ const checks = [
   },
   {
     name: "rejects corrupted sample",
-    pass: () => !getHeifFileType(readSample("docs/samples/corrupted-test.heic")).isHeif,
+    pass: () => !getHeifFileType(readSample("docs/samples/corrupted.heic")).isHeif,
   },
   {
     name: "detects extensions with case, query, and hash",
