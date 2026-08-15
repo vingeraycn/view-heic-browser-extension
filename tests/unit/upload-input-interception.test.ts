@@ -23,33 +23,45 @@ class FakeInput {
 
 describe("upload input interception", () => {
   it("converts on input and suppresses the paired native change", () => {
-    const gate = new UploadInputInterceptionGate<object, object>()
+    const gate = new UploadInputInterceptionGate<object>()
     const input = {}
-    const heifFile = {}
+    const heifFile = createFile("photo.heic")
     const files = [heifFile]
 
     expect(gate.decide(input, "input", files, true)).toBe("convert")
     expect(gate.decide(input, "change", files, true)).toBe("suppress")
   })
 
-  it("keeps change as a fallback when a browser emits no input event", () => {
-    const gate = new UploadInputInterceptionGate<object, object>()
+  it("suppresses the paired change when the browser returns new File wrappers", () => {
+    const gate = new UploadInputInterceptionGate<object>()
+    const input = {}
 
-    expect(gate.decide({}, "change", [{}], true)).toBe("convert")
+    expect(gate.decide(input, "input", [createFile("photo.heic")], true)).toBe(
+      "convert"
+    )
+    expect(gate.decide(input, "change", [createFile("photo.heic")], true)).toBe(
+      "suppress"
+    )
+  })
+
+  it("keeps change as a fallback when a browser emits no input event", () => {
+    const gate = new UploadInputInterceptionGate<object>()
+
+    expect(gate.decide({}, "change", [createFile("photo.heic")], true)).toBe("convert")
   })
 
   it("does not suppress a different selection", () => {
-    const gate = new UploadInputInterceptionGate<object, object>()
+    const gate = new UploadInputInterceptionGate<object>()
     const input = {}
 
-    expect(gate.decide(input, "input", [{}], true)).toBe("convert")
-    expect(gate.decide(input, "change", [{}], true)).toBe("convert")
+    expect(gate.decide(input, "input", [createFile("first.heic")], true)).toBe("convert")
+    expect(gate.decide(input, "change", [createFile("second.heic")], true)).toBe("convert")
   })
 
   it("passes non-HEIF selections through unchanged", () => {
-    const gate = new UploadInputInterceptionGate<object, object>()
+    const gate = new UploadInputInterceptionGate<object>()
     const input = {}
-    const files = [{}]
+    const files = [createFile("photo.jpg")]
 
     expect(gate.decide(input, "input", files, false)).toBe("pass")
     expect(gate.decide(input, "change", files, false)).toBe("pass")
@@ -80,3 +92,12 @@ describe("upload input interception", () => {
     expect(isUploadReplayEvent(input, "data-replay")).toBe(false)
   })
 })
+
+function createFile(name: string) {
+  return {
+    name,
+    size: 1024,
+    lastModified: 1_786_716_000_000,
+    webkitRelativePath: "",
+  }
+}

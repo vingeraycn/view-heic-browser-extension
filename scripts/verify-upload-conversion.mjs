@@ -10,6 +10,10 @@ const directConverter = fs.readFileSync("utils/direct-heif-converter.ts", "utf8"
 const geminiDecoder = fs.readFileSync("entrypoints/gemini-decoder.content.ts", "utf8")
 const dropReplay = fs.readFileSync("utils/upload-drop-replay.ts", "utf8")
 const inputInterception = fs.readFileSync("utils/upload-input-interception.ts", "utf8")
+const fileSystemPickerInterception = fs.readFileSync(
+  "utils/file-system-picker-interception.ts",
+  "utf8"
+)
 const testPage = fs.readFileSync("docs/test-improved.html", "utf8")
 const builtManifestPath = ".output/chrome-mv3/manifest.json"
 const builtContentScripts = JSON.parse(
@@ -42,9 +46,14 @@ assert(
     inputInterception.includes('eventType === "input"') &&
     inputInterception.includes('eventType === "change"') &&
     inputInterception.includes('return "suppress"') &&
+    inputInterception.includes("snapshotSelection(files)") &&
+    inputInterception.includes("file.name === candidate.name") &&
+    inputInterception.includes("file.size === candidate.size") &&
+    inputInterception.includes("file.lastModified === candidate.lastModified") &&
+    !inputInterception.includes("file === right[index]") &&
     interceptor.includes("event.stopImmediatePropagation()") &&
     content.includes("event.preventDefault()"),
-  "file-picker HEIF inputs are intercepted before page input and change handlers consume them"
+  "file-picker HEIF inputs are intercepted once before page input and change handlers consume them"
 )
 
 assert(
@@ -56,6 +65,23 @@ assert(
     inputInterception.includes("input.setAttribute(attributeName") &&
     inputInterception.includes("input.removeAttribute(attributeName)"),
   "the complete input-and-change replay sequence is guarded against recursive conversion"
+)
+
+assert(
+  interceptor.includes("createShowOpenFilePickerInterceptor") &&
+    interceptor.includes("FILE_SYSTEM_PICKER_REQUEST_EVENT") &&
+    interceptor.includes("FILE_SYSTEM_PICKER_RESPONSE_EVENT") &&
+    interceptor.includes("requestFileSystemPickerConversion") &&
+    interceptor.includes("settleAllFileSystemPickerConversions") &&
+    interceptor.includes("event.preventDefault()") &&
+    fileSystemPickerInterception.includes('property === "getFile"') &&
+    fileSystemPickerInterception.includes("options.interceptFile(file)") &&
+    fileSystemPickerInterception.includes("Reflect.apply(value, target") &&
+    content.includes("handleFileSystemPickerConversion") &&
+    content.includes("respondToFileSystemPicker") &&
+    content.includes("return responseEvent.defaultPrevented") &&
+    content.includes('trackUploadConversion(result, "file_picker"'),
+  "File System Access picker handles convert HEIF files without changing native handle behavior"
 )
 
 assert(

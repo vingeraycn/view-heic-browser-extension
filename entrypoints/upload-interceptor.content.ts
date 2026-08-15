@@ -7,11 +7,17 @@ import {
 import {
   DROP_REPLAY_EVENT,
   DROP_REQUEST_EVENT,
+  FILE_SYSTEM_PICKER_REQUEST_EVENT,
+  FILE_SYSTEM_PICKER_RESPONSE_EVENT,
   PASTE_REPLAY_EVENT,
   PASTE_REQUEST_EVENT,
   UPLOAD_REPLAY_ATTRIBUTE,
   UPLOAD_REQUEST_EVENT,
 } from "../utils/upload-constants"
+import {
+  createShowOpenFilePickerInterceptor,
+  type ShowOpenFilePicker,
+} from "../utils/file-system-picker-interception"
 import {
   replayUploadDrop,
   type UploadDropReplaySource,
@@ -47,6 +53,22 @@ interface DropReplayDetail {
   handledByInput?: boolean
 }
 
+interface FileSystemPickerRequestDetail {
+  requestId: string
+  file: File
+}
+
+interface FileSystemPickerResponseDetail {
+  requestId: string
+  file?: File
+}
+
+interface PendingFileSystemPickerConversion {
+  originalFile: File
+  resolve: (file: File) => void
+  timeoutId: number
+}
+
 interface PendingDropSession {
   target: EventTarget
   documentUrl: string
@@ -57,23 +79,29 @@ let replayingPaste = false
 let replayingDrop = false
 let interceptionEnabled = false
 let nextDropRequestId = 0
-const uploadInputInterceptionGate = new UploadInputInterceptionGate<
-  HTMLInputElement,
-  File
->()
+let nextFileSystemPickerRequestId = 0
+const uploadInputInterceptionGate = new UploadInputInterceptionGate<HTMLInputElement>()
 const pendingDropSessions = new Map<string, PendingDropSession>()
+const pendingFileSystemPickerConversions = new Map<
+  string,
+  PendingFileSystemPickerConversion
+>()
 const MAX_PENDING_DROP_SESSIONS = 16
+const FILE_SYSTEM_PICKER_CONVERSION_TIMEOUT_MS = 60_000
 
 export default defineContentScript({
   matches: ["<all_urls>"],
   runAt: "document_start",
   world: "MAIN",
   main() {
+    installFileSystemPickerInterceptor()
+
     const enableInterception = (): void => {
       interceptionEnabled = true
     }
     const disableInterception = (): void => {
       interceptionEnabled = false
+      settleAllFileSystemPickerConversions()
     }
 
     window.addEventListener(INTERCEPTOR_ENABLE_EVENT, enableInterception)
@@ -82,8 +110,14 @@ export default defineContentScript({
     window.addEventListener("change", interceptHeifUpload, true)
     window.addEventListener("drop", interceptHeifDrop, true)
     window.addEventListener("paste", interceptHeifPaste, true)
+    window.addEventListener(
+      FILE_SYSTEM_PICKER_RESPONSE_EVENT,
+      handleFileSystemPickerResponse,
+      true
+    )
     window.addEventListener(DROP_REPLAY_EVENT, replayHeifDrop, true)
     window.addEventListener(PASTE_REPLAY_EVENT, replayHeifPaste, true)
+    window.addEventListener("pagehide", settleAllFileSystemPickerConversions, { once: true })
     window.dispatchEvent(new Event(INTERCEPTOR_READY_EVENT))
   },
 })
@@ -108,6 +142,77 @@ function interceptHeifUpload(event: Event): void {
   event.stopImmediatePropagation()
   if (action === "suppress") return
   input.dispatchEvent(new CustomEvent(UPLOAD_REQUEST_EVENT, { bubbles: true }))
+}
+
+function installFileSystemPickerInterceptor(): void {
+  const showOpenFilePicker = Reflect.get(window, "showOpenFilePicker")
+  if (typeof showOpenFilePicker !== "function") return
+
+  Reflect.set(
+    window,
+    "showOpenFilePicker",
+    createShowOpenFilePickerInterceptor(showOpenFilePicker as ShowOpenFilePicker, {
+      isEnabled: () => interceptionEnabled,
+      interceptFile: requestFileSystemPickerConversion,
+    })
+  )
+}
+
+async function requestFileSystemPickerConversion(file: unknown): Promise<unknown> {
+  if (!(file instanceof File) || !isHeifFile(file)) return file
+
+  nextFileSystemPickerRequestId += 1
+  const requestId = `view-heic-picker-${nextFileSystemPickerRequestId}`
+  return new Promise<File>((resolve) => {
+    const timeoutId = window.setTimeout(() => {
+      settleFileSystemPickerConversion(requestId)
+    }, FILE_SYSTEM_PICKER_CONVERSION_TIMEOUT_MS)
+    pendingFileSystemPickerConversions.set(requestId, {
+      originalFile: file,
+      resolve,
+      timeoutId,
+    })
+
+    const detail: FileSystemPickerRequestDetail = { requestId, file }
+    try {
+      window.dispatchEvent(
+        new CustomEvent(FILE_SYSTEM_PICKER_REQUEST_EVENT, {
+          composed: true,
+          detail,
+        })
+      )
+    } catch {
+      settleFileSystemPickerConversion(requestId)
+    }
+  })
+}
+
+function handleFileSystemPickerResponse(event: Event): void {
+  if (!(event instanceof CustomEvent)) return
+
+  const detail = event.detail as FileSystemPickerResponseDetail | undefined
+  if (!detail || typeof detail.requestId !== "string") return
+
+  event.stopImmediatePropagation()
+  if (settleFileSystemPickerConversion(detail.requestId, detail.file)) {
+    event.preventDefault()
+  }
+}
+
+function settleFileSystemPickerConversion(requestId: string, file?: File): boolean {
+  const pending = pendingFileSystemPickerConversions.get(requestId)
+  if (!pending) return false
+
+  pendingFileSystemPickerConversions.delete(requestId)
+  window.clearTimeout(pending.timeoutId)
+  pending.resolve(file instanceof File ? file : pending.originalFile)
+  return true
+}
+
+function settleAllFileSystemPickerConversions(): void {
+  Array.from(pendingFileSystemPickerConversions.keys()).forEach((requestId) => {
+    settleFileSystemPickerConversion(requestId)
+  })
 }
 
 function interceptHeifDrop(event: DragEvent): void {

@@ -31,6 +31,8 @@ import {
 import {
   DROP_REPLAY_EVENT,
   DROP_REQUEST_EVENT,
+  FILE_SYSTEM_PICKER_REQUEST_EVENT,
+  FILE_SYSTEM_PICKER_RESPONSE_EVENT,
   PASTE_REPLAY_EVENT,
   PASTE_REQUEST_EVENT,
   UPLOAD_REPLAY_ATTRIBUTE,
@@ -97,6 +99,11 @@ interface DropConversionDetail {
   requestId: string
   files: File[]
   source: UploadDropReplaySource
+}
+
+interface FileSystemPickerConversionDetail {
+  requestId: string
+  file: File
 }
 
 let uploadToastContainer: HTMLElement | undefined
@@ -613,12 +620,22 @@ function observeHEICUploads(): () => void {
   window.addEventListener(UPLOAD_REQUEST_EVENT, handleUploadChange, true)
   window.addEventListener(DROP_REQUEST_EVENT, handleUploadDrop, true)
   window.addEventListener(PASTE_REQUEST_EVENT, handleUploadPaste, true)
+  window.addEventListener(
+    FILE_SYSTEM_PICKER_REQUEST_EVENT,
+    handleFileSystemPickerConversion,
+    true
+  )
 
   return () => {
     window.removeEventListener("change", rememberFileInputSelection, true)
     window.removeEventListener(UPLOAD_REQUEST_EVENT, handleUploadChange, true)
     window.removeEventListener(DROP_REQUEST_EVENT, handleUploadDrop, true)
     window.removeEventListener(PASTE_REQUEST_EVENT, handleUploadPaste, true)
+    window.removeEventListener(
+      FILE_SYSTEM_PICKER_REQUEST_EVENT,
+      handleFileSystemPickerConversion,
+      true
+    )
   }
 }
 
@@ -681,6 +698,72 @@ async function handleUploadChange(event: Event): Promise<void> {
     replayInputFilesSafely(input, files)
     trackUploadFailure(heifCount, "file_picker", conversionStartedAt)
     updateUploadToast(loadingToast, "error", getUploadErrorMessage(heifCount), { durationMs: 5000 })
+  }
+}
+
+async function handleFileSystemPickerConversion(event: Event): Promise<void> {
+  if (!(event instanceof CustomEvent)) return
+
+  const detail = event.detail as FileSystemPickerConversionDetail | undefined
+  if (
+    !detail ||
+    typeof detail.requestId !== "string" ||
+    !(detail.file instanceof File)
+  ) {
+    return
+  }
+
+  event.stopImmediatePropagation()
+  const file = detail.file
+  if (!contentScriptEnabled || !isHEIFUploadCandidate(file)) {
+    respondToFileSystemPicker(detail.requestId, file)
+    return
+  }
+
+  const operationGeneration = siteOperationGeneration
+  const loadingToast = showUploadToast("loading", getUploadLoadingMessage(1))
+  const conversionStartedAt = performance.now()
+
+  try {
+    const result = await convertUploadFiles([file], operationGeneration)
+    if (!contentScriptEnabled || operationGeneration !== siteOperationGeneration) {
+      respondToFileSystemPicker(detail.requestId, file)
+      dismissUploadToast(loadingToast)
+      return
+    }
+
+    const convertedFile = result.files[0] ?? file
+    const delivered = respondToFileSystemPicker(detail.requestId, convertedFile)
+    trackUploadConversion(result, "file_picker", conversionStartedAt, delivered)
+    if (delivered) {
+      updateUploadToastForResult(loadingToast, result)
+    } else {
+      updateUploadToast(loadingToast, "error", getUploadErrorMessage(1), {
+        durationMs: 5000,
+      })
+    }
+  } catch (error) {
+    console.warn("View HEIC file picker conversion failed:", error)
+    respondToFileSystemPicker(detail.requestId, file)
+    trackUploadFailure(1, "file_picker", conversionStartedAt)
+    updateUploadToast(loadingToast, "error", getUploadErrorMessage(1), {
+      durationMs: 5000,
+    })
+  }
+}
+
+function respondToFileSystemPicker(requestId: string, file: File): boolean {
+  try {
+    const responseEvent = new CustomEvent(FILE_SYSTEM_PICKER_RESPONSE_EVENT, {
+      cancelable: true,
+      composed: true,
+      detail: { requestId, file },
+    })
+    window.dispatchEvent(responseEvent)
+    return responseEvent.defaultPrevented
+  } catch (error) {
+    console.warn("View HEIC file picker response failed:", error)
+    return false
   }
 }
 

@@ -1,5 +1,7 @@
 export const UPLOAD_REQUEST_EVENT = "view-heic-upload-request"
 export const UPLOAD_REPLAY_ATTRIBUTE = "data-view-heic-upload-replayed"
+export const FILE_SYSTEM_PICKER_REQUEST_EVENT = "view-heic-file-system-picker-request"
+export const FILE_SYSTEM_PICKER_RESPONSE_EVENT = "view-heic-file-system-picker-response"
 export const DROP_REQUEST_EVENT = "view-heic-drop-request"
 export const DROP_REPLAY_EVENT = "view-heic-drop-replay"
 export const PASTE_REQUEST_EVENT = "view-heic-paste-request"
