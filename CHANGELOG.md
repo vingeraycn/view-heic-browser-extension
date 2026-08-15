@@ -19,6 +19,7 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - Each conversion workflow now sends one aggregate result, preventing DOM retries and repeated failures from inflating event volume.
 - Every event now carries extension version, analytics schema version, and session identifiers for attribution by version, surface, and outcome.
 - Collection is limited to coarse enums, counts, versions, durations, and pseudonymous session context. It excludes image contents, URLs, hostnames, file names, page contents, browsing history, and form data.
+- Removed the committed test suite, test runner, test-only pages, local test server, and test-only fixtures.
 
 ### 🔒 Security and Privacy
 

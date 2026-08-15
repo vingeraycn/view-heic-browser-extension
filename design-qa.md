@@ -58,14 +58,12 @@ No separate detail capture is required. Titles, labels, icons, dividers, switche
 ## Engineering Verification
 
 - TypeScript type checking passed.
-- Six test files and 78 unit tests passed at the time of this review.
-- Chrome MV3 and Firefox MV2 production builds passed.
+- Chrome MV3 production build passed.
 - Dedicated checks passed for HEIF detection, upload conversion, review prompts, analytics events, performance defaults, and `src` changes.
 - `git diff --check` passed.
 
 ## Known Non-Blocking Items
 
 - Chrome's internal extension-management page does not permit the current browser connection to operate it, so the local unpacked package was not installed automatically. The popup, converter, and manifest from the production build were inspected, and browser review used the same `.output/chrome-mv3` artifact.
-- A future CI workflow could load the unpacked MV3 package for end-to-end testing and add decode-pixel, frame-count, and memory budgets for extreme HEIC files. Neither item blocks this interface or primary-flow delivery.
 
 Final result: passed.
