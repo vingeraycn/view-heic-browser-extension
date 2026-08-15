@@ -311,6 +311,38 @@ describe("analytics edge proxy", () => {
       expect(forward).not.toHaveBeenCalled()
     }
   )
+
+  it.each(["2000-01-01", "2099-01-01"])(
+    "rejects local activity date %s when it is incompatible with the event timestamp",
+    async (activityDate) => {
+      const payload = validPayload()
+      payload.events.push(validActiveEvent("popup", activityDate))
+      const forward = vi.fn(async () => new Response(null, { status: 204 }))
+
+      await expect(
+        handleAnalyticsRequest(createRequest(payload), env, forward as unknown as typeof fetch)
+      ).resolves.toMatchObject({ status: 400 })
+      expect(forward).not.toHaveBeenCalled()
+    }
+  )
+
+  it.each([-12, 14])(
+    "accepts the legitimate UTC offset %d local activity date for the event timestamp",
+    async (timezoneOffsetHours) => {
+      const payload = validPayload()
+      const timestampMs = payload.timestamp_micros / 1000
+      const activityDate = getUtcDateKey(
+        timestampMs + timezoneOffsetHours * 60 * 60 * 1000
+      )
+      payload.events.push(validActiveEvent("popup", activityDate))
+      const forward = vi.fn(async () => new Response(null, { status: 204 }))
+
+      await expect(
+        handleAnalyticsRequest(createRequest(payload), env, forward as unknown as typeof fetch)
+      ).resolves.toMatchObject({ status: 204 })
+      expect(forward).toHaveBeenCalledOnce()
+    }
+  )
 })
 
 function createRequest(payload: unknown, origin = extensionOrigin): Request {
@@ -353,16 +385,20 @@ function commonParams() {
   }
 }
 
-function validActiveEvent(activitySource: string) {
+function validActiveEvent(activitySource: string, activityDate = getUtcDateKey(Date.now())) {
   return {
     name: "extension_active",
     params: {
       ...commonParams(),
       activity_source: activitySource,
-      activity_date: "2026-08-15",
+      activity_date: activityDate,
       engagement_time_msec: 1,
     } as Record<string, unknown>,
   }
+}
+
+function getUtcDateKey(timestampMs: number): string {
+  return new Date(timestampMs).toISOString().slice(0, 10)
 }
 
 function validConversionPayload() {

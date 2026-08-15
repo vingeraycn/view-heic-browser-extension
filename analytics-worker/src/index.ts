@@ -24,6 +24,8 @@ const MAX_BODY_BYTES = 16_384
 const MAX_DURATION_MS = 86_400_000
 const MAX_EVENT_AGE_MICROS = 5 * 60 * 1_000_000
 const MAX_FUTURE_SKEW_MICROS = 10 * 1_000_000
+const MIN_TIMEZONE_OFFSET_MS = -12 * 60 * 60 * 1000
+const MAX_TIMEZONE_OFFSET_MS = 14 * 60 * 60 * 1000
 const COMMON_PARAMS = new Set([
   "analytics_schema_version",
   "extension_version",
@@ -232,7 +234,7 @@ function isAnalyticsPayload(value: unknown): value is AnalyticsPayload {
   }
 
   if (!value.events.every(isAnalyticsEvent)) return false
-  return isValidAnalyticsBatch(value.events)
+  return isValidAnalyticsBatch(value.events, value.timestamp_micros)
 }
 
 function isRecentEventTimestamp(value: unknown): value is number {
@@ -330,7 +332,7 @@ function isValidConversionResult(params: Record<string, unknown>): boolean {
   return outcome === "failure" && successCount === 0 && failureCount > 0
 }
 
-function isValidAnalyticsBatch(events: AnalyticsEvent[]): boolean {
+function isValidAnalyticsBatch(events: AnalyticsEvent[], timestampMicros: number): boolean {
   const [primaryEvent, activeEvent] = events
   if (primaryEvent.name === "extension_active") return false
   if (!activeEvent) return true
@@ -342,8 +344,27 @@ function isValidAnalyticsBatch(events: AnalyticsEvent[]): boolean {
     activeEvent.params.analytics_schema_version ===
       primaryEvent.params.analytics_schema_version &&
     activeEvent.params.extension_version === primaryEvent.params.extension_version &&
-    activeEvent.params.session_id === primaryEvent.params.session_id
+    activeEvent.params.session_id === primaryEvent.params.session_id &&
+    isActivityDateCompatibleWithTimestamp(
+      activeEvent.params.activity_date,
+      timestampMicros
+    )
   )
+}
+
+function isActivityDateCompatibleWithTimestamp(
+  activityDate: unknown,
+  timestampMicros: number
+): boolean {
+  if (!isValidLocalDateKey(activityDate)) return false
+  const timestampMs = timestampMicros / 1000
+  const earliestDate = getUtcDateKey(timestampMs + MIN_TIMEZONE_OFFSET_MS)
+  const latestDate = getUtcDateKey(timestampMs + MAX_TIMEZONE_OFFSET_MS)
+  return activityDate >= earliestDate && activityDate <= latestDate
+}
+
+function getUtcDateKey(timestampMs: number): string {
+  return new Date(timestampMs).toISOString().slice(0, 10)
 }
 
 async function readBoundedBody(
