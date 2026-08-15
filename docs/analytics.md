@@ -27,7 +27,7 @@ The 1.3 window contains only 63 reported users. The release build depended on lo
 
 | Metric | Definition | GA4 interpretation |
 | --- | --- | --- |
-| Daily active installations | Pseudonymous installations that perform at least one real extension activity during a local calendar day | Total users for `extension_active`; do not use the web-oriented global Active users card |
+| Daily active installations | Pseudonymous installations that perform at least one real extension activity during a local calendar day | Total users for `extension_active`, grouped by `activity_date`; do not use the web-oriented global Active users card or the GA4 property date |
 | Conversion workflows | Complete conversion attempts started by a page batch, file picker, drag-and-drop, or paste action | Event count for `conversion_completed` |
 | Successful conversion installations | Installations that complete at least one successful or partially successful conversion | Total users for `conversion_completed`, filtered to `outcome in (success, partial)` |
 | Conversion success rate | Successfully converted images divided by attempted images | `sum(success_count) / sum(attempted_count)` |
@@ -44,11 +44,11 @@ Every event includes:
 - `analytics_schema_version`: currently `2`
 - `session_id`: a numeric session identifier renewed after 30 minutes of inactivity
 
-Each request also includes `timestamp_micros`, the event occurrence time captured before background queueing. Queued events expire after five minutes so delayed work cannot change a later activity day or session.
+Each request also includes `timestamp_micros`, the event occurrence time captured before background queueing. The request-level `client_id` is a randomly generated, extension-local, resettable pseudonymous installation identifier. It is neither a hardware fingerprint nor an account identifier. Opting out deletes it, and re-enabling analytics creates a new value that cannot be linked to the previous one. Queued events expire after five minutes so delayed work cannot change a later activity day or session.
 
 | Event | Trigger | Product parameters |
 | --- | --- | --- |
-| `extension_active` | Attached once to the first successfully reported user- or conversion-driven event on each local calendar day; install and automatic-update events are excluded | `activity_source`, `engagement_time_msec=1` |
+| `extension_active` | Attached once to the first successfully reported user- or conversion-driven event on each local calendar day; install and automatic-update events are excluded | `activity_source`, `activity_date` in `YYYY-MM-DD` format, `engagement_time_msec=1` |
 | `extension_installed` | First installation | None |
 | `extension_updated` | Extension update | Optional `previous_version` |
 | `popup_opened` | Popup state resolution completes | `connection_state`, `page_phase`, `site_enabled` |
@@ -74,6 +74,7 @@ Event-scoped custom dimensions:
 - `outcome`
 - `error_type`
 - `activity_source`
+- `activity_date`
 - `connection_state`
 - `page_phase`
 - `action`

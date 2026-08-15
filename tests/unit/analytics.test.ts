@@ -115,7 +115,7 @@ describe("analytics preference", () => {
     })
   })
 
-  it("clears stale identifiers before re-enabling after a failed opt-out cleanup", async () => {
+  it("retries identifier cleanup once when analytics is disabled", async () => {
     await fakeBrowser.storage.local.set({
       [ANALYTICS_CLIENT_ID_STORAGE_KEY]: "123.456",
       [ANALYTICS_SESSION_STORAGE_KEY]: { id: 123, lastSeenAt: 456 },
@@ -126,7 +126,32 @@ describe("analytics preference", () => {
       .mockRejectedValueOnce(new Error("storage unavailable"))
       .mockImplementation(originalRemove)
 
-    await expect(setAnalyticsEnabled(false)).rejects.toThrow("storage unavailable")
+    await expect(setAnalyticsEnabled(false)).resolves.toBeUndefined()
+    expect(fakeBrowser.storage.local.remove).toHaveBeenCalledTimes(2)
+    await expect(fakeBrowser.storage.local.get()).resolves.toEqual({
+      [ANALYTICS_ENABLED_STORAGE_KEY]: false,
+    })
+  })
+
+  it("keeps analytics disabled and clears stale identifiers before re-enabling after both cleanup attempts fail", async () => {
+    await fakeBrowser.storage.local.set({
+      [ANALYTICS_CLIENT_ID_STORAGE_KEY]: "123.456",
+      [ANALYTICS_SESSION_STORAGE_KEY]: { id: 123, lastSeenAt: 456 },
+      [ANALYTICS_ACTIVE_DATE_STORAGE_KEY]: "2026-08-14",
+    })
+    const originalRemove = fakeBrowser.storage.local.remove.bind(fakeBrowser.storage.local)
+    vi.spyOn(fakeBrowser.storage.local, "remove")
+      .mockRejectedValueOnce(new Error("storage unavailable"))
+      .mockRejectedValueOnce(new Error("storage still unavailable"))
+      .mockImplementation(originalRemove)
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined)
+
+    await expect(setAnalyticsEnabled(false)).resolves.toBeUndefined()
+    expect(fakeBrowser.storage.local.remove).toHaveBeenCalledTimes(2)
+    expect(warn).toHaveBeenCalledWith(
+      "View HEIC analytics state cleanup failed after retry:",
+      expect.any(Error)
+    )
     await expect(fakeBrowser.storage.local.get()).resolves.toMatchObject({
       [ANALYTICS_ENABLED_STORAGE_KEY]: false,
       [ANALYTICS_CLIENT_ID_STORAGE_KEY]: "123.456",
@@ -221,6 +246,40 @@ describe("analytics preference", () => {
     const [, init] = fetchMock.mock.calls[0]
     const payload = JSON.parse(String(init?.body)) as { events: Array<{ name: string }> }
     expect(payload.events.map((event) => event.name)).toEqual(["extension_updated"])
+  })
+
+  it("reports the installation local calendar date with daily activity", async () => {
+    vi.stubEnv("WXT_ENABLE_EXTENSION_ANALYTICS", "true")
+    vi.stubEnv("WXT_ANALYTICS_ENDPOINT", "https://analytics.example.workers.dev")
+    const occurrenceDate = new Date()
+    const occurredAt = occurrenceDate.getTime()
+    const expectedActivityDate = [
+      occurrenceDate.getFullYear(),
+      String(occurrenceDate.getMonth() + 1).padStart(2, "0"),
+      String(occurrenceDate.getDate()).padStart(2, "0"),
+    ].join("-")
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(null, { status: 204 })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    await sendAnalyticsEvent(
+      "popup_opened",
+      {
+        connection_state: "connected",
+        page_phase: "idle",
+        site_enabled: true,
+      },
+      occurredAt
+    )
+
+    const [, init] = fetchMock.mock.calls[0]
+    const payload = JSON.parse(String(init?.body)) as {
+      events: Array<{ name: string; params: Record<string, unknown> }>
+    }
+    const activeEvent = payload.events.find((event) => event.name === "extension_active")
+    expect(activeEvent?.params.activity_date).toBe(expectedActivityDate)
   })
 
   it("preserves the event occurrence time when delivery starts later", async () => {

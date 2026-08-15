@@ -247,6 +247,7 @@ describe("analytics edge proxy", () => {
         extension_version: "1.4.0",
         session_id: 1_786_716_000,
         activity_source: "extension_updated",
+        activity_date: "2026-08-15",
         engagement_time_msec: 1,
       },
     })
@@ -294,6 +295,22 @@ describe("analytics edge proxy", () => {
     ).resolves.toMatchObject({ status: 204 })
     expect(forward).toHaveBeenCalledOnce()
   })
+
+  it.each(["2026-02-30", "2026-13-01", "15-08-2026"])(
+    "rejects invalid local activity date %s",
+    async (activityDate) => {
+      const payload = validPayload()
+      const activeEvent = validActiveEvent("popup")
+      activeEvent.params.activity_date = activityDate
+      payload.events.push(activeEvent)
+      const forward = vi.fn(async () => new Response(null, { status: 204 }))
+
+      await expect(
+        handleAnalyticsRequest(createRequest(payload), env, forward as unknown as typeof fetch)
+      ).resolves.toMatchObject({ status: 400 })
+      expect(forward).not.toHaveBeenCalled()
+    }
+  )
 })
 
 function createRequest(payload: unknown, origin = extensionOrigin): Request {
@@ -342,6 +359,7 @@ function validActiveEvent(activitySource: string) {
     params: {
       ...commonParams(),
       activity_source: activitySource,
+      activity_date: "2026-08-15",
       engagement_time_msec: 1,
     } as Record<string, unknown>,
   }

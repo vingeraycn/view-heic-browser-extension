@@ -4,9 +4,9 @@ This small Cloudflare Worker is the only component that knows the Google Analyti
 
 Deployment configuration:
 
-- `GA_MEASUREMENT_ID`: secret containing the GA4 web stream measurement ID.
+- `GA_MEASUREMENT_ID`: non-confidential configuration value identifying the GA4 web stream.
 - `GA_API_SECRET`: secret containing a newly created Measurement Protocol API secret.
 - `ALLOWED_EXTENSION_ORIGIN`: the published Chrome extension origin (already set in `wrangler.jsonc`).
 - `ANALYTICS_RATE_LIMITER`: the Cloudflare Rate Limiting binding declared in `wrangler.jsonc`; it uses Cloudflare-provided connection metadata and is not part of the analytics payload.
 
-The Origin header narrows browser access but is not an authentication credential. The server-side rate limiter and strict payload contract provide abuse controls without embedding another reusable secret in the open-source extension. Do not put either GA value in the extension environment or bundle.
+The Origin header narrows browser access but is not an authentication credential. The server-side rate limiter and strict payload contract provide abuse controls without embedding another reusable secret in the open-source extension. The proxy boundary intentionally keeps both GA values out of the extension environment and bundle even though only `GA_API_SECRET` is confidential.

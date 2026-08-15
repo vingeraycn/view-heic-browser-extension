@@ -70,6 +70,7 @@ const checks = [
     pass:
       files["utils/analytics-transport.ts"].includes('name: "extension_active"') &&
       files["utils/analytics-transport.ts"].includes("ANALYTICS_ACTIVE_DATE_STORAGE_KEY") &&
+      /activity_date\s*:\s*currentDate/.test(files["utils/analytics-transport.ts"]) &&
       files["utils/analytics-transport.ts"].includes("engagement_time_msec") &&
       files["utils/analytics-transport.ts"].includes("timestamp_micros: occurredAt * 1000") &&
       files["entrypoints/background.ts"].includes("const occurredAt = Date.now()") &&
@@ -109,6 +110,7 @@ const checks = [
       "ANALYTICS_RATE_LIMITER",
       "timestamp_micros",
       "client_id",
+      "activity_date",
       "EVENT_PARAMS",
       "REQUIRED_EVENT_PARAMS",
       "ALLOWED_VALUES",
@@ -122,8 +124,7 @@ const checks = [
       files["docs/privacy.html"].includes("Cloudflare") &&
       files["docs/privacy.html"].includes("Google Analytics") &&
       files["docs/privacy.html"].includes("does not cache or later replay") &&
-      files["docs/privacy.html"].includes("不采集图片内容") &&
-      files["docs/privacy.html"].includes("不缓存、不在以后补发"),
+      files["docs/privacy.html"].includes("We do not collect image contents"),
   },
   {
     name: "the analytics specification defines KPIs, events, and GA4 custom definitions",

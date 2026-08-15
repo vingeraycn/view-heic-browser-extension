@@ -91,6 +91,7 @@ export async function sendAnalyticsEvent(
       params: {
         ...commonParams,
         activity_source: getActivitySource(name),
+        activity_date: currentDate,
         engagement_time_msec: ACTIVE_EVENT_ENGAGEMENT_TIME_MS,
       },
     })
@@ -149,7 +150,15 @@ export async function updateAnalyticsPreference(enabled: boolean): Promise<boole
   }
 
   await browser.storage.local.set({ [ANALYTICS_ENABLED_STORAGE_KEY]: false })
-  await clearAnalyticsState()
+  try {
+    await clearAnalyticsState()
+  } catch {
+    try {
+      await clearAnalyticsState()
+    } catch (error) {
+      console.warn("View HEIC analytics state cleanup failed after retry:", error)
+    }
+  }
   return true
 }
 

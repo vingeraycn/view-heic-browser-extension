@@ -50,7 +50,7 @@ const EVENT_PARAMS: Record<string, ReadonlySet<string>> = {
   file_downloaded: new Set(),
   review_prompt_shown: new Set(["success_total"]),
   review_prompt_action: new Set(["action", "success_total", "failure_total"]),
-  extension_active: new Set(["activity_source", "engagement_time_msec"]),
+  extension_active: new Set(["activity_source", "activity_date", "engagement_time_msec"]),
 }
 
 const ALLOWED_VALUES_BY_EVENT: Record<string, Record<string, ReadonlySet<string>>> = {
@@ -123,7 +123,7 @@ const REQUIRED_EVENT_PARAMS: Record<string, readonly string[]> = {
   file_downloaded: [],
   review_prompt_shown: ["success_total"],
   review_prompt_action: ["action", "success_total", "failure_total"],
-  extension_active: ["activity_source", "engagement_time_msec"],
+  extension_active: ["activity_source", "activity_date", "engagement_time_msec"],
 }
 
 const ACTIVITY_SOURCE_BY_EVENT: Record<string, string> = {
@@ -288,11 +288,18 @@ function isValidParam(eventName: string, key: string, value: unknown): boolean {
   }
   if (key === "duration_ms") return isBoundedInteger(value, 0, MAX_DURATION_MS)
   if (key === "engagement_time_msec") return value === 1
+  if (key === "activity_date") return isValidLocalDateKey(value)
   const allowedValues = ALLOWED_VALUES_BY_EVENT[eventName]?.[key]
   if (allowedValues) {
     return typeof value === "string" && allowedValues.has(value)
   }
   return false
+}
+
+function isValidLocalDateKey(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const date = new Date(`${value}T00:00:00.000Z`)
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
 }
 
 function isValidConversionResult(params: Record<string, unknown>): boolean {

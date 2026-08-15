@@ -158,15 +158,17 @@ describe("review regression contracts", () => {
     expect(popupMain).toContain("let analyticsPreferenceLoaded = false")
     expect(popupMain).toContain("analyticsPreferenceLoaded = true")
     expect(popupMain).toContain("void loadAnalyticsPreference()")
-    expect(popupMain).toContain(
-      "const [tab] = await browser.tabs.query({ active: true, currentWindow: true })"
+    expect(popupMain).toMatch(
+      /const\s*\[tab\]\s*=\s*await\s+browser\.tabs\.query\(\s*{\s*active:\s*true,\s*currentWindow:\s*true,?\s*}\s*\)/
     )
     expect(popupMain).not.toMatch(
       /Promise\.all\(\[\s*browser\.tabs\.query[\s\S]*?getAnalyticsEnabled\(\)/
     )
-    expect(popupMain).toContain("if (!analyticsPreferenceLoaded || analyticsTogglePending) return")
-    expect(popupMain).toContain(
-      "analyticsToggle.disabled = !analyticsPreferenceLoaded || analyticsTogglePending"
+    expect(popupMain).toMatch(
+      /if\s*\(\s*!analyticsPreferenceLoaded\s*\|\|\s*analyticsTogglePending\s*\)\s*return/
+    )
+    expect(popupMain).toMatch(
+      /analyticsToggle\.disabled\s*=\s*!analyticsPreferenceLoaded\s*\|\|\s*analyticsTogglePending/
     )
   })
 
