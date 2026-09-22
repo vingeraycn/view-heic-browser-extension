@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.4.1] - 2026-09-22
+
+### Changed
+
+- Standardized the extension interface, upload and review prompts, and website on English.
+- Removed Chinese translations, automatic language detection, the language switcher, and localized SEO links.
+- Updated documentation, help links, logs, and comments to match the English-only interface.
+- Updated existing verification scripts and preview tooling without changing core image conversion or upload workflows.
+
 ## [1.4.0] - 2026-08-14 📊 Explainable Product Analytics
 
 ### ✨ Added

@@ -37,7 +37,7 @@ const popupPreviewShim = `
           : { detected: 0, converted: 0, failed: 0 };
     let state = {
       protocol: 1,
-      extensionVersion: "1.4.0",
+      extensionVersion: "1.4.1",
       pageInstanceId: "popup-preview",
       siteHost: "example.com",
       siteEnabled: phase !== "disabled",
