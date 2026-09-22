@@ -6,12 +6,10 @@ const reviewClickIndex = content.indexOf('window.open(STORE_REVIEW_URL, "_blank"
 
 const checks = [
   {
-    name: "rating prompt uses localized copy with the real converted count",
+    name: "rating prompt uses English copy with the real converted count",
     pass:
       content.includes("MIN_SUCCESSFUL_IMAGES_FOR_PROMPT = 11") &&
-      content.includes("View HEIC 插件帮你显示了 ${successCount} 张图片") &&
       content.includes("View HEIC helped you display ${successCount} images") &&
-      content.includes("去商店评价") &&
       content.includes("Review in store"),
   },
   {

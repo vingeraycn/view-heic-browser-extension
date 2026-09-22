@@ -12,43 +12,23 @@ import { CONFIG, ERROR_MESSAGES } from "../../utils/constants"
 import { hasHeifExtension, isHeifMimeType } from "../../utils/heif-format"
 import { convertHeifFileToJpegFile } from "../../utils/heic-converter"
 import { HELP_URL } from "../../utils/links"
-import { getPopupLocale } from "../../utils/popup-view"
 
-const locale = getPopupLocale(navigator.language)
-const copy =
-  locale === "zh"
-    ? {
-        title: "将 HEIC 转为 JPEG",
-        subtitle: "选择文件，转换只在本机完成。",
-        choose: "选择 HEIC 或 HEIF 文件",
-        hint: "或拖到这里 · 最大 50 MB",
-        help: "帮助",
-        working: "正在转换…",
-        ready: "可以下载了",
-        another: "选择其他文件",
-        download: "下载 JPEG",
-        privacy: "仅在本机转换",
-        invalid: "请选择 HEIC 或 HEIF 文件。",
-        tooLarge: "文件超过 50 MB。",
-        failed: "暂时无法转换这个文件。",
-        drop: "松开即可转换",
-      }
-    : {
-        title: "Convert HEIC to JPEG",
-        subtitle: "Choose a file. It stays on this device.",
-        choose: "Choose a HEIC or HEIF file",
-        hint: "or drop it here · up to 50 MB",
-        help: "Help",
-        working: "Converting…",
-        ready: "Ready to download",
-        another: "Choose another",
-        download: "Download JPEG",
-        privacy: "Converted on this device",
-        invalid: "Choose a HEIC or HEIF file.",
-        tooLarge: "This file is larger than 50 MB.",
-        failed: "This file couldn’t be converted.",
-        drop: "Drop to convert",
-      }
+const copy = {
+  title: "Convert HEIC to JPEG",
+  subtitle: "Choose a file. It stays on this device.",
+  choose: "Choose a HEIC or HEIF file",
+  hint: "or drop it here · up to 50 MB",
+  help: "Help",
+  working: "Converting…",
+  ready: "Ready to download",
+  another: "Choose another",
+  download: "Download JPEG",
+  privacy: "Converted on this device",
+  invalid: "Choose a HEIC or HEIF file.",
+  tooLarge: "This file is larger than 50 MB.",
+  failed: "This file couldn’t be converted.",
+  drop: "Drop to convert",
+}
 
 const fileInput = getElement<HTMLInputElement>("file-input")
 const dropZone = getElement<HTMLButtonElement>("drop-zone")
@@ -68,7 +48,7 @@ let previewUrl: string | undefined
 let dragDepth = 0
 let conversionGeneration = 0
 
-localizePage()
+initializePage()
 void trackAnalyticsEvent("file_converter_opened", {})
 
 dropZone.addEventListener("click", () => fileInput.click())
@@ -199,8 +179,8 @@ function resetConverter(): void {
   dropZone.focus()
 }
 
-function localizePage(): void {
-  document.documentElement.lang = locale === "zh" ? "zh-CN" : "en"
+function initializePage(): void {
+  document.documentElement.lang = "en"
   document.title = `${copy.title} · View HEIC`
   getElement<HTMLElement>("page-title").textContent = copy.title
   getElement<HTMLElement>("page-subtitle").textContent = copy.subtitle

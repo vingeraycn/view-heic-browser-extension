@@ -36,7 +36,7 @@ and this project follows [Semantic Versioning](https://semver.org/).
 
 ### 🔧 Changed
 
-- First installation now opens English onboarding by default, while popup help and FAQ links follow the interface language.
+- First installation now opens English onboarding by default, with popup links to help and FAQ sections.
 - Partial success now displays the number of converted images with a restrained theme-blue status treatment.
 - The website demo now settles into a stable failure state instead of repeatedly refreshing through polling.
 
@@ -81,7 +81,7 @@ and this project follows [Semantic Versioning](https://semver.org/).
 ### ✨ Added
 
 - Added a store review entry point after more than ten successful image conversions.
-- Added localized review-prompt copy that includes the actual successful conversion count.
+- Added review-prompt copy that includes the actual successful conversion count.
 - Added eased enter and exit animations for the prompt.
 
 ### 🔧 Changed

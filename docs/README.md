@@ -23,7 +23,7 @@ docs/
 
 ## 🏠 Landing Page (`index.html`)
 
-The landing page is a complete bilingual product page. English is the default, and the language switch in the upper-right corner changes between English and Chinese.
+The landing page is an English product page.
 
 - 🎯 Hero: headline, calls to action, and trust statement
 - 📊 Product facts: 50 MB limit, HEIC/HEIF brand coverage, JPEG preview default, and zero image uploads
@@ -35,10 +35,7 @@ The landing page is a complete bilingual product page. English is the default, a
 - ❓ Collapsible FAQ
 - 📣 Closing call to action and full footer
 
-SEO metadata includes description, Open Graph, Twitter Card, and `hreflang`. Language URLs are:
-
-- English: `https://vingeraycn.github.io/view-heic-browser-extension/?lang=en`
-- Chinese: `https://vingeraycn.github.io/view-heic-browser-extension/?lang=zh`
+SEO metadata includes description, Open Graph, and Twitter Card. The canonical URL is `https://vingeraycn.github.io/view-heic-browser-extension/`.
 
 ## 🛍️ Store Assets
 

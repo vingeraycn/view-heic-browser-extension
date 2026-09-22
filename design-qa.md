@@ -5,11 +5,9 @@
 - Reference: the directional concept approved during the product-design session (local review asset, not committed)
 - Reference dimensions: 1221 × 1288 pixels
 - Implementation entry point: run `pnpm preview:ui`, then open `/popup.html?state=idle`
-- Chinese implementation entry point: run `pnpm preview:ui`, then open `/popup.html?state=idle&lang=zh`
 - Final full-view comparison: `view-heic-popup-comparison-v2.png` (local review asset)
-- Chinese browser capture: `view-heic-popup-final-zh.png` (local review asset)
 
-The reference is a directional concept rather than an annotated pixel specification. The comparison places both the reference and implementation inside a 360 × 392 CSS-pixel frame to evaluate hierarchy, density, spacing, and visual language. The browser connection scaled the Chrome captures to 1388 × 731 for the comparison and 1388 × 777 for the Chinese page. Because that connection does not expose a stable `deviceScaleFactor`, size conclusions use CSS-pixel measurements from the browser DOM rather than inferring DPR from exported images.
+The reference is a directional concept rather than an annotated pixel specification. The comparison places both the reference and implementation inside a 360 × 392 CSS-pixel frame to evaluate hierarchy, density, spacing, and visual language. The browser connection scaled the Chrome captures to 1388 × 731 for the comparison. Because that connection does not expose a stable `deviceScaleFactor`, size conclusions use CSS-pixel measurements from the browser DOM rather than inferring DPR from exported images.
 
 ## Dimensions and Hierarchy
 
@@ -29,7 +27,7 @@ Final DOM measurements in Chrome:
 | Row label | 15 / 20, weight 500 |
 | Row status | 14 / 20, weight 400 |
 
-The page has no horizontal or vertical overflow. English and Chinese copy for idle, disabled, and error states preserves the hierarchy and row heights.
+The page has no horizontal or vertical overflow. English copy for idle, disabled, and error states preserves the hierarchy and row heights.
 
 ## Full-View and Detail Comparison
 
