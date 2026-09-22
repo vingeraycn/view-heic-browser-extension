@@ -90,11 +90,11 @@ View HEIC uses the `storage` permission for per-site preferences, review-prompt 
 - Added a polished popup with live page status, per-site controls, help, and a local file converter.
 - Improved HEIC / HEIF uploads on Gemini while preserving the existing ChatGPT workflow.
 - Made conversion failures settle cleanly without repeated loading or retry loops.
-- Opened first-install onboarding in English and kept help links aligned with the popup language.
+- Opened first-install onboarding in English and linked popup help to the onboarding guide.
 
 ### v1.0.12
 
-- Added a localized Chrome Web Store review prompt after repeated successful conversions.
+- Added a Chrome Web Store review prompt after repeated successful conversions.
 - Added local prompt frequency control so users are not repeatedly interrupted.
 - Added enter and exit animations for the prompt.
 - Disabled the Chrome Web Store review prompt in Firefox builds.

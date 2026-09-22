@@ -10,9 +10,6 @@
     />
     <meta name="keywords" content="HEIC,HEIF,Chrome extension,image viewer,HEIC viewer,HEIC to JPEG,heic-to,libheif" />
     <link rel="canonical" href="https://vingeraycn.github.io/view-heic-browser-extension/" />
-    <link rel="alternate" hreflang="en" href="https://vingeraycn.github.io/view-heic-browser-extension/?lang=en" />
-    <link rel="alternate" hreflang="zh-CN" href="https://vingeraycn.github.io/view-heic-browser-extension/?lang=zh" />
-    <link rel="alternate" hreflang="x-default" href="https://vingeraycn.github.io/view-heic-browser-extension/" />
     <link rel="icon" href="./assets/logo.svg" type="image/svg+xml" />
 
     <meta property="og:type" content="website" />
@@ -90,12 +87,8 @@
         </a>
         <div class="flex items-center gap-4">
           <div class="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600" id="nav-links"></div>
-          <div class="flex items-center rounded-full border border-slate-200 bg-white p-1 text-xs font-bold text-slate-500 shadow-sm" aria-label="Language selector">
-            <button type="button" class="lang-btn rounded-full px-3 py-1.5 transition-colors" data-lang-option="en">EN</button>
-            <button type="button" class="lang-btn rounded-full px-3 py-1.5 transition-colors" data-lang-option="zh">中文</button>
-          </div>
           <a
-            data-i18n="installShort"
+            data-copy="installShort"
             href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge"
             target="_blank"
             rel="noopener"
@@ -109,19 +102,19 @@
       <section class="hero-field pt-28 pb-16 px-5">
         <div class="max-w-6xl mx-auto grid lg:grid-cols-[1fr_430px] gap-12 items-center">
           <div>
-            <p data-i18n="heroBadge" class="inline-flex items-center rounded-full border border-brand-100 bg-white px-4 py-2 text-sm font-bold text-brand-700 shadow-sm"></p>
-            <h1 data-i18n="heroTitle" class="mt-7 max-w-3xl text-5xl font-extrabold leading-tight tracking-normal text-slate-950 sm:text-6xl"></h1>
-            <p data-i18n="heroLead" class="mt-6 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl"></p>
+            <p data-copy="heroBadge" class="inline-flex items-center rounded-full border border-brand-100 bg-white px-4 py-2 text-sm font-bold text-brand-700 shadow-sm"></p>
+            <h1 data-copy="heroTitle" class="mt-7 max-w-3xl text-5xl font-extrabold leading-tight tracking-normal text-slate-950 sm:text-6xl"></h1>
+            <p data-copy="heroLead" class="mt-6 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl"></p>
             <div class="mt-9 flex flex-col gap-3 sm:flex-row">
               <a
-                data-i18n="primaryCta"
+                data-copy="primaryCta"
                 href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge"
                 target="_blank"
                 rel="noopener"
                 class="inline-flex items-center justify-center rounded-full bg-brand-600 px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-brand-700"
               ></a>
               <a
-                data-i18n="secondaryCta"
+                data-copy="secondaryCta"
                 href="https://github.com/vingeraycn/view-heic-browser-extension"
                 target="_blank"
                 rel="noopener"
@@ -151,7 +144,7 @@
                   <div class="mt-2 h-3 w-28 rounded-full bg-slate-100"></div>
                 </div>
               </div>
-              <div class="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700" data-i18n="heroMockStatus"></div>
+              <div class="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700" data-copy="heroMockStatus"></div>
             </div>
           </div>
         </div>
@@ -164,14 +157,14 @@
       <section id="how-it-works" class="bg-white px-5 py-20">
         <div class="max-w-6xl mx-auto">
           <div class="text-center">
-            <h2 data-i18n="howTitle" class="text-4xl font-extrabold tracking-normal text-slate-950"></h2>
-            <p data-i18n="howLead" class="mt-4 text-lg text-slate-600"></p>
+            <h2 data-copy="howTitle" class="text-4xl font-extrabold tracking-normal text-slate-950"></h2>
+            <p data-copy="howLead" class="mt-4 text-lg text-slate-600"></p>
           </div>
           <div class="mt-12 grid gap-5 md:grid-cols-3" id="steps"></div>
           <div class="mt-10 rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
-            <h3 data-i18n="flowTitle" class="text-sm font-extrabold uppercase tracking-widest text-slate-500"></h3>
+            <h3 data-copy="flowTitle" class="text-sm font-extrabold uppercase tracking-widest text-slate-500"></h3>
             <div class="mt-5 flex flex-wrap items-center gap-2 text-sm" id="flow"></div>
-            <p data-i18n="flowNote" class="mt-4 text-sm text-slate-500"></p>
+            <p data-copy="flowNote" class="mt-4 text-sm text-slate-500"></p>
           </div>
         </div>
       </section>
@@ -179,8 +172,8 @@
       <section id="features" class="bg-slate-50 px-5 py-20">
         <div class="max-w-6xl mx-auto">
           <div class="max-w-2xl">
-            <h2 data-i18n="featuresTitle" class="text-4xl font-extrabold tracking-normal text-slate-950"></h2>
-            <p data-i18n="featuresLead" class="mt-4 text-lg leading-8 text-slate-600"></p>
+            <h2 data-copy="featuresTitle" class="text-4xl font-extrabold tracking-normal text-slate-950"></h2>
+            <p data-copy="featuresLead" class="mt-4 text-lg leading-8 text-slate-600"></p>
           </div>
           <div class="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3" id="features-grid"></div>
         </div>
@@ -189,31 +182,31 @@
       <section id="demo" class="bg-white px-5 py-20">
         <div class="max-w-6xl mx-auto">
           <div class="text-center">
-            <h2 data-i18n="demoTitle" class="text-4xl font-extrabold tracking-normal text-slate-950"></h2>
-            <p data-i18n="demoLead" class="mx-auto mt-4 max-w-2xl text-lg leading-8 text-slate-600"></p>
+            <h2 data-copy="demoTitle" class="text-4xl font-extrabold tracking-normal text-slate-950"></h2>
+            <p data-copy="demoLead" class="mx-auto mt-4 max-w-2xl text-lg leading-8 text-slate-600"></p>
           </div>
           <div id="ext-status-banner" class="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center text-sm font-bold text-amber-800"></div>
           <div class="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4" id="demo-grid"></div>
           <div class="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-6">
-            <h3 data-i18n="dynamicTitle" class="text-lg font-extrabold text-slate-900"></h3>
-            <p data-i18n="dynamicLead" class="mt-2 text-sm leading-6 text-slate-600"></p>
+            <h3 data-copy="dynamicTitle" class="text-lg font-extrabold text-slate-900"></h3>
+            <p data-copy="dynamicLead" class="mt-2 text-sm leading-6 text-slate-600"></p>
             <button id="add-dynamic-btn" type="button" onclick="addDynamicImage()" class="mt-5 rounded-full bg-brand-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-brand-700"></button>
             <div id="dynamic-images" class="mt-5 grid gap-5 md:grid-cols-2 lg:grid-cols-4 empty:hidden"></div>
           </div>
           <div class="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
               <div>
-                <h3 data-i18n="uploadDemoTitle" class="text-lg font-extrabold text-slate-900"></h3>
-                <p data-i18n="uploadDemoLead" class="mt-2 text-sm leading-6 text-slate-600"></p>
+                <h3 data-copy="uploadDemoTitle" class="text-lg font-extrabold text-slate-900"></h3>
+                <p data-copy="uploadDemoLead" class="mt-2 text-sm leading-6 text-slate-600"></p>
                 <label class="mt-5 inline-flex cursor-pointer rounded-full bg-brand-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-brand-700">
-                  <span data-i18n="uploadDemoButton"></span>
+                  <span data-copy="uploadDemoButton"></span>
                   <input id="upload-demo-input" type="file" accept="image/*,.heic,.heif,.heics,.heifs" class="sr-only" />
                 </label>
-                <p id="upload-demo-status" data-i18n="uploadDemoEmpty" class="mt-4 text-sm font-bold text-slate-500"></p>
+                <p id="upload-demo-status" data-copy="uploadDemoEmpty" class="mt-4 text-sm font-bold text-slate-500"></p>
                 <p id="upload-demo-meta" class="mt-1 text-xs text-slate-500"></p>
               </div>
               <div class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-                <div id="upload-demo-placeholder" data-i18n="uploadDemoPreviewEmpty" class="flex aspect-video items-center justify-center px-6 text-center text-sm font-bold text-slate-400"></div>
+                <div id="upload-demo-placeholder" data-copy="uploadDemoPreviewEmpty" class="flex aspect-video items-center justify-center px-6 text-center text-sm font-bold text-slate-400"></div>
                 <img id="upload-demo-preview" alt="Converted JPG preview" class="hidden aspect-video h-full w-full object-contain bg-slate-100" />
               </div>
             </div>
@@ -225,8 +218,8 @@
       <section id="install" class="bg-slate-50 px-5 py-20">
         <div class="max-w-5xl mx-auto">
           <div class="text-center">
-            <h2 data-i18n="installTitle" class="text-4xl font-extrabold tracking-normal text-slate-950"></h2>
-            <p data-i18n="installLead" class="mt-4 text-lg text-slate-600"></p>
+            <h2 data-copy="installTitle" class="text-4xl font-extrabold tracking-normal text-slate-950"></h2>
+            <p data-copy="installLead" class="mt-4 text-lg text-slate-600"></p>
           </div>
           <div class="mt-12 grid gap-6 md:grid-cols-2" id="install-cards"></div>
         </div>
@@ -234,29 +227,29 @@
 
       <section id="faq" class="bg-slate-50 px-5 py-20">
         <div class="max-w-3xl mx-auto">
-          <h2 data-i18n="faqTitle" class="text-center text-4xl font-extrabold tracking-normal text-slate-950"></h2>
+          <h2 data-copy="faqTitle" class="text-center text-4xl font-extrabold tracking-normal text-slate-950"></h2>
           <div class="mt-10 space-y-4" id="faq-list"></div>
         </div>
       </section>
 
       <section id="tech" class="bg-white px-5 py-20">
         <div class="max-w-6xl mx-auto">
-          <h2 data-i18n="techTitle" class="text-center text-3xl font-extrabold tracking-normal text-slate-950"></h2>
+          <h2 data-copy="techTitle" class="text-center text-3xl font-extrabold tracking-normal text-slate-950"></h2>
           <div class="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4" id="tech-grid"></div>
           <div class="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-6">
-            <h3 data-i18n="structureTitle" class="text-sm font-extrabold uppercase tracking-widest text-slate-500"></h3>
-            <pre data-i18n="structureCode" class="mt-4 overflow-auto rounded-2xl bg-slate-950 p-5 text-xs leading-6 text-slate-200"></pre>
+            <h3 data-copy="structureTitle" class="text-sm font-extrabold uppercase tracking-widest text-slate-500"></h3>
+            <pre data-copy="structureCode" class="mt-4 overflow-auto rounded-2xl bg-slate-950 p-5 text-xs leading-6 text-slate-200"></pre>
           </div>
         </div>
       </section>
 
       <section class="bg-brand-700 px-5 py-20 text-center text-white">
         <div class="max-w-3xl mx-auto">
-          <h2 data-i18n="ctaTitle" class="text-4xl font-extrabold tracking-normal"></h2>
-          <p data-i18n="ctaLead" class="mt-4 text-lg leading-8 text-blue-100"></p>
+          <h2 data-copy="ctaTitle" class="text-4xl font-extrabold tracking-normal"></h2>
+          <p data-copy="ctaLead" class="mt-4 text-lg leading-8 text-blue-100"></p>
           <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <a data-i18n="primaryCta" href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge" target="_blank" rel="noopener" class="rounded-full bg-white px-7 py-3.5 font-bold text-brand-700 transition hover:bg-blue-50"></a>
-            <a data-i18n="githubCta" href="https://github.com/vingeraycn/view-heic-browser-extension" target="_blank" rel="noopener" class="rounded-full border border-white/70 px-7 py-3.5 font-bold text-white transition hover:bg-white/10"></a>
+            <a data-copy="primaryCta" href="https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge" target="_blank" rel="noopener" class="rounded-full bg-white px-7 py-3.5 font-bold text-brand-700 transition hover:bg-blue-50"></a>
+            <a data-copy="githubCta" href="https://github.com/vingeraycn/view-heic-browser-extension" target="_blank" rel="noopener" class="rounded-full border border-white/70 px-7 py-3.5 font-bold text-white transition hover:bg-white/10"></a>
           </div>
         </div>
       </section>
@@ -269,19 +262,19 @@
             <img src="./assets/logo.svg" alt="" class="h-9 w-9" />
             <span>View HEIC</span>
           </div>
-          <p data-i18n="footerLead" class="mt-4 text-sm leading-7"></p>
+          <p data-copy="footerLead" class="mt-4 text-sm leading-7"></p>
         </div>
         <div>
-          <h3 data-i18n="footerLinks" class="text-sm font-extrabold uppercase tracking-widest text-white"></h3>
+          <h3 data-copy="footerLinks" class="text-sm font-extrabold uppercase tracking-widest text-white"></h3>
           <ul class="mt-4 space-y-2 text-sm" id="footer-links"></ul>
         </div>
         <div>
-          <h3 data-i18n="footerProject" class="text-sm font-extrabold uppercase tracking-widest text-white"></h3>
+          <h3 data-copy="footerProject" class="text-sm font-extrabold uppercase tracking-widest text-white"></h3>
           <ul class="mt-4 space-y-2 text-sm" id="project-links"></ul>
         </div>
       </div>
       <div class="max-w-6xl mx-auto mt-10 border-t border-slate-800 pt-6 text-sm">
-        <p data-i18n="license"></p>
+        <p data-copy="license"></p>
       </div>
     </footer>
 
@@ -289,95 +282,94 @@
       const STORE_URL = 'https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge'
       const GITHUB_URL = 'https://github.com/vingeraycn/view-heic-browser-extension'
 
-      const messages = {
-        en: {
-          lang: 'en',
-          title: 'View HEIC - View HEIC / HEIF Images Directly In Your Browser',
-          description: 'A free open-source Chrome extension that helps Chrome display iPhone HEIC and HEIF photos on web pages with local image conversion and privacy-conscious product analytics.',
-          nav: [
-            ['how-it-works', 'Guide'],
-            ['features', 'Why View HEIC'],
-            ['demo', 'Demo'],
-            ['faq', 'FAQ'],
-          ],
-          installShort: 'Install',
-          heroBadge: 'Free Chrome extension · No manual conversion',
-          heroTitle: 'Open HEIC Images Directly In Chrome.',
-          heroLead: 'View HEIC is a browser extension that automatically displays iPhone HEIC / HEIF images on web pages without downloading or manual conversion.',
-          primaryCta: 'Add To Chrome For Free',
-          secondaryCta: 'View Source On GitHub',
-          githubCta: 'GitHub Project',
-          heroMockStatus: 'HEIC Image Converted Locally',
-          trust: ['Local Image Conversion', 'No Image Uploads', 'HEIC / HEIF Support', 'Open Source'],
-          stats: [
-            ['50MB', 'Maximum File Size'],
-            ['6', 'Recognized HEIC brands'],
-            ['JPEG', 'Default Preview Format'],
-            ['0', 'Image Uploads'],
-          ],
-          featuresTitle: 'What You Get',
-          featuresLead: 'View HEIC removes the extra download-convert-open loop and keeps your photos on your device.',
-          features: [
-            ['Automatic Display', 'HEIC and HEIF images on web pages are detected and shown in place when the site allows access.'],
-            ['No Extra App Needed', 'You can inspect the image directly in the browser instead of downloading it and opening another converter.'],
-            ['Private By Design', 'Image conversion runs locally in your browser. View HEIC does not upload image contents, image URLs, page URLs, or file names.'],
-            ['Works As You Browse', 'It handles images that are already on the page and images that appear after the page loads.'],
-            ['Clear Fallback', 'If a website blocks browser extensions from reading an image, the FAQ explains what to check next.'],
-            ['Open Source', 'The project is public, so users and developers can inspect how it works.'],
-          ],
-          howTitle: 'How To Use View HEIC',
-          howLead: 'Install once, refresh the page, and browse normally.',
-          steps: [
-            ['1', 'Install View HEIC', 'Add the extension from the Chrome Web Store. No setup is required.'],
-            ['2', 'Open Or Refresh A Page', 'Go to a page with HEIC / HEIF images, or refresh a page that is already open.'],
-            ['3', 'View The Image', 'Compatible images are converted locally and displayed in their original position.'],
-          ],
-          flowTitle: 'What Happens In The Browser',
-          flow: ['HEIC image appears', 'View HEIC notices it', 'Local conversion', 'Image displays'],
-          flowNote: 'Some websites block extension access to image files. When that happens, View HEIC leaves the page unchanged.',
-          demoTitle: 'Live HEIC Demo',
-          demoLead: 'The files below are real HEIC samples. After installing the extension, they are converted and displayed automatically.',
-          uploadDemoTitle: 'Manual Upload Test',
-          uploadDemoLead: 'Choose a HEIC or HEIF file from your device. View HEIC should replace it with a JPG, then this page will preview the converted image below.',
-          uploadDemoButton: 'Choose HEIC File',
-          uploadDemoEmpty: 'No file selected yet.',
-          uploadDemoPreviewEmpty: 'Converted JPG preview appears here.',
-          uploadDemoReady: 'Converted JPG is ready.',
-          uploadDemoNeedsExtension: 'This input still received HEIC. Install or enable View HEIC, then try again.',
-          detecting: 'Checking extension status...',
-          detected: 'View HEIC is running. The images below are being converted automatically.',
-          notDetectedPrefix: 'View HEIC is not detected. ',
-          notDetectedLink: 'Install the extension',
-          notDetectedSuffix: ' and refresh this page.',
-          waiting: 'Waiting',
-          converted: 'Converted',
-          processing: 'Converting',
-          failed: 'Conversion Failed',
-          demoCases: [
-            ['samples/heic-still.heic', 'Standard HEIC', '1.1 MB', 'HEVC Still'],
-            ['samples/msf1-sequence.heic', 'HEIF Sequence', '873 KB', 'First-Frame Preview'],
-            ['samples/heix-compatible.heic', 'HEIX Compatible', '301 KB', 'Range Extension'],
-            ['samples/corrupted.heic', 'Broken File', '78 B', 'Graceful Fallback'],
-          ],
-          dynamicTitle: 'Dynamic Image Test',
-          dynamicLead: 'Validate that images inserted by JavaScript are still picked up by the extension through MutationObserver.',
-          dynamicButton: 'Add Dynamic HEIC Image',
-          counters: ['Successful Conversions', 'Not Converted', 'Total Images'],
-          installTitle: 'Install View HEIC',
-          installLead: 'Install the extension, then use the demo on this page to confirm it is working.',
-          installCards: [
-            ['Recommended', 'Chrome Web Store', ['Open the Chrome Web Store listing.', 'Click Add to Chrome.', 'Confirm the browser prompt and refresh pages that contain HEIC images.'], 'Go To Chrome Web Store', STORE_URL],
-            ['Try It Here', 'Live Demo', ['Install View HEIC.', 'Return to this page.', 'The sample HEIC images below will display automatically.'], 'Open Demo', '#demo'],
-          ],
-          techTitle: 'Technology And Architecture',
-          tech: [
-            ['WXT Framework', 'Modern browser extension framework powered by Vite.'],
-            ['TypeScript', 'Typed modules for maintainable extension logic.'],
-            ['heic-to 1.5.2', 'Conversion engine based on libheif 1.22.2 with CSP support.'],
-            ['heic-decode 2.1', 'Sequence decoding capability kept available for future animation work.'],
-          ],
-          structureTitle: 'Project Structure',
-          structureCode: `view-heic-browser-extension/
+      const copy = {
+        lang: 'en',
+        title: 'View HEIC - View HEIC / HEIF Images Directly In Your Browser',
+        description: 'A free open-source Chrome extension that helps Chrome display iPhone HEIC and HEIF photos on web pages with local image conversion and privacy-conscious product analytics.',
+        nav: [
+          ['how-it-works', 'Guide'],
+          ['features', 'Why View HEIC'],
+          ['demo', 'Demo'],
+          ['faq', 'FAQ'],
+        ],
+        installShort: 'Install',
+        heroBadge: 'Free Chrome extension · No manual conversion',
+        heroTitle: 'Open HEIC Images Directly In Chrome.',
+        heroLead: 'View HEIC is a browser extension that automatically displays iPhone HEIC / HEIF images on web pages without downloading or manual conversion.',
+        primaryCta: 'Add To Chrome For Free',
+        secondaryCta: 'View Source On GitHub',
+        githubCta: 'GitHub Project',
+        heroMockStatus: 'HEIC Image Converted Locally',
+        trust: ['Local Image Conversion', 'No Image Uploads', 'HEIC / HEIF Support', 'Open Source'],
+        stats: [
+          ['50MB', 'Maximum File Size'],
+          ['6', 'Recognized HEIC brands'],
+          ['JPEG', 'Default Preview Format'],
+          ['0', 'Image Uploads'],
+        ],
+        featuresTitle: 'What You Get',
+        featuresLead: 'View HEIC removes the extra download-convert-open loop and keeps your photos on your device.',
+        features: [
+          ['Automatic Display', 'HEIC and HEIF images on web pages are detected and shown in place when the site allows access.'],
+          ['No Extra App Needed', 'You can inspect the image directly in the browser instead of downloading it and opening another converter.'],
+          ['Private By Design', 'Image conversion runs locally in your browser. View HEIC does not upload image contents, image URLs, page URLs, or file names.'],
+          ['Works As You Browse', 'It handles images that are already on the page and images that appear after the page loads.'],
+          ['Clear Fallback', 'If a website blocks browser extensions from reading an image, the FAQ explains what to check next.'],
+          ['Open Source', 'The project is public, so users and developers can inspect how it works.'],
+        ],
+        howTitle: 'How To Use View HEIC',
+        howLead: 'Install once, refresh the page, and browse normally.',
+        steps: [
+          ['1', 'Install View HEIC', 'Add the extension from the Chrome Web Store. No setup is required.'],
+          ['2', 'Open Or Refresh A Page', 'Go to a page with HEIC / HEIF images, or refresh a page that is already open.'],
+          ['3', 'View The Image', 'Compatible images are converted locally and displayed in their original position.'],
+        ],
+        flowTitle: 'What Happens In The Browser',
+        flow: ['HEIC image appears', 'View HEIC notices it', 'Local conversion', 'Image displays'],
+        flowNote: 'Some websites block extension access to image files. When that happens, View HEIC leaves the page unchanged.',
+        demoTitle: 'Live HEIC Demo',
+        demoLead: 'The files below are real HEIC samples. After installing the extension, they are converted and displayed automatically.',
+        uploadDemoTitle: 'Manual Upload Test',
+        uploadDemoLead: 'Choose a HEIC or HEIF file from your device. View HEIC should replace it with a JPG, then this page will preview the converted image below.',
+        uploadDemoButton: 'Choose HEIC File',
+        uploadDemoEmpty: 'No file selected yet.',
+        uploadDemoPreviewEmpty: 'Converted JPG preview appears here.',
+        uploadDemoReady: 'Converted JPG is ready.',
+        uploadDemoNeedsExtension: 'This input still received HEIC. Install or enable View HEIC, then try again.',
+        detecting: 'Checking extension status...',
+        detected: 'View HEIC is running. The images below are being converted automatically.',
+        notDetectedPrefix: 'View HEIC is not detected. ',
+        notDetectedLink: 'Install the extension',
+        notDetectedSuffix: ' and refresh this page.',
+        waiting: 'Waiting',
+        converted: 'Converted',
+        processing: 'Converting',
+        failed: 'Conversion Failed',
+        demoCases: [
+          ['samples/heic-still.heic', 'Standard HEIC', '1.1 MB', 'HEVC Still'],
+          ['samples/msf1-sequence.heic', 'HEIF Sequence', '873 KB', 'First-Frame Preview'],
+          ['samples/heix-compatible.heic', 'HEIX Compatible', '301 KB', 'Range Extension'],
+          ['samples/corrupted.heic', 'Broken File', '78 B', 'Graceful Fallback'],
+        ],
+        dynamicTitle: 'Dynamic Image Test',
+        dynamicLead: 'Validate that images inserted by JavaScript are still picked up by the extension through MutationObserver.',
+        dynamicButton: 'Add Dynamic HEIC Image',
+        counters: ['Successful Conversions', 'Not Converted', 'Total Images'],
+        installTitle: 'Install View HEIC',
+        installLead: 'Install the extension, then use the demo on this page to confirm it is working.',
+        installCards: [
+          ['Recommended', 'Chrome Web Store', ['Open the Chrome Web Store listing.', 'Click Add to Chrome.', 'Confirm the browser prompt and refresh pages that contain HEIC images.'], 'Go To Chrome Web Store', STORE_URL],
+          ['Try It Here', 'Live Demo', ['Install View HEIC.', 'Return to this page.', 'The sample HEIC images below will display automatically.'], 'Open Demo', '#demo'],
+        ],
+        techTitle: 'Technology And Architecture',
+        tech: [
+          ['WXT Framework', 'Modern browser extension framework powered by Vite.'],
+          ['TypeScript', 'Typed modules for maintainable extension logic.'],
+          ['heic-to 1.5.2', 'Conversion engine based on libheif 1.22.2 with CSP support.'],
+          ['heic-decode 2.1', 'Sequence decoding capability kept available for future animation work.'],
+        ],
+        structureTitle: 'Project Structure',
+        structureCode: `view-heic-browser-extension/
 ├── entrypoints/
 │   ├── content.ts           # DOM scan and MutationObserver
 │   └── background.ts        # Service worker
@@ -386,138 +378,24 @@
 │   ├── constants.ts         # Runtime limits and selectors
 │   └── types.ts             # TypeScript types
 └── docs/                    # GitHub Pages website and demo files`,
-          faqTitle: 'FAQ',
-          faqs: [
-            ['Images Still Do Not Display After Installation. What Should I Check?', 'Make sure the extension is enabled, refresh the page, and open DevTools to confirm the View HEIC content script loaded. If the source server blocks cross-origin fetching, open the original image in a new tab.'],
-            ['Are Images Uploaded To A Server?', 'No. Decoding happens locally in your browser through WebAssembly. Converted images live as Blob URLs in the current tab and are released when the page closes. By default, View HEIC sends coarse product events with a random pseudonymous installation ID, without image contents, image or page URLs, hostnames, file names, browsing history, or form contents. You can turn this off in the extension popup.'],
-            ['Does It Support Firefox?', 'The codebase is built with WXT and can build a Firefox target with pnpm build:firefox. The current store listing is for Chromium browsers.'],
-            ['What Is The Maximum HEIC File Size?', 'The default limit is 50 MB. It is configured in utils/constants.ts as CONFIG.MAX_FILE_SIZE.'],
-            ['How Are Animated HEIC Files Handled?', 'Sequence HEIC files are detected by ISO BMFF brands such as msf1, hevc, or hevx. The extension previews the first frame by default to avoid expensive multi-frame decoding.'],
-          ],
-          ctaTitle: 'Make HEIC Images Work On The Web.',
-          ctaLead: 'Install View HEIC for free and stop downloading files just to inspect them.',
-          footerLead: 'A free open-source browser extension that helps Chrome display HEIC and HEIF images on web pages while keeping image conversion local.',
-          footerLinks: 'Links',
-          footerProject: 'Project',
-          license: 'Open Source under the MIT License.',
-          privacyPolicy: 'Privacy Policy',
-        },
-        zh: {
-          lang: 'zh-CN',
-          title: 'View HEIC - 在浏览器中直接查看 HEIC / HEIF 图片',
-          description: '免费开源的 Chrome 浏览器扩展，让 HEIC / HEIF 图片在网页中直接显示，在本地转换图片，并采用注重隐私的产品分析。',
-          nav: [
-            ['how-it-works', '使用引导'],
-            ['features', '为什么需要'],
-            ['demo', '演示'],
-            ['faq', 'FAQ'],
-          ],
-          installShort: '安装',
-          heroBadge: '免费 Chrome 扩展 · 无需手动转换',
-          heroTitle: '在 Chrome 里直接打开 HEIC 图片。',
-          heroLead: 'View HEIC 是一个浏览器插件，可以让网页里的 iPhone HEIC / HEIF 图片自动显示，无需下载或手动转换。',
-          primaryCta: '免费添加到 Chrome',
-          secondaryCta: '查看 GitHub 源码',
-          githubCta: 'GitHub 开源项目',
-          heroMockStatus: 'HEIC 图片已在本地转换',
-          trust: ['图片本地转换', '不上传图片', '支持 HEIC / HEIF', '开源'],
-          stats: [
-            ['50MB', '最大文件支持'],
-            ['6', '支持的 HEIC 品牌'],
-            ['JPEG', '默认预览格式'],
-            ['0', '图片上传'],
-          ],
-          featuresTitle: '它能帮你解决什么',
-          featuresLead: 'View HEIC 省掉下载、转换、再打开的步骤，并且图片留在你的设备上处理。',
-          features: [
-            ['自动显示', '网页里的 HEIC / HEIF 图片会在站点允许访问时自动识别并原位显示。'],
-            ['不需要额外软件', '不用先下载图片，也不用再打开其他转换工具。'],
-            ['本地转换，保护隐私', '图片转换在你的浏览器本地完成，View HEIC 不会上传图片内容、图片地址、页面地址或文件名。'],
-            ['正常浏览即可', '页面已有图片和页面加载后出现的图片都可以被处理。'],
-            ['失败原因清楚', '如果网站阻止扩展读取图片，常见问题里会告诉你该检查什么。'],
-            ['开源透明', '项目代码公开，用户和开发者都可以查看它如何工作。'],
-          ],
-          howTitle: '如何使用 View HEIC',
-          howLead: '安装一次，刷新页面，然后照常浏览。',
-          steps: [
-            ['1', '安装 View HEIC', '从 Chrome 应用商店添加扩展，无需额外设置。'],
-            ['2', '打开或刷新页面', '进入包含 HEIC / HEIF 图片的网页，或刷新已经打开的页面。'],
-            ['3', '直接查看图片', '兼容图片会在本地转换，并显示在原来的位置。'],
-          ],
-          flowTitle: '浏览器里发生了什么',
-          flow: ['出现 HEIC 图片', 'View HEIC 发现它', '本地转换', '图片显示出来'],
-          flowNote: '有些网站会阻止扩展读取图片文件。遇到这种情况时，View HEIC 会保持页面不变。',
-          demoTitle: '实时 HEIC 演示',
-          demoLead: '下方是真实 HEIC 测试文件。安装扩展后，它们会自动转换并正常显示。',
-          uploadDemoTitle: '手动上传测试',
-          uploadDemoLead: '从你的设备选择 HEIC 或 HEIF 文件。View HEIC 应该先把它替换成 JPG，然后本页会在下方预览转换后的图片。',
-          uploadDemoButton: '选择 HEIC 文件',
-          uploadDemoEmpty: '尚未选择文件。',
-          uploadDemoPreviewEmpty: '转换后的 JPG 会显示在这里。',
-          uploadDemoReady: '转换后的 JPG 已就绪。',
-          uploadDemoNeedsExtension: '这个输入框仍然收到了 HEIC。请安装或启用 View HEIC 后重试。',
-          detecting: '正在检测扩展状态...',
-          detected: 'View HEIC 扩展运行正常，下方图片正在自动转换显示。',
-          notDetectedPrefix: '未检测到 View HEIC 扩展正在运行。请先 ',
-          notDetectedLink: '安装扩展',
-          notDetectedSuffix: ' 后刷新本页面。',
-          waiting: '等待扩展',
-          converted: '已转换',
-          processing: '转换中',
-          failed: '转换失败',
-          demoCases: [
-            ['samples/heic-still.heic', '标准 HEIC', '1.1 MB', 'HEVC 静态图'],
-            ['samples/msf1-sequence.heic', 'HEIF 序列图', '873 KB', '首帧预览'],
-            ['samples/heix-compatible.heic', 'HEIX 兼容', '301 KB', 'Range Extension'],
-            ['samples/corrupted.heic', '错误处理', '78 B', '优雅降级演示'],
-          ],
-          dynamicTitle: '动态加载测试',
-          dynamicLead: '验证 JavaScript 动态插入的图片也能通过 MutationObserver 被扩展监听处理。',
-          dynamicButton: '动态添加 HEIC 图片',
-          counters: ['成功转换', '未转换', '总计图片'],
-          installTitle: '安装 View HEIC',
-          installLead: '安装扩展后，可以直接用本页演示确认它是否正常工作。',
-          installCards: [
-            ['推荐', 'Chrome 应用商店', ['打开 Chrome 应用商店页面。', '点击添加至 Chrome。', '在浏览器弹窗中确认，并刷新包含 HEIC 图片的页面。'], '前往 Chrome 应用商店', STORE_URL],
-            ['立即试用', '实时演示', ['安装 View HEIC。', '回到本页面。', '下方 HEIC 示例图片会自动显示。'], '打开演示', '#demo'],
-          ],
-          techTitle: '技术栈与架构',
-          tech: [
-            ['WXT Framework', '基于 Vite 的现代浏览器扩展开发框架。'],
-            ['TypeScript', '类型化模块让扩展逻辑更易维护。'],
-            ['heic-to 1.5.2', '基于 libheif 1.22.2 的转换引擎，支持 CSP 变体。'],
-            ['heic-decode 2.1', '保留序列帧解码能力，便于后续扩展动画支持。'],
-          ],
-          structureTitle: '项目结构',
-          structureCode: `view-heic-browser-extension/
-├── entrypoints/
-│   ├── content.ts           # DOM 扫描与 MutationObserver
-│   └── background.ts        # Service Worker
-├── utils/
-│   ├── heic-converter.ts    # 转换引擎
-│   ├── constants.ts         # 运行限制与选择器
-│   └── types.ts             # TypeScript 类型
-└── docs/                    # GitHub Pages 官网与演示文件`,
-          faqTitle: '常见问题',
-          faqs: [
-            ['安装后图片还是无法显示，怎么办？', '请确认扩展已启用，刷新页面，并打开开发者工具确认 View HEIC 内容脚本已加载。如果源站阻止跨域读取，可以点击原图在新标签页中查看。'],
-            ['图片会被上传到云端吗？', '不会。解码通过 WebAssembly 在你的浏览器本地完成。转换后的图片以 Blob URL 存在于当前标签页内存中，页面关闭即释放。View HEIC 默认使用随机的假名化安装标识发送粗粒度产品事件，但不包含图片内容、图片或页面地址、网站域名、文件名、浏览历史或表单内容；你可以在扩展 Popup 中随时关闭。'],
-            ['支持 Firefox 吗？', '项目使用 WXT 构建，可以通过 pnpm build:firefox 构建 Firefox 版本。当前商店版本面向 Chromium 浏览器。'],
-            ['最大支持多大的 HEIC 文件？', '默认上限为 50 MB，可在 utils/constants.ts 的 CONFIG.MAX_FILE_SIZE 中修改。'],
-            ['动画 HEIC 如何处理？', '扩展会通过 msf1、hevc、hevx 等 ISO BMFF 品牌识别序列 HEIC，默认只预览首帧，避免昂贵的多帧解码。'],
-          ],
-          ctaTitle: '让网页里的 HEIC 图片正常显示。',
-          ctaLead: '免费安装 View HEIC，不再为了看一张图片而先下载再转换。',
-          footerLead: '免费开源的浏览器扩展，让 HEIC / HEIF 图片在网页中自动显示，并保持图片本地转换。',
-          footerLinks: '链接',
-          footerProject: '项目',
-          license: '基于 MIT 许可证开源。',
-          privacyPolicy: '隐私政策',
-        },
+        faqTitle: 'FAQ',
+        faqs: [
+          ['Images Still Do Not Display After Installation. What Should I Check?', 'Make sure the extension is enabled, refresh the page, and open DevTools to confirm the View HEIC content script loaded. If the source server blocks cross-origin fetching, open the original image in a new tab.'],
+          ['Are Images Uploaded To A Server?', 'No. Decoding happens locally in your browser through WebAssembly. Converted images live as Blob URLs in the current tab and are released when the page closes. By default, View HEIC sends coarse product events with a random pseudonymous installation ID, without image contents, image or page URLs, hostnames, file names, browsing history, or form contents. You can turn this off in the extension popup.'],
+          ['Does It Support Firefox?', 'The codebase is built with WXT and can build a Firefox target with pnpm build:firefox. The current store listing is for Chromium browsers.'],
+          ['What Is The Maximum HEIC File Size?', 'The default limit is 50 MB. It is configured in utils/constants.ts as CONFIG.MAX_FILE_SIZE.'],
+          ['How Are Animated HEIC Files Handled?', 'Sequence HEIC files are detected by ISO BMFF brands such as msf1, hevc, or hevx. The extension previews the first frame by default to avoid expensive multi-frame decoding.'],
+        ],
+        ctaTitle: 'Make HEIC Images Work On The Web.',
+        ctaLead: 'Install View HEIC for free and stop downloading files just to inspect them.',
+        footerLead: 'A free open-source browser extension that helps Chrome display HEIC and HEIF images on web pages while keeping image conversion local.',
+        footerLinks: 'Links',
+        footerProject: 'Project',
+        license: 'Open Source under the MIT License.',
+        privacyPolicy: 'Privacy Policy',
       }
 
       let dynamicCount = 0
-      let currentLang = getInitialLang()
       let uploadDemoPreviewUrl = ''
       const demoFailurePlaceholder = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
@@ -529,21 +407,14 @@
         </svg>
       `)}`
 
-      function getInitialLang() {
-        const queryLang = new URLSearchParams(window.location.search).get('lang')
-        if (queryLang === 'zh' || queryLang === 'en') return queryLang
-        return navigator.languages?.some((lang) => lang.toLowerCase().startsWith('zh')) ? 'zh' : 'en'
-      }
-
       function setText(selector, value) {
         document.querySelectorAll(selector).forEach((node) => {
           node.textContent = value
         })
       }
 
-      function renderLanguage(lang, updateUrl = false) {
-        currentLang = lang
-        const t = messages[lang]
+      function renderPage() {
+        const t = copy
         document.documentElement.lang = t.lang
         document.title = t.title
         document.querySelector('meta[name="description"]').setAttribute('content', t.description)
@@ -552,23 +423,11 @@
         document.querySelector('meta[name="twitter:title"]').setAttribute('content', t.title)
         document.querySelector('meta[name="twitter:description"]').setAttribute('content', t.description)
 
-        if (updateUrl) {
-          const url = new URL(window.location.href)
-          url.searchParams.set('lang', lang)
-          window.history.replaceState(null, '', url)
-        }
-
-        document.querySelectorAll('[data-i18n]').forEach((node) => {
-          const key = node.dataset.i18n
+        document.querySelectorAll('[data-copy]').forEach((node) => {
+          const key = node.dataset.copy
           if (typeof t[key] === 'string') node.textContent = t[key]
         })
 
-        document.querySelectorAll('.lang-btn').forEach((button) => {
-          const active = button.dataset.langOption === lang
-          button.className = active
-            ? 'lang-btn rounded-full bg-slate-950 px-3 py-1.5 text-white transition-colors'
-            : 'lang-btn rounded-full px-3 py-1.5 text-slate-500 transition-colors hover:text-slate-900'
-        })
 
         renderNav(t)
         renderTrust(t)
@@ -667,7 +526,7 @@
       }
 
       function detectExtension() {
-        const t = messages[currentLang]
+        const t = copy
         const banner = document.getElementById('ext-status-banner')
         setTimeout(() => {
           const active = document.querySelector('img.heic-converted, img.heic-processing') !== null
@@ -692,7 +551,7 @@
       }
 
       function updateBadges() {
-        const t = messages[currentLang]
+        const t = copy
         document.querySelectorAll('.heic-card').forEach((card) => {
           const img = card.querySelector('img')
           const badge = card.querySelector('.status-badge')
@@ -779,7 +638,7 @@
 
       function addDynamicImage() {
         dynamicCount += 1
-        const t = messages[currentLang]
+        const t = copy
         const tc = t.demoCases[(dynamicCount - 1) % t.demoCases.length]
         const container = document.getElementById('dynamic-images')
         const card = document.createElement('div')
@@ -799,7 +658,7 @@
       function initUploadDemo() {
         const input = document.getElementById('upload-demo-input')
         input.addEventListener('change', () => {
-          const t = messages[currentLang]
+          const t = copy
           const file = input.files?.[0]
           const preview = document.getElementById('upload-demo-preview')
           const placeholder = document.getElementById('upload-demo-placeholder')
@@ -837,10 +696,7 @@
 
       document.addEventListener('DOMContentLoaded', () => {
         initDemoStateObserver()
-        renderLanguage(currentLang)
-        document.querySelectorAll('.lang-btn').forEach((button) => {
-          button.addEventListener('click', () => renderLanguage(button.dataset.langOption, true))
-        })
+        renderPage()
         initUploadDemo()
         detectExtension()
       })

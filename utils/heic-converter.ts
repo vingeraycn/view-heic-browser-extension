@@ -318,7 +318,7 @@ export class HEICConverter {
       const ctx = canvas.getContext("2d")
       if (!ctx) {
         frames.dispose?.()
-        throw new Error("无法获取canvas 2D上下文")
+        throw new Error("Could not get canvas 2D context")
       }
       let frameIndex = 0
 
@@ -343,7 +343,7 @@ export class HEICConverter {
 
       return "animated-canvas" // Signal that canvas path was taken
     } catch (err) {
-      console.warn("⚠️ 动画HEIC帧解码失败，回退到静态首帧:", err)
+      console.warn("⚠️ Animated HEIC frame decoding failed, falling back to the first frame:", err)
       return null // Caller will fall through to single-frame
     }
   }
@@ -471,7 +471,7 @@ export class HEICConverter {
         }
 
         lastError = error
-        console.warn(`HEIC转换尝试 ${attempt + 1}/${maxRetries} 失败:`, error.message)
+        console.warn(`HEIC conversion attempt ${attempt + 1}/${maxRetries} failed:`, error.message)
 
         if (!shouldRetryConversion(error)) {
           break
@@ -574,16 +574,16 @@ export class HEICConverter {
     ) {
       errorType = "cors"
       errorMessage = ERROR_MESSAGES.CORS_ERROR
-    } else if (errorMessage.includes("Failed to fetch") || errorMessage.includes("网络")) {
+    } else if (errorMessage.includes("Failed to fetch") || errorMessage.includes(ERROR_MESSAGES.NETWORK_ERROR)) {
       errorType = "network"
       errorMessage = ERROR_MESSAGES.NETWORK_ERROR
     } else if (errorMessage.includes("50MB")) {
       errorType = "size"
     } else if (errorMessage.includes(ERROR_MESSAGES.UNSUPPORTED_CODEC) || errorMessage.includes("unsupported")) {
       errorType = "unsupported"
-    } else if (errorMessage.includes("格式") || errorMessage.includes("HEIC")) {
+    } else if (errorMessage.includes(ERROR_MESSAGES.INVALID_FORMAT) || errorMessage.includes("HEIC")) {
       errorType = "format"
-    } else if (errorMessage.includes("转换")) {
+    } else if (errorMessage.includes(ERROR_MESSAGES.CONVERSION_FAILED)) {
       errorType = "conversion"
     } else if (error?.name === "AbortError") {
       errorType = "network"

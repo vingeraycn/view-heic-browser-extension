@@ -334,13 +334,13 @@ function notifyPageInterceptor(enabled: boolean): void {
 }
 
 /**
- * 注入样式到页面
+ * Inject styles into the page
  */
 function injectStyles(): () => void {
   const style = document.createElement("style")
   style.dataset.viewHeicStyles = "true"
   style.textContent = `
-    /* HEIC图片处理状态样式 */
+    /* HEIC image processing status styles */
     .heic-processing {
       position: relative;
       opacity: 0.7;
@@ -348,7 +348,7 @@ function injectStyles(): () => void {
     }
 
     .heic-processing::after {
-      content: "🔄 转换中...";
+      content: "🔄 Converting...";
       position: absolute;
       top: 50%;
       left: 50%;
@@ -480,7 +480,7 @@ function injectStyles(): () => void {
 }
 
 /**
- * 处理页面中的所有HEIC图片
+ * Process all HEIC images on the page
  */
 async function processHEICImages(converter: HEICConverter, trigger: ConversionTrigger): Promise<void> {
   const signal = pageConversionController.signal
@@ -503,7 +503,7 @@ async function processHEICImages(converter: HEICConverter, trigger: ConversionTr
       return
     }
 
-    console.log(`📷 发现 ${images.length} 张HEIC图片，开始转换...`)
+    console.log(`📷 Found ${images.length} HEIC images, starting conversion...`)
     const conversionStartedAt = performance.now()
     const entries = images.map((image) => ({ item: image, version: getImageSrc(image) }))
     const started = pageConversionLedger.begin(entries)
@@ -558,7 +558,7 @@ async function recordConversionResults(
     return { successCount: 0, failureCount: 0 }
   }
 
-  // 统计转换结果
+  // Summarize conversion results
   const successCount = results.filter((r) => r.success).length
   const failureCount = results.length - successCount
   const errorType = getAggregateErrorType(
@@ -568,7 +568,7 @@ async function recordConversionResults(
       .filter(Boolean) as ConversionError["type"][]
   )
 
-  console.log(`✅ 转换完成: ${successCount} 成功, ${failureCount} 失败`)
+  console.log(`✅ Conversion complete: ${successCount} succeeded, ${failureCount} failed`)
   void trackAnalyticsEvent("conversion_completed", {
     surface: "page_image",
     trigger,
@@ -581,7 +581,7 @@ async function recordConversionResults(
   })
 
   if (failureCount > 0) {
-    console.warn("⚠️ 部分图片转换失败，可能是由于CORS限制或格式问题")
+    console.warn("⚠️ Some images could not be converted, possibly due to CORS restrictions or format issues")
   }
 
   await maybeShowRatingPrompt(successCount, failureCount)
@@ -1099,31 +1099,15 @@ function isHEIFUploadCandidate(file: File): boolean {
 }
 
 function getUploadLoadingMessage(count: number): string {
-  if (isChineseLocale()) {
-    return count > 1 ? `正在将 ${count} 张图片转换为 JPG...` : "正在转换为 JPG..."
-  }
-
   return count > 1 ? `Converting ${count} images to JPG...` : "Converting to JPG..."
 }
 
 function getUploadSuccessMessage(count: number): string {
-  if (isChineseLocale()) {
-    return count > 1 ? `已将 ${count} 张图片转换为 JPG` : "已转换为 JPG"
-  }
-
   return count > 1 ? `Converted ${count} images to JPG` : "Converted to JPG"
 }
 
 function getUploadErrorMessage(count: number): string {
-  if (isChineseLocale()) {
-    return count > 1 ? `未能转换 ${count} 张 HEIC 图片` : "未能转换此 HEIC 图片"
-  }
-
   return count > 1 ? `Couldn't convert ${count} HEIC images` : "Couldn't convert this HEIC image"
-}
-
-function isChineseLocale(): boolean {
-  return navigator.language.toLowerCase().startsWith("zh")
 }
 
 function showUploadToast(
@@ -1581,15 +1565,6 @@ function dismissRatingPrompt(prompt: HTMLElement): void {
 }
 
 function getRatingPromptCopy(successCount: number): { text: string; review: string; feedback: string; close: string } {
-  if (navigator.language.toLowerCase().startsWith("zh")) {
-    return {
-      text: `View HEIC 插件帮你显示了 ${successCount} 张图片，如果觉得有帮助，请为我们评价，这将帮助更多需要的人。`,
-      review: "去商店评价",
-      feedback: "反馈问题",
-      close: "关闭",
-    }
-  }
-
   return {
     text: `View HEIC helped you display ${successCount} images. If it was useful, please leave us a review so more people who need it can find it.`,
     review: "Review in store",
@@ -1605,7 +1580,7 @@ function getAggregateErrorType(errorTypes: ConversionError["type"][]): Analytics
 }
 
 /**
- * 监听DOM变化，处理动态添加的HEIC图片
+ * Observe DOM changes and process dynamically added HEIC images
  */
 function observeHEICImages(converter: HEICConverter): () => void {
   const debouncedProcess = debounce(
@@ -1626,12 +1601,12 @@ function observeHEICImages(converter: HEICConverter): () => void {
 
     for (const mutation of mutations) {
       if (mutation.type === "childList") {
-        // 检查新增的节点是否包含img元素
+        // Check whether added nodes contain image elements
         for (const node of mutation.addedNodes) {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const element = node as Element
 
-            // 检查节点本身或其子元素是否为HEIC图片
+            // Check the node and its descendants for HEIC images
             if (element.tagName === "IMG") {
               const img = element as HTMLImageElement
               if (isHEICImageCandidate(img)) {
@@ -1665,7 +1640,7 @@ function observeHEICImages(converter: HEICConverter): () => void {
     }
 
     if (hasNewImages) {
-      console.log("🔄 检测到新的HEIC图片，准备处理...")
+      console.log("🔄 New HEIC images detected, preparing to process...")
       debouncedProcess()
     }
   })

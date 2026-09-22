@@ -13,11 +13,11 @@ export default defineBackground(() => {
 
   browser.runtime.onInstalled.addListener((details) => {
     if (details.reason === "install") {
-      console.log("🎉 View HEIC Extension 安装成功！")
+      console.log("🎉 View HEIC Extension installed successfully!")
       void enqueueAnalyticsEvent("extension_installed", {})
       browser.tabs.create({ url: WELCOME_URL })
     } else if (details.reason === "update") {
-      console.log("🔄 View HEIC Extension 已更新到新版本")
+      console.log("🔄 View HEIC Extension updated to a new version")
       void enqueueAnalyticsEvent(
         "extension_updated",
         details.previousVersion ? { previous_version: details.previousVersion } : {}

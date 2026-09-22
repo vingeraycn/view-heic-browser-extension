@@ -1,4 +1,4 @@
-// 配置常量
+// Configuration constants
 export const CONFIG = {
   MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
   MAX_IMAGE_DIMENSION: 16_384,
@@ -13,14 +13,14 @@ export const CONFIG = {
   ANIMATION_FPS: 24,
 } as const
 
-// 选择器
+// Selectors
 export const SELECTORS = {
   IMAGE_CANDIDATES: "img[src]",
   PROCESSING_CLASS: "heic-processing",
   ERROR_CLASS: "heic-error",
 } as const
 
-// 数据属性
+// Data attributes
 export const DATA_ATTRIBUTES = {
   ORIGINAL_SRC: "data-original-src",
   PROCESSED: "data-heic-processed",
@@ -31,12 +31,12 @@ export const DATA_ATTRIBUTES = {
   PREVIOUS_TITLE: "data-heic-previous-title",
 } as const
 
-// 错误消息
+// Error messages
 export const ERROR_MESSAGES = {
-  FILE_TOO_LARGE: "图片文件过大，超过50MB限制",
-  INVALID_FORMAT: "不是有效的HEIC格式文件",
-  UNSUPPORTED_CODEC: "HEIF容器使用了当前版本暂不支持的编码",
-  NETWORK_ERROR: "网络错误，无法获取图片",
-  CONVERSION_FAILED: "HEIC转换失败",
-  CORS_ERROR: "跨域访问被拒绝",
+  FILE_TOO_LARGE: "Image exceeds the 50MB size limit",
+  INVALID_FORMAT: "Invalid HEIC file format",
+  UNSUPPORTED_CODEC: "HEIF container uses an unsupported codec",
+  NETWORK_ERROR: "Network error: could not fetch image",
+  CONVERSION_FAILED: "HEIC conversion failed",
+  CORS_ERROR: "Cross-origin access denied",
 } as const

@@ -9,7 +9,7 @@ import {
   isSiteEnabledSetResponse,
   type PageState,
 } from "../../utils/extension-messages"
-import { getLocalizedFaqUrl, getLocalizedHelpUrl } from "../../utils/links"
+import { FAQ_URL, HELP_URL } from "../../utils/links"
 import {
   getAnalyticsEnabled,
   setAnalyticsEnabled,
@@ -18,12 +18,9 @@ import {
 import {
   getConnectedPresentation,
   getDisconnectedPresentation,
-  getPopupLocale,
   type PopupPageAction,
   type PopupPresentation,
 } from "../../utils/popup-view"
-
-const locale = getPopupLocale(navigator.language)
 
 const helpButton = getElement<HTMLButtonElement>("help-button")
 const primaryStatus = getElement<HTMLElement>("primary-status")
@@ -55,13 +52,10 @@ let analyticsTogglePending = false
 void initialize()
 
 async function initialize(): Promise<void> {
-  document.documentElement.lang = locale === "zh" ? "zh-CN" : "en"
-  actionList?.setAttribute(
-    "aria-label",
-    locale === "zh" ? "View HEIC 控制" : "View HEIC controls"
-  )
+  document.documentElement.lang = "en"
+  actionList?.setAttribute("aria-label", "View HEIC controls")
 
-  helpButton.addEventListener("click", () => openHelpPage(getLocalizedHelpUrl(locale)))
+  helpButton.addEventListener("click", () => openHelpPage(HELP_URL))
   converterButton.addEventListener("click", openConverter)
   pageRow.addEventListener("click", handlePageAction)
   siteToggle.addEventListener("click", toggleSite)
@@ -79,7 +73,7 @@ async function initialize(): Promise<void> {
   activeTab = tab
 
   if (typeof tab?.id !== "number") {
-    render(getDisconnectedPresentation(tab?.url, locale))
+    render(getDisconnectedPresentation(tab?.url))
     trackPopupOpened("disconnected", "unavailable", false)
     return
   }
@@ -95,10 +89,10 @@ async function initialize(): Promise<void> {
     }
 
     pageState = response
-    render(getConnectedPresentation(response, locale))
+    render(getConnectedPresentation(response))
     trackPopupOpened("connected", response.phase, response.siteEnabled)
   } catch {
-    render(getDisconnectedPresentation(tab.url, locale))
+    render(getDisconnectedPresentation(tab.url))
     trackPopupOpened("disconnected", "unavailable", false)
   }
 }
@@ -118,7 +112,7 @@ function handleRuntimeMessage(message: unknown, sender: Browser.runtime.MessageS
   if (sender.tab?.id !== activeTab?.id) return
 
   pageState = message.state
-  render(getConnectedPresentation(message.state, locale))
+  render(getConnectedPresentation(message.state))
 }
 
 function render(presentation: PopupPresentation): void {
@@ -154,7 +148,7 @@ async function handlePageAction(): Promise<void> {
   }
 
   if (pageAction === "troubleshoot") {
-    await openHelpPage(getLocalizedFaqUrl(locale))
+    await openHelpPage(FAQ_URL)
   }
 }
 
@@ -173,7 +167,7 @@ async function toggleAnalytics(): Promise<void> {
     analyticsEnabled = await getAnalyticsEnabled().catch(() => previousAnalyticsEnabled)
     renderAnalyticsPreference()
     actionFeedback.textContent =
-      locale === "zh" ? "无法更新使用数据设置。" : "Couldn’t update the usage data setting."
+      "Couldn’t update the usage data setting."
   } finally {
     analyticsTogglePending = false
     renderAnalyticsPreference()
@@ -181,8 +175,7 @@ async function toggleAnalytics(): Promise<void> {
 }
 
 function renderAnalyticsPreference(): void {
-  analyticsToggleLabel.textContent =
-    locale === "zh" ? "共享基本使用数据" : "Share basic usage data"
+  analyticsToggleLabel.textContent = "Share basic usage data"
   analyticsToggle.setAttribute("aria-checked", String(analyticsEnabled))
   analyticsToggle.disabled = !analyticsPreferenceLoaded || analyticsTogglePending
 }
@@ -215,25 +208,20 @@ async function toggleSite(): Promise<void> {
       pageState = response.state
       actionFeedback.textContent =
         response.error === "stale-document"
-          ? locale === "zh"
-            ? "页面已变化，请再试一次。"
-            : "The page changed. Try again."
-          : locale === "zh"
-            ? "无法更新此网站的设置。"
-            : "Couldn’t update this site setting."
+          ? "The page changed. Try again."
+          : "Couldn’t update this site setting."
       return
     }
 
     pageState = response.state
-    render(getConnectedPresentation(response.state, locale))
+    render(getConnectedPresentation(response.state))
   } catch {
     pageState = previousState
-    render(getConnectedPresentation(previousState, locale))
-    actionFeedback.textContent =
-      locale === "zh" ? "无法更新此网站的设置。" : "Couldn’t update this site setting."
+    render(getConnectedPresentation(previousState))
+    actionFeedback.textContent = "Couldn’t update this site setting."
   } finally {
     togglePending = false
-    render(getConnectedPresentation(pageState, locale))
+    render(getConnectedPresentation(pageState))
   }
 }
 

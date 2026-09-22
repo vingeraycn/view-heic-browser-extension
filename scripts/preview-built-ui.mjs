@@ -27,9 +27,6 @@ const popupPreviewShim = `
 <script>
   (() => {
     const params = new URLSearchParams(location.search);
-    if (params.get("lang") === "zh") {
-      Object.defineProperty(navigator, "language", { value: "zh-CN", configurable: true });
-    }
     const phase = params.get("state") || "idle";
     const counts = phase === "converting"
       ? { detected: 2, converted: 0, failed: 0 }
