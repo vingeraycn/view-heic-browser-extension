@@ -53,7 +53,8 @@ if (mode === 'preflight') {
     assert.ok(typeof item.observation === 'string' && item.observation.trim(), item.id);
     assert.ok(Array.isArray(item.evidence) && item.evidence.length > 0, item.id);
     for (const evidence of item.evidence) {
-      assert.ok(statSync(resolve(dirname(path), evidence)).size > 0, `${item.id}: missing evidence`);
+      const stats = statSync(resolve(dirname(path), evidence));
+      assert.ok(stats.isFile() && stats.size > 0, `${item.id}: evidence must be a nonempty file`);
     }
     if (item.status === 'pass') {
       assert.equal(report.candidateInstalled, true, 'Cannot pass without confirmed candidate installation');
