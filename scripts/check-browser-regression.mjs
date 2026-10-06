@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { readFileSync, statSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { readFileSync, realpathSync, statSync } from 'node:fs';
+import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Local preflight and evidence completeness only; this does not drive a browser.
@@ -13,7 +13,7 @@ const readJSON = path => JSON.parse(readFileSync(path, 'utf8'));
 const [mode = 'preflight', input] = process.argv.slice(2);
 
 if (mode === 'preflight') {
-  const build = resolve(root, input || '.output/chrome-mv3');
+  const build = realpathSync(resolve(root, input || '.output/chrome-mv3'));
   const manifestBytes = readFileSync(resolve(build, 'manifest.json'));
   const manifest = JSON.parse(manifestBytes);
   assert.equal(manifest.manifest_version, 3);
@@ -23,7 +23,12 @@ if (mode === 'preflight') {
     'converter.html', ...manifest.content_scripts.flatMap(script => script.js)];
   for (const file of files) {
     assert.equal(typeof file, 'string');
-    const stats = statSync(resolve(build, file));
+    const artifact = realpathSync(resolve(build, file));
+    const artifactRelative = relative(build, artifact);
+    assert.ok(!isAbsolute(file) && !isAbsolute(artifactRelative)
+      && artifactRelative !== '..' && !artifactRelative.startsWith(`..${sep}`),
+    `Build artifact must remain inside the build directory: ${file}`);
+    const stats = statSync(artifact);
     assert.ok(stats.isFile() && stats.size > 0, `Build artifact must be a nonempty file: ${file}`);
   }
   const fixture = 'docs/samples/heic-still.heic';
