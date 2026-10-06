@@ -22,8 +22,6 @@ Install from the [Chrome Web Store](https://chromewebstore.google.com/detail/vie
 
 For local development:
 
-Use Node.js 22.12.0 or newer and pnpm. WXT and Vite are explicit development dependencies.
-
 ```bash
 git clone https://github.com/vingeraycn/view-heic-browser-extension.git
 cd view-heic-browser-extension
@@ -32,8 +30,6 @@ pnpm build
 ```
 
 Then open `chrome://extensions/`, enable Developer mode, choose "Load unpacked", and select `.output/chrome-mv3`.
-
-For `pnpm dev`, load `.output/chrome-mv3-dev` instead. Browser startup remains manual.
 
 ## Development
 

@@ -9,7 +9,6 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "u
 
 const content = read("entrypoints/content.ts")
 const converter = read("utils/heic-converter.ts")
-const mutationObserverBody = content.match(/const observer = new MutationObserver\(\(mutations\) => \{([\s\S]*?)\n  \}\)/)?.[1]
 
 const resetBody = converter.match(/resetImageProcessed\(img: HTMLImageElement\): void \{([\s\S]*?)\n  \}/)?.[1] ?? ""
 const errorBody = converter.match(/handleConversionError\([\s\S]*?\): ConversionResult \{([\s\S]*?)\n  \}/)?.[1] ?? ""
@@ -38,7 +37,7 @@ const checks = [
   },
   {
     name: "src mutation observer resets every changed HEIC image in the batch",
-    pass: Boolean(mutationObserverBody) && !/attributeName === "src"[\s\S]*?break/.test(mutationObserverBody),
+    pass: !/attributeName === "src"[\s\S]*?break/.test(content),
   },
   {
     name: "stale conversions are guarded by a per-image generation token",

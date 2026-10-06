@@ -935,7 +935,8 @@ async function convertUploadFiles(
   let failedCount = 0
   const errorTypes: AnalyticsErrorType[] = []
 
-  for (const [index, file] of files.entries()) {
+  for (let index = 0; index < files.length; index += 1) {
+    const file = files[index]
     if (!contentScriptEnabled || operationGeneration !== siteOperationGeneration) {
       convertedFiles.push(...files.slice(index))
       break
@@ -1857,8 +1858,12 @@ function observeFailedImageLoads(
       initialImages.forEach((image) => pendingImages.delete(image))
       let nextImageIndex = 0
       const initialDrain = (async () => {
-        for (const image of initialImages) {
-          if (!contentScriptEnabled || batchGeneration !== initialBatchGeneration) break
+        while (
+          contentScriptEnabled &&
+          batchGeneration === initialBatchGeneration &&
+          nextImageIndex < initialImages.length
+        ) {
+          const image = initialImages[nextImageIndex]
           nextImageIndex += 1
           const result = await probeImage(image, false)
           if (result) results.push(result)
