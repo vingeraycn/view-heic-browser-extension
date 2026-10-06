@@ -23,7 +23,8 @@ if (mode === 'preflight') {
     'converter.html', ...manifest.content_scripts.flatMap(script => script.js)];
   for (const file of files) {
     assert.equal(typeof file, 'string');
-    assert.ok(statSync(resolve(build, file)).size > 0, `Missing/empty build file: ${file}`);
+    const stats = statSync(resolve(build, file));
+    assert.ok(stats.isFile() && stats.size > 0, `Build artifact must be a nonempty file: ${file}`);
   }
   const fixture = 'docs/samples/heic-still.heic';
   const bytes = readFileSync(resolve(root, fixture));
