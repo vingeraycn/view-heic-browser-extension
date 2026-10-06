@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.4.2] - 2026-10-06
+
+### Security
+
+- Updated compatible WXT build dependencies, including PostCSS 8.5.23, without migrating WXT or Vite.
+- Kept Firefox tooling outside this update; the previously accepted low-severity esbuild Windows serve advisory remains.
+
+### Changed
+
+- Documented the real Chrome regression workflow and added local artifact/evidence completeness checks.
+- Preserved image conversion behavior and extension permissions.
+
 ## [1.4.1] - 2026-09-22
 
 ### Changed

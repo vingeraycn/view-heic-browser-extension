@@ -1,6 +1,6 @@
 # View HEIC Browser Extension
 
-[![Version](https://img.shields.io/badge/version-1.4.1-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
+[![Version](https://img.shields.io/badge/version-1.4.2-blue.svg)](https://github.com/vingeraycn/view-heic-browser-extension)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?logo=google-chrome&logoColor=white)](https://chromewebstore.google.com/detail/view-heic/kpbcokcekojhfifjkbglcbaiffegecge)
 
@@ -77,6 +77,12 @@ view-heic-browser-extension/
 View HEIC uses the `storage` permission for per-site preferences, review-prompt state, and the analytics preference. Image conversion always runs locally in the browser. By default, the extension sends coarse product events with a randomly generated pseudonymous installation ID and a short-lived session ID through a first-party validation proxy to Google Analytics. These events cover extension activity, feature entry points, aggregate conversion outcomes, and review-prompt actions. They never include image contents, image or page URLs, hostnames, file names, browsing history, form contents, or converted image data. Users can turn this off at any time from the popup; disabling it also deletes the local analytics identifiers. See the [Privacy Policy](docs/privacy.html) and [analytics specification](docs/analytics.md).
 
 ## Latest Release
+
+### v1.4.2
+
+- Updated compatible build dependencies to address security advisories.
+- Added a documented Chrome regression workflow and artifact/evidence preflight checks.
+- Preserved image conversion behavior and extension permissions.
 
 ### v1.4.1
 
