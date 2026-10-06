@@ -296,7 +296,9 @@ export class HEICConverter {
       }
       frames.dispose?.()
 
-      const { width, height } = rawFrames[0]
+      const firstFrame = rawFrames[0]
+      if (!firstFrame) throw new Error("No frames decoded")
+      const { width, height } = firstFrame
 
       const canvas = document.createElement("canvas")
       canvas.width = width
@@ -324,6 +326,7 @@ export class HEICConverter {
 
       const drawFrame = () => {
         const f = rawFrames[frameIndex]
+        if (!f) throw new Error(`Decoded frame ${frameIndex} is missing`)
         ctx.putImageData(new ImageData(new Uint8ClampedArray(f.data), f.width, f.height), 0, 0)
         frameIndex = (frameIndex + 1) % rawFrames.length
       }

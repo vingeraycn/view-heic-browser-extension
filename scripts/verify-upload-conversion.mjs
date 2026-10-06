@@ -176,7 +176,9 @@ assert(
   content.includes("failedImageObserver.prepareInitialBatch()") &&
     content.includes("failedImageObserver.flushInitialBatch()") &&
     content.includes("const initialImages = Array.from(pendingImages)") &&
-    content.includes("nextImageIndex < initialImages.length") &&
+    content.includes("for (const image of initialImages)") &&
+    content.includes("if (!contentScriptEnabled || batchGeneration !== initialBatchGeneration) break") &&
+    content.includes("initialImages.slice(nextImageIndex).forEach(queueImage)") &&
     content.includes("const result = await probeImage(image, false)") &&
     content.includes('recordConversionResults(results, "initial", startedAt)') &&
     content.includes("contentScriptEnabled && !initialBatchPending"),

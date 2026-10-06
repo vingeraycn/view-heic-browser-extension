@@ -54,13 +54,15 @@ export function isHeifSequenceBuffer(buffer: ArrayBuffer): boolean {
 }
 
 export function isHeifMimeType(mimeType: string): boolean {
-  return HEIF_MIME_TYPES.has(mimeType.split(";")[0].trim().toLowerCase())
+  const [baseType = ""] = mimeType.split(";")
+  return HEIF_MIME_TYPES.has(baseType.trim().toLowerCase())
 }
 
 export function hasHeifExtension(src: string): boolean {
   try {
     return HEIF_EXTENSION_PATTERN.test(new URL(src, location.href).pathname)
   } catch {
-    return HEIF_EXTENSION_PATTERN.test(src.split(/[?#]/)[0])
+    const [path = ""] = src.split(/[?#]/)
+    return HEIF_EXTENSION_PATTERN.test(path)
   }
 }

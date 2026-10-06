@@ -255,15 +255,18 @@ function isAnalyticsEvent(value: unknown): value is AnalyticsEvent {
     return false
   }
   const eventName = value.name
+  const eventParams = EVENT_PARAMS[eventName]
+  const requiredParams = REQUIRED_EVENT_PARAMS[eventName]
+  if (!eventParams || !requiredParams) return false
   if (!isRecord(value.params)) return false
   const params = value.params
 
-  const allowed = new Set([...COMMON_PARAMS, ...EVENT_PARAMS[value.name]])
+  const allowed = new Set([...COMMON_PARAMS, ...eventParams])
   if (!Object.keys(params).every((key) => allowed.has(key))) return false
   for (const key of COMMON_PARAMS) {
     if (!(key in params)) return false
   }
-  if (!REQUIRED_EVENT_PARAMS[value.name].every((key) => key in params)) return false
+  if (!requiredParams.every((key) => key in params)) return false
 
   if (!Object.entries(params).every(([key, param]) => isValidParam(eventName, key, param))) {
     return false
@@ -334,7 +337,7 @@ function isValidConversionResult(params: Record<string, unknown>): boolean {
 
 function isValidAnalyticsBatch(events: AnalyticsEvent[], timestampMicros: number): boolean {
   const [primaryEvent, activeEvent] = events
-  if (primaryEvent.name === "extension_active") return false
+  if (!primaryEvent || primaryEvent.name === "extension_active") return false
   if (!activeEvent) return true
   if (activeEvent.name !== "extension_active") return false
 
